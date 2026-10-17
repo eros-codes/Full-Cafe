@@ -1,0 +1,49 @@
+/* The menu page's own part of the header: the category bar under it. The header itself is site/common/header.css. */
+
+.menu-nav {
+	position: relative;
+	width: 100%;
+	scrollbar-color: transparent transparent;
+	scrollbar-width: none;
+}
+
+.menu-categories {
+	position: relative;
+	padding: 0 0.5rem;
+	width: 100%;
+	overflow-x: auto;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: start;
+	gap: 0.5rem;
+}
+
+.menu-categories li {
+	list-style: none;
+	padding: 0.5rem 1.5rem;
+	border-radius: 1rem;
+	background-color: var(--header-color);
+	color: var(--secondary-text-color);
+	font-size: 1rem;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
+}
+
+.menu-categories li:hover,
+.menu-categories li.selected {
+	background-color: var(--header-options-hover);
+	color: var(--secondary-text-color);
+}
+
+.menu-categories li a {
+	text-decoration: none;
+	white-space: nowrap;
+	color: inherit;
+}
+
+.menu-categories a:focus-visible {
+	outline: 3px solid var(--blue);
+	outline-offset: 2px;
+	border-radius: 6px;
+}

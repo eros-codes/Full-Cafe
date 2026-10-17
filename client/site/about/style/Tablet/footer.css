@@ -1,0 +1,67 @@
+.s-footer {
+	background: linear-gradient(to bottom, var(--journey-3), var(--journey-1));
+	padding: 4.5rem 2.25rem 2.25rem;
+}
+
+.s-footer__inner {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 2.5rem;
+	max-width: 680px;
+	margin: 0 auto;
+	padding-bottom: 2.75rem;
+	border-bottom: 1px solid rgba(211, 209, 206, 0.1);
+	flex-wrap: wrap;
+}
+
+.s-footer__col {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.s-footer__col--brand { gap: 0.9rem; }
+
+.s-footer__brand {
+	font-family: "Lora", serif;
+	font-weight: 700;
+	font-size: 1.4rem;
+	color: var(--chapel-white);
+	letter-spacing: 0.04em;
+}
+
+.s-footer__col p {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.76rem;
+	color: var(--chapel-white);
+	opacity: 0.45;
+	line-height: 1.8;
+}
+
+.s-footer__link {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.76rem;
+	color: var(--chapel-white);
+	opacity: 0.45;
+	transition: opacity 0.2s ease, transform 0.2s ease;
+	display: inline-block;
+}
+
+.s-footer__link:hover {
+	opacity: 1;
+	transform: translateX(-4px);
+}
+
+.s-footer__bottom {
+	max-width: 680px;
+	margin: 2rem auto 0;
+	text-align: center;
+}
+
+.s-footer__bottom p {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.68rem;
+	color: var(--chapel-white);
+	opacity: 0.22;
+}

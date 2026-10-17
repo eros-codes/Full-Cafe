@@ -1,0 +1,55 @@
+.s-cta {
+	background: linear-gradient(to bottom, var(--journey-4), var(--journey-3));
+	padding: 5.5rem 2.25rem;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2.25rem;
+}
+
+.s-cta__text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+	max-width: 480px;
+}
+
+.s-cta__title {
+	font-family: "Lora", serif;
+	font-size: clamp(1.5rem, 3vw, 1.9rem);
+	font-weight: 700;
+	color: var(--secondary-text-color);
+	line-height: 1.35;
+}
+
+.s-cta__sub {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.85rem;
+	color: var(--chapel-white);
+	opacity: 0.45;
+	line-height: 1.85;
+}
+
+.s-cta__btn {
+	display: inline-block;
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.85rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--burnt-oak);
+	background: var(--chapel-white);
+	padding: 0.9rem 2.5rem;
+	border-radius: 2px;
+	transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.s-cta__btn:hover {
+	background: #fff;
+	box-shadow: 0 6px 24px rgba(9, 15, 21, 0.3);
+	transform: translateY(-2px);
+}
+
+.s-cta__btn:active {
+	transform: scale(0.97);
+}

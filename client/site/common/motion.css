@@ -1,0 +1,183 @@
+/* motion.css — the one set of micro-animations for every public page (menu, about, feedback and reservation).
+   It changes no colour, size or layout; it only makes touch and movement feel softer.
+   Individual `scale` / `translate` properties are used so they never clash with transforms that already exist.
+   Page-specific motion lives next to the page (reserve/css/motion.css) and only adds selectors; keyframes
+   and easings are defined here, once.
+   Nothing runs for people who turned on «reduce motion» in their operating system. */
+
+@media (prefers-reduced-motion: no-preference) {
+	/* touch feedback: buttons sink a little (header links, drawer, menu, about, feedback) */
+	.menu-options :is(a, button),
+	.mobile-hamburger,
+	.drawer-close,
+	.mobile-drawer-nav a,
+	.menu-categories li a,
+	.s-hero__cta,
+	.s-cta__btn,
+	.s-nav__link,
+	.submit-btn,
+	.order-clear-button,
+	.order-dialog-done,
+	.order-dialog-qty-btn,
+	.order-dialog-remove,
+	.ctrl-btn {
+		transition-property: scale, background-color, color, border-color, opacity, box-shadow;
+		transition-duration: 0.18s;
+		transition-timing-function: var(--ease-std);
+	}
+
+	.menu-options :is(a, button):active,
+	.mobile-hamburger:active,
+	.drawer-close:active,
+	.mobile-drawer-nav a:active,
+	.menu-categories li a:active,
+	.s-hero__cta:active,
+	.s-cta__btn:active,
+	.submit-btn:active:not(:disabled),
+	.order-clear-button:active:not(:disabled),
+	.order-dialog-done:active,
+	.order-dialog-qty-btn:active,
+	.order-dialog-remove:active,
+	.ctrl-btn:active {
+		scale: 0.96;
+	}
+
+	/* the drawer's links slide in one after another when it opens */
+	.mobile-drawer.open .mobile-drawer-nav li {
+		animation: roof-fade-up 0.36s var(--ease-out) both;
+	}
+
+	.mobile-drawer.open .mobile-drawer-nav li:nth-child(2) {
+		animation-delay: 0.04s;
+	}
+
+	.mobile-drawer.open .mobile-drawer-nav li:nth-child(3) {
+		animation-delay: 0.08s;
+	}
+
+	.mobile-drawer.open .mobile-drawer-nav li:nth-child(4) {
+		animation-delay: 0.12s;
+	}
+
+	.mobile-drawer.open .mobile-drawer-nav li:nth-child(n + 5) {
+		animation-delay: 0.16s;
+	}
+
+	/* menu product card when touched (before the details open) */
+	.food-card {
+		transition: scale 0.18s var(--ease-std);
+	}
+
+	.food-card:active:not(:has(.food-order-btn:active)) {
+		scale: 0.985;
+	}
+
+	/* a number that changes (order badge, quantities, party size) gets one small "pop" (class added by JS) */
+	.is-bumped {
+		animation: roof-bump 0.32s var(--ease-pop);
+	}
+
+	/* product picture settles in the details dialog */
+	.product-dialog.open .product-dialog-image img {
+		animation: roof-settle 0.5s var(--ease-out) both;
+	}
+
+	/* order list items come in one by one */
+	.order-dialog.open .order-dialog-item {
+		animation: roof-fade-up 0.32s var(--ease-out) both;
+	}
+
+	.order-dialog.open .order-dialog-item:nth-child(2) {
+		animation-delay: 0.04s;
+	}
+
+	.order-dialog.open .order-dialog-item:nth-child(3) {
+		animation-delay: 0.08s;
+	}
+
+	.order-dialog.open .order-dialog-item:nth-child(4) {
+		animation-delay: 0.12s;
+	}
+
+	.order-dialog.open .order-dialog-item:nth-child(n + 5) {
+		animation-delay: 0.16s;
+	}
+
+	/* the chosen category pops once */
+	.menu-categories li.selected a {
+		animation: roof-bump 0.3s var(--ease-pop);
+	}
+
+	/* form status message fades in */
+	.form-feedback--visible {
+		animation: roof-fade-up 0.3s var(--ease-out) both;
+	}
+}
+
+@keyframes roof-bump {
+	0% {
+		scale: 1;
+	}
+	45% {
+		scale: 1.18;
+	}
+	100% {
+		scale: 1;
+	}
+}
+
+/* a gentler pop for bigger things (date/duration chips, tabs) */
+@keyframes roof-pick {
+	0% {
+		scale: 1;
+	}
+	40% {
+		scale: 1.06;
+	}
+	100% {
+		scale: 1;
+	}
+}
+
+@keyframes roof-settle {
+	from {
+		scale: 1.06;
+		opacity: 0.6;
+	}
+	to {
+		scale: 1;
+		opacity: 1;
+	}
+}
+
+@keyframes roof-fade-up {
+	from {
+		opacity: 0;
+		translate: 0 8px;
+	}
+	to {
+		opacity: 1;
+		translate: 0 0;
+	}
+}
+
+@keyframes roof-breathe {
+	0%,
+	100% {
+		scale: 1;
+	}
+	50% {
+		scale: 1.05;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

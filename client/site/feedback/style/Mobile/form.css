@@ -1,0 +1,167 @@
+.form-section {
+	width: 100%;
+	max-width: 420px;
+}
+.form-container {
+	background-color: var(--card-color);
+	border-radius: 20px;
+	padding: 1.5rem 1.25rem;
+	box-shadow:
+		0 2px 4px rgba(9, 15, 21, 0.08),
+		0 6px 20px rgba(9, 15, 21, 0.1);
+}
+.form-header {
+	padding-bottom: 1.1rem;
+	margin-bottom: 1.35rem;
+	border-bottom: 1px solid rgba(9, 15, 21, 0.09);
+}
+
+.form-title {
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: var(--burnt-oak);
+	margin-bottom: 0.25rem;
+}
+.form-subtitle {
+	font-size: 0.77rem;
+	color: var(--tertiary-text-color);
+}
+.feedback-form {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+.field-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+.field-label {
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--rich-sabel);
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+.optional {
+	font-weight: 400;
+	font-size: 0.72rem;
+	color: var(--deep-tauqe);
+}
+.field-input {
+	width: 100%;
+	background-color: rgba(9, 15, 21, 0.055);
+	color: var(--burnt-oak);
+	padding: 0.65rem 0.85rem;
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.84rem;
+	border-radius: 10px;
+	border: 1.5px solid transparent;
+	transition:
+		border-color 0.2s ease,
+		box-shadow 0.2s ease,
+		background-color 0.2s ease;
+}
+.field-input::placeholder {
+	color: var(--deep-tauqe);
+}
+.field-input:focus {
+	background-color: rgba(9, 15, 21, 0.035);
+	border-color: var(--rich-sabel);
+	box-shadow: 0 0 0 3px rgba(38, 46, 54, 0.1);
+}
+.field-textarea {
+	resize: vertical;
+	line-height: 1.65;
+	min-height: 105px;
+}
+.char-count {
+	font-size: 0.69rem;
+	color: var(--deep-tauqe);
+	transition: color 0.2s ease;
+}
+.char-count--warn {
+	color: #b8722e;
+}
+
+.submit-btn {
+	width: 100%;
+	padding: 0.75rem 1.5rem;
+	font-size: 0.88rem;
+	margin-top: 0.3rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	background-color: var(--burnt-oak);
+	color: var(--chapel-white);
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-weight: 600;
+	border-radius: 12px;
+	cursor: pointer;
+	transition:
+		background-color 0.2s ease,
+		transform 0.15s ease,
+		box-shadow 0.2s ease;
+}
+.submit-btn:hover:not(:disabled) {
+	background-color: var(--rich-sabel);
+	transform: translateY(-2px);
+	box-shadow: 0 5px 14px rgba(9, 15, 21, 0.22);
+}
+.submit-btn:active:not(:disabled) {
+	transform: translateY(0);
+	box-shadow: none;
+}
+
+.submit-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.submit-icon {
+	display: inline-block;
+	transition: transform 0.2s ease;
+}
+
+.submit-btn:hover:not(:disabled) .submit-icon {
+	transform: translateX(-4px);
+}
+
+.submit-btn--loading .submit-text::after {
+	content: "...";
+	display: inline-block;
+	overflow: hidden;
+	width: 0;
+	vertical-align: bottom;
+	animation: loading-dots 1s steps(4, end) infinite;
+}
+.form-feedback {
+	font-size: 0.79rem;
+	border-radius: 9px;
+	max-height: 0;
+	overflow: hidden;
+	opacity: 0;
+	transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease, margin-top 0.3s ease;
+}
+.form-feedback--visible {
+	max-height: 80px;
+	opacity: 1;
+	padding: 0.55rem 0.85rem;
+	margin-top: 0.85rem;
+}
+.form-feedback--success {
+	background-color: rgba(74, 222, 128, 0.13);
+	color: #14532d;
+}
+.form-feedback--error {
+	background-color: rgba(239, 68, 68, 0.13);
+	color: #7f1d1d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.submit-btn {
+		transition: none;
+	}
+}

@@ -1,0 +1,107 @@
+/* Phase 2 additions to the menu page, built only from its existing colours and type scale.
+
+   1. Menu types (the tabs) are managed in the admin panel, so there can be more of them than fit in the
+      header. The page adds .is-scrollable only when they overflow; the row then scrolls sideways instead
+      of spilling over the logo. With the usual three tabs nothing changes.
+   2. Product add-ons (e.g. «سس فرانسوی +۲۵٬۰۰۰») in the product dialog and in the order list. */
+
+.menu-options.is-scrollable {
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+	/* start-aligned while overflowing, so every tab can be scrolled to */
+	justify-content: safe end;
+}
+.menu-options.is-scrollable::-webkit-scrollbar {
+	display: none;
+}
+.menu-options.is-scrollable button {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+/* with add-ons the details can be taller than the screen: the dialog scrolls instead of clipping */
+.product-dialog.has-addons {
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+.product-dialog.has-addons > * {
+	flex-shrink: 0;
+}
+
+.product-dialog-addons {
+	margin: 0;
+	padding: 0.85rem 0 0.2rem;
+	border: 0;
+	border-top: 1px solid rgba(38, 46, 54, 0.1);
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.product-dialog-addons-title {
+	padding: 0;
+	margin-bottom: 0.35rem;
+	font-size: 0.95rem;
+	font-weight: 800;
+	color: var(--primary-text-color);
+}
+
+.product-dialog-addon {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.55rem 0.75rem;
+	border-radius: 0.85rem;
+	background: rgba(38, 46, 54, 0.05);
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.product-dialog-addon:hover {
+	background: rgba(38, 46, 54, 0.09);
+}
+
+.product-dialog-addon:has(input:checked) {
+	background: rgba(66, 46, 47, 0.14);
+}
+
+.product-dialog-addon input {
+	width: 1.1rem;
+	height: 1.1rem;
+	margin: 0;
+	flex: 0 0 auto;
+	accent-color: var(--header-color);
+	cursor: pointer;
+}
+
+.product-dialog-addon input:focus-visible {
+	outline: 3px solid var(--blue);
+	outline-offset: 2px;
+}
+
+.product-dialog-addon-name {
+	flex: 1;
+	min-width: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--primary-text-color);
+}
+
+.product-dialog-addon-price {
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--tertiary-text-color);
+	white-space: nowrap;
+}
+
+/* the chosen add-ons under a line of the order list */
+.order-dialog-item-addons {
+	display: block;
+	font-size: 0.8rem;
+	color: var(--tertiary-text-color);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

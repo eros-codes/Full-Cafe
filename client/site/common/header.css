@@ -1,0 +1,284 @@
+/* header.css — the one header (and mobile drawer) of the whole site: menu, feedback and the reservation pages.
+   Markup: SiteChrome.tsx (HamburgerButton, MobileDrawer) and reserve/common/Topbar.tsx.
+   Page-specific bits (the menu's category bar, the order button) stay in that page's own stylesheet. */
+
+/* The header and drawer must not depend on the page's own reset (the reservation pages have a different one). */
+.menu-header,
+.menu-header *,
+.mobile-drawer,
+.mobile-drawer * {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	border: none;
+	text-decoration: none;
+	list-style: none;
+	font-size: 14px;
+	direction: rtl;
+}
+
+.menu-header {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-items: center;
+	justify-content: center;
+	position: sticky;
+	top: 0;
+	z-index: 100;
+	backdrop-filter: blur(2px);
+	padding-bottom: 0.5rem;
+	font-family: var(--font-chrome);
+}
+
+.menu-header-top {
+	width: 100%;
+	padding: 1rem;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	background-color: var(--header-color);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.menu-header-right {
+	width: 50%;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: start;
+	gap: 1rem;
+}
+
+.menu-logo {
+	width: 4rem;
+	height: 3rem;
+	display: block;
+	flex: 0 0 auto;
+}
+
+.menu-logo img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* ─── Navigation: buttons (menu types) and links (reservation pages) look and behave the same ─── */
+
+.menu-options {
+	width: 40%;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: end;
+	gap: 1rem;
+	padding: 0 1rem;
+	position: relative;
+}
+
+.menu-options :is(a, button) {
+	position: relative;
+	padding: 0.5rem 0;
+	border: none;
+	background: none;
+	color: var(--secondary-text-color);
+	font-family: inherit;
+	font-size: 14px;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: color 0.3s ease;
+}
+
+.menu-options :is(a, button):hover,
+.menu-options :is(a, button).selected,
+.menu-options a[aria-current='page'] {
+	color: white;
+}
+
+/* The underline is the sliding .type-indicator: on the menu it sits under the selected type (placed by MenuPage),
+   on the reservation pages it follows the hovered link (placed by Topbar). */
+.menu-options .type-indicator {
+	position: absolute;
+	bottom: 6px;
+	left: 0;
+	height: 3px;
+	width: 0;
+	background: var(--header-options-hover);
+	border-radius: 3px;
+	transform: translateX(0);
+	transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.2, 1), width 0.32s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.2s ease;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.menu-options :is(a, button):focus-visible,
+.mobile-hamburger:focus-visible {
+	outline: 3px solid var(--blue);
+	outline-offset: 2px;
+	border-radius: 6px;
+}
+
+/* ─── Hamburger + drawer (phones only) ─── */
+
+.mobile-hamburger {
+	display: none;
+	width: 3rem;
+	height: 3rem;
+	align-items: center;
+	justify-content: center;
+	background: none;
+	border: none;
+	color: var(--header-options);
+	cursor: pointer;
+}
+
+.mobile-hamburger .hamburger-icon {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.mobile-hamburger .hamburger-icon span {
+	display: block;
+	width: 20px;
+	height: 2px;
+	background: var(--header-options);
+	border-radius: 2px;
+}
+
+.drawer-backdrop,
+.mobile-drawer {
+	display: none;
+}
+
+@media (max-width: 767px) {
+	.mobile-hamburger {
+		display: inline-flex;
+	}
+
+	/* the reservation pages' links live in the drawer on phones; the menu's type tabs stay in the bar */
+	.menu-options.menu-links {
+		display: none;
+	}
+
+	.menu-header-right:has(+ .menu-links) {
+		width: 100%;
+	}
+
+	.drawer-backdrop {
+		display: block;
+		position: fixed;
+		inset: 0;
+		z-index: 100;
+		background: rgba(0, 0, 0, 0.28);
+		backdrop-filter: blur(4px);
+		opacity: 0;
+		visibility: hidden;
+		transition: opacity 0.25s ease, visibility 0.25s ease;
+	}
+
+	.drawer-backdrop.visible {
+		opacity: 1;
+		visibility: visible;
+	}
+
+	.mobile-drawer {
+		position: fixed;
+		top: 0;
+		right: 0;
+		z-index: 101;
+		width: min(80vw, 360px);
+		max-width: 360px;
+		height: 100dvh;
+		padding: 20px;
+		display: flex;
+		flex-direction: column;
+		background: var(--card-color);
+		color: var(--burnt-oak);
+		font-family: var(--font-chrome);
+		box-shadow: 0 6px 30px rgba(0, 0, 0, 0.25);
+		transform: translateX(100vw);
+		transition: transform 0.38s var(--ease-out);
+	}
+
+	.mobile-drawer.open {
+		transform: translateX(0);
+	}
+
+	.drawer-close {
+		position: absolute;
+		top: 1.5rem;
+		right: 2rem;
+		background: none;
+		border: none;
+		font-size: 24px;
+		color: var(--burnt-oak);
+		cursor: pointer;
+	}
+
+	.drawer-logo {
+		position: absolute;
+		top: 1rem;
+		left: 1rem;
+		width: 56px;
+		height: auto;
+	}
+
+	.mobile-drawer-nav {
+		margin-top: 48px;
+	}
+
+	.mobile-drawer-nav .menu-footer-links {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		justify-content: flex-start;
+		gap: 12px;
+		padding: 0;
+		margin: 0;
+	}
+
+	.mobile-drawer-nav .menu-footer-links li {
+		list-style: none;
+	}
+
+	.mobile-drawer-nav .menu-footer-links li + li {
+		border-top: 1px solid rgba(0, 0, 0, 0.06);
+	}
+
+	.mobile-drawer-nav .menu-footer-links a {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 12px 8px;
+		border-radius: 6px;
+		background: transparent;
+		color: var(--burnt-oak);
+		font-size: 16px;
+		font-weight: 600;
+	}
+
+	.mobile-drawer-nav .menu-footer-links a .link-text {
+		flex: 1;
+		text-align: right;
+	}
+
+	.mobile-drawer-nav .menu-footer-links li svg {
+		width: 1.2rem;
+		height: 1.2rem;
+		color: var(--burnt-oak);
+		opacity: 0.9;
+	}
+
+	.mobile-drawer-nav .menu-footer-links li:hover svg {
+		opacity: 1;
+	}
+
+	.mobile-drawer-nav .menu-footer-links a:hover {
+		background: rgba(0, 0, 0, 0.03);
+		color: var(--burnt-oak);
+	}
+}

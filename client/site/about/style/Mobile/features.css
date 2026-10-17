@@ -1,0 +1,59 @@
+.s-features__grid {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+
+.s-feat {
+	border-radius: 4px;
+	overflow: hidden;
+	background: rgba(9, 15, 21, 0.06);
+	border: 1px solid rgba(9, 15, 21, 0.1);
+	/* No hover transform on mobile — use active */
+	transition: box-shadow 0.3s ease;
+}
+
+.s-feat:active {
+	box-shadow: 0 8px 24px rgba(9, 15, 21, 0.14);
+}
+
+/* Side-by-side on mobile for each card */
+.s-feat {
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+}
+
+.s-feat__img {
+	width: 120px;
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.s-feat__img img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.s-feat__body {
+	padding: 1rem 1.1rem;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.s-feat__title {
+	font-family: "Lora", serif;
+	font-weight: 600;
+	font-size: 0.8375rem;
+	color: var(--burnt-oak);
+	margin-bottom: 0.4rem;
+}
+
+.s-feat__desc {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.75rem;
+	color: var(--quaternary-text-color);
+	line-height: 1.7;
+}

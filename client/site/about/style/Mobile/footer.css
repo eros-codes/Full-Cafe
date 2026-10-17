@@ -1,0 +1,75 @@
+.s-footer {
+	background: linear-gradient(to bottom, var(--journey-3), var(--journey-1));
+
+	padding: 4rem 1.25rem 2rem;
+}
+
+.s-footer__inner {
+	display: flex;
+	flex-direction: column;
+	gap: 2.25rem;
+	padding-bottom: 2.25rem;
+	border-bottom: 1px solid rgba(211, 209, 206, 0.1);
+}
+
+.s-footer__col {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+}
+
+.s-footer__col--brand { gap: 0.8rem; }
+
+.s-footer__brand {
+	font-family: "Lora", serif;
+	font-weight: 700;
+	font-size: 1.35rem;
+	color: var(--chapel-white);
+	letter-spacing: 0.04em;
+}
+
+.s-footer__col p {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.76rem;
+	color: var(--chapel-white);
+	opacity: 0.45;
+	line-height: 1.85;
+}
+
+.s-footer__col--social {
+	flex-direction: row;
+	gap: 1.5rem;
+}
+
+.s-footer__link {
+	color: var(--chapel-white);
+	opacity: 0.45;
+	transition: opacity 0.2s ease, transform 0.2s ease;
+	display: inline-block;
+	width: 100%;
+}
+.s-footer__link svg {
+	width: 2.5rem;
+	height: 2.5rem;
+	vertical-align: middle;
+	fill: currentColor;
+	margin-right: auto;
+}
+
+/* RTL: hover moves link to the left (reading direction) */
+.s-footer__link:hover {
+	opacity: 1;
+	transform: translateY(-5px);
+}
+
+.s-footer__bottom {
+	margin: 2rem auto 0;
+	text-align: center;
+}
+
+.s-footer__bottom p {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.66rem;
+	color: var(--chapel-white);
+	opacity: 0.22;
+}

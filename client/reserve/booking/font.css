@@ -1,0 +1,5 @@
+/* The booking page uses Estedad for Persian text (the other reservation pages keep Baloo Bhaijaan 2).
+   Imported after global.css so it wins, like the inline <style> after the stylesheets did before. */
+:root {
+	--font-fa: 'Estedad', Tahoma, sans-serif;
+}

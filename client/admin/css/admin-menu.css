@@ -1,0 +1,245 @@
+/* admin-menu.css — بخش‌های منو، دسته‌بندی و نظرات در پنل ادمین.
+   فقط از متغیرها و الگوهای همان admin.css استفاده می‌کند تا ظاهر با بقیه‌ی پنل یکی باشد. */
+
+.menu-toolbar {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 4px;
+}
+
+.menu-toolbar .filter-tabs {
+	flex: 1 1 320px;
+}
+
+.menu-add-btn {
+	width: auto;
+	padding-inline: 18px;
+}
+
+.menu-notice {
+	margin-bottom: 12px;
+}
+
+.menu-thumb {
+	width: 52px;
+	height: 52px;
+	border-radius: var(--r-xs);
+	object-fit: cover;
+	display: block;
+	border: 1px solid var(--line);
+	background: rgba(255, 255, 255, 0.4);
+}
+
+.menu-thumb--empty {
+	display: grid;
+	place-items: center;
+	color: var(--deep-taupe);
+	opacity: 0.6;
+}
+
+.menu-thumb--empty svg {
+	width: 22px;
+	height: 22px;
+}
+
+.menu-desc {
+	color: var(--deep-taupe);
+	opacity: 0.8;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	max-width: 320px;
+}
+
+.menu-nowrap {
+	white-space: nowrap;
+}
+
+.menu-inline-form {
+	margin-bottom: 16px;
+	display: grid;
+	gap: 12px;
+}
+
+.menu-inline-form h4 {
+	color: var(--rich-sabel);
+	font-size: 14px;
+}
+
+.menu-modal {
+	max-height: 90vh;
+	overflow-y: auto;
+	display: grid;
+	gap: 14px;
+}
+
+.menu-modal-error:empty {
+	display: none;
+}
+
+textarea {
+	resize: vertical;
+	min-height: 84px;
+	font: inherit;
+}
+
+.menu-image-field {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	flex-wrap: wrap;
+}
+
+.menu-image-preview .menu-thumb {
+	width: 84px;
+	height: 84px;
+}
+
+.menu-image-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.menu-upload-status {
+	font-size: 12px;
+	color: var(--deep-taupe);
+}
+
+/* نظرات */
+.review-list {
+	display: grid;
+	gap: 12px;
+}
+
+.review-card {
+	margin-top: 0;
+	display: grid;
+	gap: 10px;
+}
+
+.review-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.review-head strong {
+	color: var(--rich-sabel);
+}
+
+.review-date {
+	color: var(--deep-taupe);
+	font-size: 12px;
+	opacity: 0.8;
+	margin-inline-end: auto;
+}
+
+.review-text {
+	color: var(--burnt-oak);
+	line-height: 1.9;
+	font-size: 13.5px;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.review-reply {
+	border-inline-start: 3px solid var(--antique-veil);
+	padding: 8px 12px;
+	color: var(--deep-taupe);
+	font-size: 13px;
+	line-height: 1.8;
+	background: rgba(255, 255, 255, 0.35);
+	border-radius: var(--r-xs);
+}
+
+.review-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.review-actions > button {
+	width: auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 9px 14px;
+}
+
+.review-actions svg {
+	width: 16px;
+	height: 16px;
+}
+
+.hint {
+	color: var(--deep-taupe);
+	opacity: 0.7;
+}
+
+@media (max-width: 767px) {
+	.menu-add-btn {
+		width: 100%;
+	}
+
+	.review-actions > button {
+		flex: 1 1 auto;
+		justify-content: center;
+	}
+
+	.menu-modal {
+		max-height: 92vh;
+	}
+}
+
+/* «تزئین میز»: چک‌باکس و متنش کنار هم. قبلاً هیچ استایلی نداشت و قانون عمومی
+   input { width: 100% } چک‌باکس رو کش می‌داد و متن زیرش می‌افتاد. */
+.checkbox-row,
+.field label.checkbox-row {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	cursor: pointer;
+}
+
+.checkbox-row input[type='checkbox'] {
+	width: 18px;
+	height: 18px;
+	flex: none;
+	margin: 0;
+	padding: 0;
+	accent-color: var(--rich-sabel);
+	cursor: pointer;
+}
+
+/* نقشه‌ی ویرایشگر کل کادرش رو پر می‌کنه (روی گوشی کادر بلندتر از نقشه بود و نصفش خالی می‌ماند) */
+.admin-map-wrap > svg {
+	height: 100%;
+}
+
+/* پس‌زمینه‌ی پنل همیشه به اندازه‌ی صفحه‌ی نمایش و ثابت است. قبلاً گرادیان به اندازه‌ی کل طول
+   صفحه کش می‌آمد؛ در بخش‌های بلند (مثل فهرست ۷۰ محصول) بالای صفحه قهوه‌ای تیره می‌شد و رنگ
+   پس‌زمینه با جابه‌جا شدن بین بخش‌ها عوض به نظر می‌رسید. */
+html {
+	background: #cbb9a4;
+}
+
+body {
+	background: transparent;
+}
+
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	background: var(--bgc);
+	pointer-events: none;
+}

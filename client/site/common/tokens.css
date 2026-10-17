@@ -1,0 +1,42 @@
+/* tokens.css — palette, header/footer colours and easings shared by every public page (site + reservation).
+   Change a colour here and the menu, about, feedback and reservation pages all follow. */
+
+:root {
+  --background-color: #C5BCAD;
+
+  --primary-text-color: #1F1516;
+  --secondary-text-color: #EFEAE4;
+  --tertiary-text-color: #6D5F54;
+  --quaternary-text-color: #422E2F;
+
+  --header-color: #422E2F;
+  --header-options: #EFEAE4;
+  --header-options-hover: #6D5F54;
+  --nav-category-hover: #1F1516;
+
+  --card-color: #EFEAE4;
+
+  --chapel-white: #EFEAE4;
+  --antique-veil: #C5BCAD;
+  --deep-taupe: #6D5F54;
+  --rich-sabel: #422E2F;
+  --burnt-oak: #1F1516;
+
+  --journey-1: var(--burnt-oak);
+  --journey-2: var(--rich-sabel);
+  --journey-3: var(--deep-taupe);
+  --journey-4: var(--antique-veil);
+  --journey-5: var(--chapel-white);
+
+  --footer-color: #1F1516;
+
+  /* header, drawer and footer look the same on every page, whatever font the page body uses */
+  --font-chrome: 'Lora', 'Baloo Bhaijaan 2', Tahoma, serif;
+
+  --blue: #4e80ee; /* keyboard-focus ring */
+
+  /* Motion: one set of easings for the whole site (site, reservation, admin) */
+  --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+}

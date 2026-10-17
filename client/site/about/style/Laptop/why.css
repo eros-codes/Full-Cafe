@@ -1,0 +1,91 @@
+.s-why {
+	margin-top: -1px;
+	background: linear-gradient(to bottom, var(--journey-2), var(--journey-3));
+	padding: 7rem 3.5rem;
+}
+
+.s-why__inner {
+	max-width: 860px;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 4.5rem;
+}
+
+/* ─── Text block ─────────────────────────────────────── */
+.s-why__text .section-title {
+	font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+	color: var(--chapel-white);
+	margin-bottom: 0.9rem;
+}
+
+.s-why__text .section-sub {
+	font-size: 0.9375rem;
+	color: var(--chapel-white);
+	opacity: 0.55;
+	max-width: 500px;
+	margin: 0 auto;
+}
+
+/* ─── Stats ──────────────────────────────────────────── */
+.s-why__stats {
+	display: flex;
+	justify-content: center;
+	gap: 5rem;
+	flex-wrap: wrap;
+}
+
+.s-stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.s-stat__value {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.1rem;
+}
+
+.s-stat__num {
+	font-family: "Lora", serif;
+	font-weight: 700;
+	font-size: 3.75rem;
+	color: var(--chapel-white);
+	line-height: 1;
+}
+
+.s-stat__plus {
+	font-family: "Lora", serif;
+	font-size: 1.75rem;
+	color: var(--chapel-white);
+	opacity: 0.4;
+	line-height: 1;
+	margin-top: 0.25rem;
+}
+
+.s-stat__label {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.75rem;
+	color: var(--chapel-white);
+	opacity: 0.4;
+	letter-spacing: 0.1em;
+}
+
+/* Subtle separator between stats */
+.s-stat + .s-stat {
+	position: relative;
+}
+.s-stat + .s-stat::before {
+	content: "";
+	position: absolute;
+	right: -2.5rem;
+	top: 50%;
+	transform: translateY(-50%);
+	height: 40px;
+	width: 1px;
+	background: rgba(211, 209, 206, 0.12);
+}

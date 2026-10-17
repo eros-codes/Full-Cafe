@@ -1,0 +1,6 @@
+import { SiteFooter } from '../../site/common/SiteChrome';
+
+/** The same footer as the menu and feedback pages (SiteFooter) — same markup, same styles. */
+export function ReserveFooter() {
+	return <SiteFooter links={['about', 'contact', 'menu', 'feedback']} credit="Made with love 🤍" />;
+}

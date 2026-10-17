@@ -1,0 +1,61 @@
+.s-features__grid {
+	max-width: 1080px;
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+}
+
+/* ─── Card ───────────────────────────────────────────── */
+.s-feat {
+	border-radius: 4px;
+	overflow: hidden;
+	background: rgba(9, 15, 21, 0.06);
+	border: 1px solid rgba(9, 15, 21, 0.1);
+	transition:
+		transform  0.38s cubic-bezier(0.4, 0, 0.2, 1),
+		box-shadow 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.s-feat:hover {
+	transform: translateY(-7px);
+	box-shadow: 0 18px 44px rgba(9, 15, 21, 0.18);
+}
+
+/* ─── Image ──────────────────────────────────────────── */
+.s-feat__img {
+	height: 270px;
+	overflow: hidden;
+}
+
+.s-feat__img img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.s-feat:hover .s-feat__img img {
+	transform: scale(1.06);
+}
+
+/* ─── Body ───────────────────────────────────────────── */
+.s-feat__body {
+	padding: 1.35rem 1.4rem 1.6rem;
+}
+
+.s-feat__title {
+	font-family: "Lora", serif;
+	font-weight: 600;
+	font-size: 0.9375rem;
+	color: var(--burnt-oak);
+	margin-bottom: 0.55rem;
+	letter-spacing: 0.01em;
+}
+
+.s-feat__desc {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.8rem;
+	color: var(--quaternary-text-color);
+	line-height: 1.75;
+}

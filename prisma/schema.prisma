@@ -1,0 +1,379 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// DEVELOPER: owner of the template (full access, the only role that may edit the floor map)
+// MAIN: café manager (everything except floor-map geometry and developer accounts)
+// SECONDARY: café staff (reservations, manual booking, menu, reviews)
+enum AdminRole {
+  DEVELOPER
+  MAIN
+  SECONDARY
+}
+
+enum ZoneKey {
+  WINDOW
+  CENTER
+  ROOF
+}
+
+enum TableShape {
+  ROUND
+  SQUARE
+  RECTANGLE
+}
+
+enum ReservationStatus {
+  DRAFT
+  HOLD
+  PAYMENT_PENDING
+  PAYMENT_REVIEW
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  EXPIRED
+}
+
+enum ReservationSource {
+  ONLINE
+  GUEST
+  ADMIN_MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REVIEW
+  REFUND_PENDING
+  REFUNDED
+}
+
+enum PaymentMethod {
+  MOCK
+  ZARINPAL
+  MANUAL
+}
+
+enum RefundStatus {
+  NONE
+  PENDING
+  DONE
+}
+
+enum OtpPurpose {
+  LOGIN
+  GUEST_ACCESS
+}
+
+enum SmsType {
+  OTP
+  CONFIRMATION
+  REMINDER
+  CANCELLATION
+  NOT_CONFIRMED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  phone        String        @unique
+  name         String?
+  isActive     Boolean       @default(true)
+  tokenVersion Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  reservations Reservation[]
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  name         String
+  passwordHash String
+  role         AdminRole @default(SECONDARY)
+  isActive     Boolean   @default(true)
+  // با هر تغییر رمز یکی زیاد می‌شه تا توکن‌های قبلی باطل بشن
+  tokenVersion Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  createdCategories Category[] @relation("categoriesCreated")
+  updatedCategories Category[] @relation("categoriesUpdated")
+  createdProducts   Product[]  @relation("productsCreated")
+  updatedProducts   Product[]  @relation("productsUpdated")
+  updatedReviews    Review[]   @relation("reviewsUpdated")
+}
+
+model OtpCode {
+  id         String     @id @default(cuid())
+  phone      String
+  codeHash   String
+  attempts   Int        @default(0)
+  purpose    OtpPurpose
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([phone, purpose])
+}
+
+model CafeTable {
+  id              String             @id @default(cuid())
+  code            String             @unique
+  displayNumber   String
+  zone            ZoneKey
+  shape           TableShape
+  capacity        Int
+  minGuests       Int                @default(1)
+  maxGuests       Int
+  isActive        Boolean            @default(true)
+  x               Float
+  y               Float
+  width           Float              @default(82)
+  height          Float              @default(58)
+  rotation        Float              @default(0)
+  chairs          Json?
+  description     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  reservations    ReservationTable[]
+  blockedClosures Closure[]
+  connectionsA    TableConnection[]  @relation("ConnectionA")
+  connectionsB    TableConnection[]  @relation("ConnectionB")
+}
+
+model TableConnection {
+  id        String    @id @default(cuid())
+  tableAId  String
+  tableBId  String
+  tableA    CafeTable @relation("ConnectionA", fields: [tableAId], references: [id], onDelete: Cascade)
+  tableB    CafeTable @relation("ConnectionB", fields: [tableBId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@unique([tableAId, tableBId])
+}
+
+model Reservation {
+  id               String             @id @default(cuid())
+  trackingCode     String             @unique
+  userId           String?
+  user             User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName     String
+  customerPhone    String
+  guestCount       Int
+  startAt          DateTime
+  endAt            DateTime
+  durationMinutes  Int
+  status           ReservationStatus  @default(HOLD)
+  source           ReservationSource  @default(ONLINE)
+  holdExpiresAt    DateTime?
+  pricePerGuest    Int
+  totalAmount      Int
+  paidAmount       Int                @default(0)
+  refundStatus     RefundStatus       @default(NONE)
+  // مبلغ تزئین در لحظه‌ی رزرو ثبت می‌شه؛ اگه بعداً قیمتش عوض بشه
+  // فاکتورهای قدیمی دست‌نخورده می‌مونن. صفر یعنی تزئین انتخاب نشده.
+  decorationAmount Int                @default(0)
+  decorationNote   String?
+  notes            String?
+  // زمان ارسال یادآوری؛ خالی یعنی هنوز فرستاده نشده
+  reminderSentAt   DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  tables           ReservationTable[]
+  payments         Payment[]
+  invoice          Invoice?
+
+  @@index([customerPhone])
+  @@index([startAt, endAt])
+  @@index([status])
+  @@index([status, startAt, reminderSentAt])
+}
+
+model ReservationTable {
+  id            String      @id @default(cuid())
+  reservationId String
+  tableId       String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  table         CafeTable   @relation(fields: [tableId], references: [id], onDelete: Restrict)
+
+  @@unique([reservationId, tableId])
+  @@index([tableId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  reservationId String
+  reservation   Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  amount        Int
+  status        PaymentStatus @default(PENDING)
+  method        PaymentMethod @default(MOCK)
+  provider      String        @default("mock")
+  authority     String?
+  refId         String?
+  isMock        Boolean       @default(true)
+  rawResponse   Json?
+  createdAt     DateTime      @default(now())
+  verifiedAt    DateTime?
+
+  @@index([reservationId])
+}
+
+model Invoice {
+  id            String      @id @default(cuid())
+  reservationId String      @unique
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  number        String      @unique
+  totalAmount   Int
+  createdAt     DateTime    @default(now())
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkingHour {
+  id        String  @id @default(cuid())
+  dayOfWeek Int
+  opensAt   String
+  closesAt  String
+  isClosed  Boolean @default(false)
+
+  @@unique([dayOfWeek])
+}
+
+model Closure {
+  id        String     @id @default(cuid())
+  title     String
+  date      DateTime
+  startTime String?
+  endTime   String?
+  zone      ZoneKey?
+  tableId   String?
+  table     CafeTable? @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  reason    String?
+  createdAt DateTime   @default(now())
+
+  @@index([date])
+}
+
+model SmsLog {
+  id        String   @id @default(cuid())
+  phone     String
+  type      SmsType
+  message   String
+  status    String   @default("MOCK_SENT")
+  createdAt DateTime @default(now())
+}
+
+// ─── Menu ─────────────────────────────────────────────────────────────────────
+// Integer ids are kept on purpose: the menu frontend compares them as numbers.
+
+/// Top-level menu section shown as a tab on the menu page (café, breakfast, restaurant, hookah, …).
+/// Managed from the admin panel; replaces the old fixed cafe/restaurant/breakfast enum.
+model MenuType {
+  id         Int        @id @default(autoincrement())
+  name       String     @unique
+  /// Tab order on the menu page (ascending).
+  sortOrder  Int        @default(0)
+  /// Inactive types and their categories are hidden from the public menu.
+  isActive   Boolean    @default(true)
+  categories Category[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Category {
+  id          Int        @id @default(autoincrement())
+  name        String
+  menuTypeId  Int
+  menuType    MenuType   @relation(fields: [menuTypeId], references: [id], onDelete: Restrict)
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  createdById String?
+  updatedById String?
+  createdBy   AdminUser? @relation("categoriesCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy   AdminUser? @relation("categoriesUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([menuTypeId])
+}
+
+model Product {
+  id          Int            @id @default(autoincrement())
+  name        String
+  price       Int
+  description String         @default("")
+  image       String         @default("placeholder.png")
+  categoryId  Int
+  category    Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  addOns      ProductAddOn[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  createdById String?
+  updatedById String?
+  createdBy   AdminUser?     @relation("productsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy   AdminUser?     @relation("productsUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
+}
+
+/// Shared add-on (e.g. "French sauce", +25,000 toman). Created once, attached to any number of products.
+model AddOn {
+  id        Int            @id @default(autoincrement())
+  name      String
+  /// Extra price added to the product price, in toman.
+  price     Int
+  /// Inactive add-ons stay attached but are not offered on the public menu.
+  isActive  Boolean        @default(true)
+  products  ProductAddOn[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model ProductAddOn {
+  productId Int
+  addOnId   Int
+  /// Display order of the add-ons inside one product.
+  sortOrder Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  addOn     AddOn   @relation(fields: [addOnId], references: [id], onDelete: Cascade)
+
+  @@id([productId, addOnId])
+  @@index([addOnId])
+}
+
+model Review {
+  id          Int        @id @default(autoincrement())
+  name        String?
+  text        String
+  reply       String?
+  visible     Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  updatedById String?
+  updatedBy   AdminUser? @relation("reviewsUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([visible])
+}
+
+model SiteVisit {
+  id          Int      @id @default(autoincrement())
+  visitDate   String
+  visitorHash String
+  page        String?
+  createdAt   DateTime @default(now())
+
+  @@unique([visitDate, visitorHash])
+  @@index([visitDate])
+}

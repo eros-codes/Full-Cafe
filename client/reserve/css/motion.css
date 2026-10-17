@@ -1,0 +1,82 @@
+/* motion.css — motion that only the reservation pages need. The shared part (touch feedback on the header,
+   drawer, the "pop" on changed numbers, all keyframes, reduced-motion) is in site/common/motion.css.
+   Individual `scale` / `translate` properties are used so they don't mix with existing transforms
+   (e.g. buttons lifting on hover).
+   Important: don't animate .map-card or its parents; on phones the table details panel is position: fixed
+   and an animated parent would trap it under the dark overlay (see responsive.css). */
+
+@media (prefers-reduced-motion: no-preference) {
+	/* touch feedback */
+	.chip:active,
+	.date-chip:active:not(:disabled),
+	.mode-tabs button:active,
+	.map-zone-tabs button:active,
+	.secondary-btn:active:not(:disabled),
+	.stepper button:active,
+	.map-controls button:active,
+	.combo-item:active {
+		scale: 0.96;
+	}
+
+	.stepper button,
+	.map-controls button,
+	.combo-item {
+		transition-property: scale, background, background-color, color, border-color;
+		transition-duration: 0.18s;
+	}
+
+	/* the option just picked (day, duration, time type, hall) pops once */
+	.date-chip.active,
+	.chip.active,
+	.mode-tabs button.active,
+	.map-zone-tabs button.active {
+		animation: roof-pick 0.32s var(--ease-pop);
+	}
+
+	/* page heading eases in */
+	.page-head > * {
+		animation: roof-fade-up 0.55s var(--ease-out) both;
+	}
+
+	.page-head > *:nth-child(2) {
+		animation-delay: 0.08s;
+	}
+
+	.page-head > *:nth-child(3) {
+		animation-delay: 0.16s;
+	}
+
+	/* selected table details, combo suggestions and search notice fade in on every change */
+	#selectedDetail > *,
+	.combo-item,
+	#searchNotice > *,
+	.timeline-item,
+	#invoiceBox > .detail-row,
+	#paymentBox .detail-row,
+	#result > .detail-row {
+		animation: roof-fade-up 0.35s var(--ease-out) both;
+	}
+
+	#selectedDetail > :nth-child(2),
+	.combo-item:nth-child(2),
+	.timeline-item:nth-child(2) {
+		animation-delay: 0.05s;
+	}
+
+	#selectedDetail > :nth-child(3),
+	.combo-item:nth-child(3),
+	.timeline-item:nth-child(3) {
+		animation-delay: 0.1s;
+	}
+
+	#selectedDetail > :nth-child(n + 4),
+	.combo-item:nth-child(n + 4),
+	.timeline-item:nth-child(n + 4) {
+		animation-delay: 0.15s;
+	}
+
+	/* warning when the table hold is about to run out */
+	.hold-ring.warn {
+		animation: roof-breathe 1.2s ease-in-out infinite;
+	}
+}

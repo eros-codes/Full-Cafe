@@ -1,0 +1,122 @@
+.s-hero {
+	position: relative;
+	min-height: 100dvh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	background: var(--burnt-oak);
+}
+
+.s-hero__bg {
+	position: absolute;
+	inset: -15%;
+	background-image: url("/images/hero-bg.jpg");
+	background-size: cover;
+	background-position: center;
+	will-change: transform;
+}
+
+.s-hero__overlay {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		to bottom,
+		rgba(31, 21, 22, 0.68) 0%,
+		rgba(31, 21, 22, 0.55) 36%,
+		rgba(66, 46, 47, 0.62) 62%,
+		rgba(66, 46, 47, 0.86) 82%,
+		var(--journey-2) 100%
+	);
+}
+
+.s-hero__content {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 1rem;
+	padding: 0 2rem;
+}
+
+.s-hero__eyebrow {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.625rem;
+	font-weight: 500;
+	letter-spacing: 0.38em;
+	color: var(--chapel-white);
+	opacity: 0.45;
+	text-transform: uppercase;
+}
+
+.s-hero__title {
+	font-family: "Lora", serif;
+	font-weight: 700;
+	font-size: clamp(5rem, 22vw, 10rem);
+	color: var(--chapel-white);
+	line-height: 0.88;
+	letter-spacing: -0.025em;
+}
+
+.s-hero__sub {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.875rem;
+	color: var(--chapel-white);
+	opacity: 0.55;
+	line-height: 2;
+	max-width: 380px;
+}
+
+.s-hero__cta {
+	display: inline-flex;
+	align-items: center;
+	margin-top: 0.4rem;
+	padding: 0.7rem 2rem;
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.8rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	color: var(--burnt-oak);
+	background: var(--chapel-white);
+	border-radius: 2px;
+	position: relative;
+	overflow: hidden;
+	transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.s-hero__cta::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.32) 50%, transparent 70%);
+	transform: translateX(150%);
+}
+
+.s-hero__cta:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 10px 24px rgba(9, 15, 21, 0.35);
+}
+
+.s-hero__cta:hover::before {
+	animation: shimmer-sweep 0.55s ease forwards;
+}
+
+.s-hero__scroll {
+	position: absolute;
+	bottom: 1.75rem;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 2;
+}
+
+.s-hero__scroll-line {
+	display: block;
+	width: 1.5px;
+	height: 44px;
+	background: linear-gradient(to bottom, transparent, var(--chapel-white));
+	transform-origin: top center;
+	animation: scroll-pulse 2.2s ease-in-out infinite;
+}

@@ -1,0 +1,101 @@
+/* footer.css — the one footer of the whole site (SiteFooter in SiteChrome.tsx): menu, feedback and the reservation pages. */
+
+/* The footer must not depend on the page's own reset (the reservation pages have a different one). */
+.menu-footer,
+.menu-footer * {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	border: none;
+	text-decoration: none;
+	list-style: none;
+	font-size: 14px;
+	direction: rtl;
+}
+
+.menu-footer {
+	width: 100%;
+	background-color: var(--footer-color);
+	color: var(--header-options);
+	padding: 1.5rem 5rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1rem;
+	font-family: var(--font-chrome);
+}
+
+/* the reservation pages force their own font on h4 and p with !important; the footer keeps the site's */
+.menu-footer :is(h4, h6, p) {
+	font-family: var(--font-chrome) !important;
+}
+
+.menu-footer > div {
+	width: 100%;
+	display: flex;
+	flex-direction: row-reverse;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.menu-footer-top {
+	display: flex;
+	flex-direction: row;
+	align-items: end;
+	justify-content: center;
+	gap: 0.5rem;
+}
+
+.menu-footer-title {
+	direction: ltr;
+	text-align: left;
+	font-size: 1.5rem;
+	color: var(--header-options);
+}
+
+.menu-footer-subtitle {
+	direction: ltr;
+	font-size: 1.1rem;
+	color: var(--secondary-text-color);
+}
+
+.menu-footer-links {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 2rem;
+}
+
+.menu-footer-links a {
+	color: var(--secondary-text-color);
+	text-decoration: none;
+	transition: color 0.15s ease;
+}
+
+.menu-footer-links a:hover {
+	color: var(--antique-veil);
+}
+
+.menu-footer-copyright {
+	color: var(--secondary-text-color);
+	font-size: 0.8rem;
+	font-weight: 400;
+}
+
+.menu-footer-credit {
+	color: var(--secondary-text-color);
+	font-size: 12px;
+	text-align: right;
+}
+
+@media (max-width: 767px) {
+	.menu-footer {
+		padding: 0.75rem 2rem 1rem;
+		gap: 0.4rem;
+	}
+
+	.menu-footer > div {
+		display: none;
+	}
+}

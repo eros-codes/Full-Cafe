@@ -1,0 +1,75 @@
+.s-cta {
+	background: linear-gradient(to bottom, var(--journey-4), var(--journey-3));
+	padding: 7rem 3.5rem;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2.5rem;
+}
+
+.s-cta__text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	max-width: 520px;
+}
+
+.s-cta__title {
+	font-family: "Lora", serif;
+	font-size: clamp(1.65rem, 2.5vw, 2.2rem);
+	font-weight: 700;
+	color: var(--secondary-text-color);
+	line-height: 1.35;
+}
+
+.s-cta__sub {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.9rem;
+	color: var(--chapel-white);
+	opacity: 0.45;
+	line-height: 1.85;
+}
+
+.s-cta__btn {
+	display: inline-block;
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.875rem;
+	font-weight: 700;
+	letter-spacing: 0.07em;
+	color: var(--burnt-oak);
+	background: var(--chapel-white);
+	padding: 1rem 2.75rem;
+	border-radius: 2px;
+	position: relative;
+	overflow: hidden;
+	transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.s-cta__btn::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		120deg,
+		transparent 30%,
+		rgba(255,255,255,0.35) 50%,
+		transparent 70%
+	);
+	transform: translateX(-100%);
+	transition: transform 0.55s ease;
+}
+
+.s-cta__btn:hover::after {
+	transform: translateX(100%);
+}
+
+.s-cta__btn:hover {
+	background: #fff;
+	box-shadow: 0 8px 28px rgba(9, 15, 21, 0.35);
+	transform: translateY(-2px);
+}
+
+.s-cta__btn:active {
+	transform: scale(0.97);
+}

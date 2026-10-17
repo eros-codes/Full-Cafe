@@ -1,0 +1,89 @@
+@keyframes slide-in-bottom {
+	from { transform: translateY(52px); opacity: 0; }
+	to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes slide-in-top {
+	from { transform: translateY(-52px); opacity: 0; }
+	to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes slide-out-top {
+	from { transform: translateY(0);     opacity: 1; }
+	to   { transform: translateY(-52px); opacity: 0; }
+}
+
+@keyframes slide-out-bottom {
+	from { transform: translateY(0);    opacity: 1; }
+	to   { transform: translateY(52px); opacity: 0; }
+}
+
+.msg-exchange {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 0.6rem;
+	padding: 0.75rem 1.1rem;
+}
+
+.msg--enter-bottom { animation: slide-in-bottom 0.45s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.msg--enter-top    { animation: slide-in-top    0.45s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.msg--exit-top     { animation: slide-out-top   0.45s cubic-bezier(0.4, 0, 0.2, 1) both; pointer-events: none; }
+.msg--exit-bottom  { animation: slide-out-bottom 0.45s cubic-bezier(0.4, 0, 0.2, 1) both; pointer-events: none; }
+
+.msg-row { display: flex; }
+.msg-row--user  { justify-content: flex-start; }
+.msg-row--admin { justify-content: flex-end; }
+
+.msg-bubble {
+	max-width: 80%;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding: 0.55rem 0.85rem 0.5rem;
+	border-radius: 16px;
+}
+.msg-bubble--user {
+	background-color: var(--chapel-white);
+	border-bottom-left-radius: 4px;
+}
+.msg-bubble--admin {
+	background-color: rgba(9, 15, 21, 0.5);
+	border-bottom-right-radius: 4px;
+}
+.msg-sender {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.68rem;
+	font-weight: 700;
+	color: var(--deep-tauqe);
+}
+.msg-bubble--admin .msg-sender {
+	color: rgba(211, 209, 206, 0.5);
+}
+.msg-text {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.82rem;
+	line-height: 1.62;
+	color: var(--burnt-oak);
+}
+.msg-bubble--admin .msg-text {
+	color: var(--secondary-text-color);
+}
+.msg-meta {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.66rem;
+	color: var(--deep-tauqe);
+	align-self: flex-end;
+	margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.msg--enter-bottom,
+	.msg--enter-top,
+	.msg--exit-top,
+	.msg--exit-bottom {
+		animation-duration: 0.01ms !important;
+	}
+}

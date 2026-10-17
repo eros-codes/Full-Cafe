@@ -1,0 +1,56 @@
+/* ═══════════════════════════════════════════════════════
+   BASE — shared animations & utilities
+   Imported by every device barrel (laptop/tablet/mobile)
+   ═══════════════════════════════════════════════════════ */
+
+html { scroll-behavior: smooth; }
+
+/* ─── Keyframes ──────────────────────────────────────── */
+@keyframes scroll-pulse {
+	0%, 100% { transform: scaleY(0.4) translateY(0);   opacity: 0.3; }
+	50%       { transform: scaleY(1)   translateY(4px); opacity: 0.9; }
+}
+
+@keyframes shimmer-sweep {
+	from { transform: translateX(150%); }
+	to   { transform: translateX(-150%); }
+}
+
+@keyframes fade-in-hero {
+	from { opacity: 0; transform: translateY(18px); }
+	to   { opacity: 1; transform: none; }
+}
+
+/* ─── Reveal system ──────────────────────────────────── */
+/* Only hides elements when JS is loaded (progressive enhancement) */
+.js-ready [data-reveal] {
+	opacity: 0;
+	transform: translateY(22px);
+	transition:
+		opacity  0.65s cubic-bezier(0.4, 0, 0.2, 1),
+		transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.js-ready [data-reveal].is-revealed {
+	opacity: 1;
+	transform: none;
+}
+
+/* ─── Shared type helpers ────────────────────────────── */
+.section-title {
+	font-family: "Lora", serif;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.section-sub {
+	font-family: "Baloo Bhaijaan 2", sans-serif;
+	line-height: 1.9;
+}
+
+/* ─── Cakes track — hide scrollbar globally ──────────── */
+.s-cakes__track {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+.s-cakes__track::-webkit-scrollbar { display: none; }

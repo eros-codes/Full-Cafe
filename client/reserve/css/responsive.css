@@ -1,0 +1,325 @@
+/* responsive.css — لایه‌ی ریسپانسیو صفحه‌های رزرو.
+   بعد از CSS هر صفحه لینک می‌شه و هیچ رنگ، فونت یا شکلی رو عوض نمی‌کنه؛ فقط چیدمان رو برای
+   گوشی و تبلت درست می‌کنه. قوانین دسکتاپ دست نخورده‌ان، پس دسکتاپ دقیقاً مثل قبل می‌مونه.
+   ترتیب: اول تنظیمات همه‌ی اندازه‌ها، بعد تبلت (≤1023)، بعد گوشی (≤767)، بعد گوشی کوچک (≤380). */
+
+/* ─── همه‌ی اندازه‌ها ─────────────────────────────────────────────────────── */
+
+/* روی صفحه‌ی لمسی، کشیدن عمودی صفحه رو اسکرول می‌کنه (قبلاً انگشت روی نقشه گیر می‌کرد
+   و صفحه پایین نمی‌رفت)؛ کشیدن افقی و دو انگشت، نقشه رو جابه‌جا/زوم می‌کنه. */
+.map-wrap {
+	touch-action: pan-y;
+}
+
+/* SVG کل کادر نقشه رو پر می‌کنه؛ نما (viewBox) با نسبت کادر تنظیم می‌شه.
+   روی دسکتاپ کادر ۲:۱ و نقشه هم ۲:۱ است، پس ظاهر دقیقاً مثل قبله. */
+#floorMap {
+	height: 100%;
+}
+
+html,
+body {
+	max-width: 100%;
+	overflow-x: clip;
+}
+
+img,
+svg {
+	max-width: 100%;
+}
+
+/* «تزئین میز»: چک‌باکس و متنش کنار هم. قبلاً هیچ استایلی نداشت و قانون عمومی
+   input { width: 100% } چک‌باکس رو کش می‌داد و متن زیرش می‌افتاد. */
+.checkbox-row,
+.field label.checkbox-row {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	cursor: pointer;
+}
+
+.checkbox-row input[type='checkbox'] {
+	width: 18px;
+	height: 18px;
+	flex: none;
+	margin: 0;
+	padding: 0;
+	accent-color: var(--rich-sabel);
+	cursor: pointer;
+}
+
+/* لپ‌تاپ کوچک / تبلت افقی: ستون نقشه باریک‌تر از ۸۶۰px است؛ min-height با نسبت ۲:۱
+   عرض نقشه را به ۸۶۰px می‌رساند و نقشه از کارت بیرون می‌زد. */
+@media (max-width: 1279px) {
+	.map-card,
+	.reservation-layout > * {
+		min-width: 0;
+	}
+
+	.map-wrap {
+		min-height: 0;
+	}
+}
+
+/* ─── تبلت و کوچک‌تر ───────────────────────────────────────────────────────── */
+@media (max-width: 1023px) {
+	/* این قانون قبلاً بعد از media query تعریف شده بود و ستون‌بندی دسکتاپ رو روی همه‌ی
+	   اندازه‌ها تحمیل می‌کرد؛ علت اصلی به‌هم‌ریختگی صفحه روی گوشی همین بود. */
+	.reservation-layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.reservation-filter {
+		position: static;
+	}
+
+	/* بدون این، نوار تاریخ (۱۴ روز) ستون فرم رو به اندازه‌ی همه‌ی روزها پهن می‌کرد */
+	.reservation-filter .form-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.date-row {
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	.map-wrap {
+		min-height: 0;
+	}
+}
+
+/* ─── گوشی ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+	.shell {
+		width: calc(100% - 24px);
+		padding-bottom: calc(40px + env(safe-area-inset-bottom));
+	}
+
+	.brand {
+		gap: 9px;
+		min-width: 0;
+	}
+
+	.brand-mark {
+		width: 34px;
+		height: 34px;
+	}
+
+	.page-head {
+		margin: 14px 0 18px;
+		gap: 6px;
+	}
+
+	.page-head .lede {
+		font-size: 13.5px;
+		line-height: 1.8;
+	}
+
+	.grid {
+		gap: 14px;
+	}
+
+	/* iOS روی فیلدهای کوچک‌تر از ۱۶px خودکار زوم می‌کنه و صفحه به‌هم می‌ریزه */
+	input,
+	select,
+	textarea {
+		font-size: 16px;
+	}
+
+	/* فرم جستجو: همه‌ی کنترل‌ها تمام‌عرض */
+	.reservation-filter .form-grid > *,
+	.mode-tabs,
+	div.clock-range,
+	.primary-btn-main {
+		width: 100%;
+	}
+
+	.reserve-info {
+		align-items: stretch;
+	}
+
+	.stepper {
+		width: 100%;
+		max-width: 220px;
+		margin-inline: auto;
+	}
+
+	.stepper button {
+		width: 48px;
+		min-height: 44px;
+	}
+
+	#durationRow {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	#durationRow button.chip {
+		width: auto;
+		padding: 9px 4px;
+	}
+
+	.date-chip {
+		min-width: 64px;
+	}
+
+	/* نقشه */
+	.map-card {
+		padding: 12px;
+		/* هر انیمیشنی روی این کارت (حتی فقط محو شدن) یک لایه‌ی جدا (stacking context) می‌سازه و
+		   پنل پایین‌صفحه‌ی جزئیات میز (position: fixed) داخل اون گیر می‌کنه؛ نتیجه این بود که پنل
+		   زیر لایه‌ی تیره می‌افتاد و دکمه‌ی «ادامه رزرو» روی گوشی اصلاً قابل لمس نبود. */
+		animation: none;
+	}
+
+	.map-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+		padding-bottom: 10px;
+	}
+
+	.legend {
+		gap: 6px 12px;
+	}
+
+	.legend span {
+		font-size: 11px;
+	}
+
+	.map-zone-tabs button {
+		padding: 9px 13px;
+	}
+
+	.map-wrap {
+		aspect-ratio: 1 / 1;
+		max-height: 70vh;
+		width: 100%;
+	}
+
+	.map-controls button {
+		width: 42px;
+		height: 40px;
+	}
+
+	.combo-item {
+		flex-wrap: wrap;
+	}
+
+	.combo-item .secondary-btn {
+		flex: 1 0 auto;
+	}
+
+	/* مودال تکمیل رزرو روی گوشی از پایین باز می‌شه و هیچ‌وقت از صفحه بیرون نمی‌زنه */
+	.modal {
+		align-items: flex-end;
+		padding: 0;
+	}
+
+	.modal-content {
+		width: 100%;
+		max-height: 92vh;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		border-radius: 12px 12px 0 0;
+		padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+	}
+
+	.actions {
+		flex-direction: column-reverse;
+	}
+
+	.actions > * {
+		width: 100%;
+	}
+
+	/* دکمه‌ها و لینک‌ها حداقل اندازه‌ی لمسی */
+	.primary-btn,
+	.secondary-btn,
+	.primary-btn-main,
+	.mode-tabs button,
+	.chip {
+		min-height: 44px;
+	}
+
+	/* جدول‌ها و ردیف‌های جزئیات */
+	.detail-row {
+		flex-wrap: wrap;
+		row-gap: 4px;
+		word-break: break-word;
+	}
+
+	.table-scroll {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+}
+
+/* پروفایل: کارت هر رزرو روی گوشی دو ردیفه می‌شه (تاریخ و جزئیات، بعد وضعیت و فاکتور) */
+@media (max-width: 560px) {
+	.timeline-item {
+		grid-template-columns: auto minmax(0, 1fr);
+		row-gap: 10px;
+	}
+
+	.timeline-actions {
+		grid-column: 1 / -1;
+		justify-content: space-between;
+	}
+
+	.timeline-body {
+		min-width: 0;
+	}
+
+	/* فاکتور: شماره‌ی فاکتور زیر عنوان و در یک خط */
+	.invoice-head {
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.invoice-head > div:last-child {
+		text-align: right !important;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		gap: 10px;
+	}
+
+	.invoice-head .brand-word {
+		font-size: 18px !important;
+		white-space: nowrap;
+	}
+
+	.invoice-head .status {
+		margin-top: 0 !important;
+	}
+}
+
+/* ─── گوشی‌های کوچک ─────────────────────────────────────────────────────────── */
+@media (max-width: 380px) {
+	.brand-sub {
+		display: none;
+	}
+
+	.date-chip {
+		min-width: 58px;
+		padding: 9px 4px;
+	}
+}
+
+/* The page styles define the content/footer spacing; this shared rule only handles the page frame. */
+.shell {
+	flex: 1 0 auto;
+}
+
+body {
+	display: flex;
+	flex-direction: column;
+}
+
+.reserve-menu-header {
+	width: 100vw;
+	margin-inline: calc((100% - 100vw) / 2);
+}

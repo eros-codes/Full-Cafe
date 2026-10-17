@@ -1,0 +1,228 @@
+/* admin-login.html — صفحه‌ی ورود ادمین — استایل اختصاصی همین صفحه. هیچ فایل دیگری این کلاس‌ها را تعریف نمی‌کند. */
+
+/* ===== منتقل‌شده از shared.css / map.css (فقط قوانینی که این صفحه واقعاً استفاده می‌کند) ===== */
+
+.brand-mark {
+	width: 38px;
+	height: 38px;
+	flex: none;
+	display: grid;
+	place-items: center;
+	border-radius: var(--r-xs);
+	background: var(--rich-sabel);
+	transition: transform 0.35s var(--ease);
+}
+
+.brand-mark svg {
+	width: 18px;
+	height: 18px;
+}
+
+.brand:hover .brand-mark {
+	transform: rotate(-6deg) scale(1.08);
+}
+
+.brand-word {
+	font-family: var(--font-serif);
+	font-style: italic;
+	font-weight: 600;
+	font-size: 20px;
+	color: var(--rich-sabel);
+}
+
+.shell {
+	width: min(1280px, calc(100% - 32px));
+	margin: 0 auto;
+	padding-bottom: 56px;
+}
+
+.card {
+	height: fit-content;
+	background: rgba(239, 234, 228, 0.5);
+	border: 1px solid var(--line);
+	border-radius: var(--r-sm);
+	box-shadow: var(--shadow);
+	animation: rise 0.5s var(--ease) both;
+}
+
+.card-pad {
+	padding: 10px;
+}
+
+.card h3 {
+	color: var(--rich-sabel);
+	font-family: var(--font-serif);
+	font-size: 17px;
+	font-weight: 700;
+	margin-bottom: 16px;
+}
+
+.card h3 .hint {
+	display: block;
+	font-family: var(--font-fa);
+	font-weight: 400;
+	color: var(--deep-taupe);
+	font-size: 12px;
+	opacity: 0.8;
+	margin-top: 4px;
+}
+
+.form-grid {
+	display: grid;
+	gap: 14px;
+}
+
+.field label {
+	display: block;
+	margin-bottom: 7px;
+	color: var(--deep-taupe);
+	font-size: 12px;
+	font-weight: 600;
+	opacity: 0.85;
+	text-align: center;
+}
+
+input {
+	width: 100%;
+	background: rgba(255, 255, 255, 0.4);
+	color: var(--burnt-oak);
+	border: 1px solid var(--line);
+	border-radius: var(--r-xs);
+	padding: 12px 13px;
+	transition:
+		border-color var(--dur) var(--ease),
+		background var(--dur) var(--ease);
+}
+
+input::placeholder {
+	color: rgba(66, 46, 47, 0.4);
+}
+
+input:focus {
+	border-color: var(--rich-sabel);
+	background: rgba(255, 255, 255, 0.65);
+}
+
+div.clock-range div.field {
+	width: 45%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+.primary-btn {
+	width: 100%;
+	border-radius: var(--r-xs);
+	padding: 14px 10px;
+	background: var(--rich-sabel);
+	color: var(--chapel-white);
+	font-weight: 600;
+	font-size: 14px;
+	position: relative;
+	overflow: hidden;
+	transition:
+		transform 0.22s ease,
+		box-shadow 0.22s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+
+.primary-btn::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
+	transform: translateX(150%);
+}
+
+.primary-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 10px 26px rgba(9, 15, 21, 0.28);
+}
+
+.primary-btn:hover::before {
+	animation: shimmer-sweep 0.55s ease forwards;
+}
+
+.primary-btn:active {
+	transform: scale(0.98);
+}
+
+.primary-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+
+.primary-btn svg {
+	width: 17px;
+	height: 17px;
+	flex: none;
+}
+
+.notice {
+	padding: 12px 14px;
+	border-radius: var(--r-xs);
+	border: 1px solid var(--line);
+	color: var(--deep-taupe);
+	font-size: 13px;
+	line-height: 1.8;
+}
+
+.notice.ok {
+	border-color: rgba(110, 129, 81, 0.35);
+	color: var(--ok-ink);
+}
+
+.notice.warn {
+	border-color: rgba(150, 112, 60, 0.35);
+	color: var(--warn-ink);
+}
+
+.notice.danger {
+	border-color: rgba(122, 63, 53, 0.35);
+	color: var(--danger-ink);
+}
+
+@media (max-width: 767px) {
+	.shell {
+		width: calc(100% - 24px);
+	}
+}
+
+@media (max-width: 767px) {
+	.card-pad {
+		padding: 16px;
+	}
+}
+
+/* ===== keyframes ===== */
+
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes shimmer-sweep {
+	from {
+		transform: translateX(150%);
+	}
+	to {
+		transform: translateX(-150%);
+	}
+}
+section.card-pad a.login {
+	background-color: transparent !important;
+	color: var(--rich-sabel) !important;
+	font-weight: 700 !important;
+}

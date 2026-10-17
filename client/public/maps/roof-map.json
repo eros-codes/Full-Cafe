@@ -1,0 +1,53 @@
+{
+	"version": 2,
+	"viewBox": [0, 0, 1800, 900],
+	"defaultView": {
+		"x": 0,
+		"y": 0,
+		"width": 1800,
+		"height": 900
+	},
+	"zones": {
+		"ALL": {
+			"label": "همه سالن‌ها",
+			"bounds": {
+				"x": 0,
+				"y": 0,
+				"width": 1800,
+				"height": 900
+			}
+		},
+		"WINDOW": {
+			"label": "سالن پنجره",
+			"bounds": {
+				"x": 18,
+				"y": 60,
+				"width": 530,
+				"height": 810
+			}
+		},
+		"CENTER": {
+			"label": "سالن وسط",
+			"bounds": {
+				"x": 520,
+				"y": 55,
+				"width": 665,
+				"height": 815
+			}
+		},
+		"ROOF": {
+			"label": "روف گاردن",
+			"bounds": {
+				"x": 1160,
+				"y": 55,
+				"width": 620,
+				"height": 820
+			}
+		}
+	},
+	"limits": {
+		"minZoom": 1,
+		"maxZoom": 3.2
+	},
+	"ignoredTableCodes": []
+}
