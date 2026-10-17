@@ -20,20 +20,12 @@
 	white-space: nowrap;
 }
 
-/* with add-ons the details can be taller than the screen: the dialog scrolls instead of clipping */
-.product-dialog.has-addons {
-	overflow-y: auto;
-	overscroll-behavior: contain;
-}
-.product-dialog.has-addons > * {
-	flex-shrink: 0;
-}
-
 .product-dialog-addons {
 	margin: 0;
 	padding: 0.85rem 0 0.2rem;
 	border: 0;
-	border-top: 1px solid rgba(38, 46, 54, 0.1);
+	/* a shadow, not a border: a fieldset border would run through its legend */
+	box-shadow: inset 0 1px 0 rgba(38, 46, 54, 0.1);
 	display: flex;
 	flex-direction: column;
 	gap: 0.45rem;
@@ -41,11 +33,17 @@
 }
 
 .product-dialog-addons-title {
+	float: right; /* a floated legend sits inside the fieldset instead of on its top edge */
+	width: 100%;
 	padding: 0;
 	margin-bottom: 0.35rem;
 	font-size: 0.95rem;
 	font-weight: 800;
 	color: var(--primary-text-color);
+}
+
+.product-dialog-addon:first-of-type {
+	clear: both;
 }
 
 .product-dialog-addon {
@@ -104,4 +102,31 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* ─── Product dialog: one layout whether or not the product has add-ons ───
+   The photo always keeps the same size (it never shrinks to make room); when the details are taller than
+   the screen only the text part scrolls, and the price / order buttons stay pinned at the bottom. */
+.product-dialog-image {
+	flex: 0 0 auto;
+	max-height: 42dvh;
+}
+
+.product-dialog-content {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.product-dialog-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.product-dialog-footer {
+	flex: 0 0 auto;
 }

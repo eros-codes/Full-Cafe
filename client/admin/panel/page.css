@@ -2,6 +2,7 @@
    exactly this order (separately imported files shared between pages were split into common chunks
    and could load in a different order). */
 @import '../../reserve/css/global.css';
+@import '../../site/common/header.css';
 @import '../css/admin.css';
 @import '../css/admin-menu.css';
 @import '../css/phase2.css';

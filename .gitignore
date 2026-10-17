@@ -10,3 +10,7 @@ Thumbs.db
 /uploads/products/*
 !/uploads/products/.gitkeep
 dist/
+
+# This only ignores untracked files; remove an already tracked copy with
+# `git rm --cached import-simple-cafe.mjs`.
+import-simple-cafe.mjs

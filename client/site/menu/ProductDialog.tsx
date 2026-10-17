@@ -73,7 +73,14 @@ export function ProductDialog({ product, order, onAdd, onDecrease, onClose }: Pr
 				aria-labelledby="product-dialog-name"
 				hidden={!isOpen}
 			>
-				<button id="product-dialog-close" className="product-dialog-close" type="button" aria-label="بستن جزئیات محصول" ref={closeRef} onClick={onClose}>
+				<button
+					id="product-dialog-close"
+					className="product-dialog-close"
+					type="button"
+					aria-label="بستن جزئیات محصول"
+					ref={closeRef}
+					onClick={onClose}
+				>
 					&times;
 				</button>
 				<div id="product-dialog-image" className="product-dialog-image">
@@ -87,24 +94,28 @@ export function ProductDialog({ product, order, onAdd, onDecrease, onClose }: Pr
 						))}
 				</div>
 				<div className="product-dialog-content">
-					<h2 id="product-dialog-name" className="product-dialog-name">
-						{shown?.name}
-					</h2>
-					<p id="product-dialog-description" className="product-dialog-description" hidden={!shown?.description}>
-						{shown?.description}
-					</p>
-					{addOns.length > 0 && (
-						<fieldset className="product-dialog-addons">
-							<legend className="product-dialog-addons-title">افزودنی‌ها</legend>
-							{addOns.map((addOn) => (
-								<label className="product-dialog-addon" key={addOn.id}>
-									<input type="checkbox" checked={selected.includes(addOn.id)} onChange={() => toggle(addOn.id)} />
-									<span className="product-dialog-addon-name">{addOn.name}</span>
-									<span className="product-dialog-addon-price">{addOn.price > 0 ? `\u200F+${faNumber(addOn.price)} تومان` : 'رایگان'}</span>
-								</label>
-							))}
-						</fieldset>
-					)}
+					<div className="product-dialog-body">
+						<h2 id="product-dialog-name" className="product-dialog-name">
+							{shown?.name}
+						</h2>
+						<p id="product-dialog-description" className="product-dialog-description" hidden={!shown?.description}>
+							{shown?.description}
+						</p>
+						{addOns.length > 0 && (
+							<fieldset className="product-dialog-addons">
+								<legend className="product-dialog-addons-title">افزودنی‌ها</legend>
+								{addOns.map((addOn) => (
+									<label className="product-dialog-addon" key={addOn.id}>
+										<input type="checkbox" checked={selected.includes(addOn.id)} onChange={() => toggle(addOn.id)} />
+										<span className="product-dialog-addon-name">{addOn.name}</span>
+										<span className="product-dialog-addon-price">
+											{addOn.price > 0 ? `\u200F+${faNumber(addOn.price)} تومان` : 'رایگان'}
+										</span>
+									</label>
+								))}
+							</fieldset>
+						)}
+					</div>
 					<div className="product-dialog-footer">
 						<div id="product-dialog-price" className="product-dialog-price">
 							{shown ? `${faNumber(price)} تومان` : ''}
