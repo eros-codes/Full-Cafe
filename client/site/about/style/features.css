@@ -1,0 +1,185 @@
+@media screen and (max-width: 767px) {
+
+.s-features__grid {
+display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+
+.s-feat {
+border-radius: 4px;
+	overflow: hidden;
+	background: rgba(9, 15, 21, 0.06);
+	border: 1px solid rgba(9, 15, 21, 0.1);
+	
+	transition: box-shadow 0.3s ease;
+}
+
+.s-feat:active {
+box-shadow: 0 8px 24px rgba(9, 15, 21, 0.14);
+}
+
+.s-feat {
+display: flex;
+	flex-direction: row;
+	align-items: stretch;
+}
+
+.s-feat__img {
+width: 120px;
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.s-feat__img img {
+width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.s-feat__body {
+padding: 1rem 1.1rem;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.s-feat__title {
+font-family: "Lora", serif;
+	font-weight: 600;
+	font-size: 0.8375rem;
+	color: var(--burnt-oak);
+	margin-bottom: 0.4rem;
+}
+
+.s-feat__desc {
+font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.75rem;
+	color: var(--quaternary-text-color);
+	line-height: 1.7;
+}
+
+}
+
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+
+.s-features__grid {
+max-width: 720px;
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.25rem;
+}
+
+.s-feat {
+border-radius: 4px;
+	overflow: hidden;
+	background: rgba(9, 15, 21, 0.06);
+	border: 1px solid rgba(9, 15, 21, 0.1);
+	transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.s-feat:hover {
+transform: translateY(-5px);
+	box-shadow: 0 14px 36px rgba(9, 15, 21, 0.16);
+}
+
+.s-feat__img {
+height: 200px;
+	overflow: hidden;
+}
+
+.s-feat__img img {
+width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.6s ease;
+}
+
+.s-feat:hover .s-feat__img img {
+transform: scale(1.06);
+}
+
+.s-feat__body {
+padding: 1.1rem 1.1rem 1.35rem;
+}
+
+.s-feat__title {
+font-family: "Lora", serif;
+	font-weight: 600;
+	font-size: 0.875rem;
+	color: var(--burnt-oak);
+	margin-bottom: 0.45rem;
+}
+
+.s-feat__desc {
+font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.78rem;
+	color: var(--quaternary-text-color);
+	line-height: 1.75;
+}
+
+}
+
+@media screen and (min-width: 1024px) {
+
+.s-features__grid {
+max-width: 1080px;
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+}
+
+.s-feat {
+border-radius: 4px;
+	overflow: hidden;
+	background: rgba(9, 15, 21, 0.06);
+	border: 1px solid rgba(9, 15, 21, 0.1);
+	transition:
+		transform  0.38s cubic-bezier(0.4, 0, 0.2, 1),
+		box-shadow 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.s-feat:hover {
+transform: translateY(-7px);
+	box-shadow: 0 18px 44px rgba(9, 15, 21, 0.18);
+}
+
+.s-feat__img {
+height: 270px;
+	overflow: hidden;
+}
+
+.s-feat__img img {
+width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.s-feat:hover .s-feat__img img {
+transform: scale(1.06);
+}
+
+.s-feat__body {
+padding: 1.35rem 1.4rem 1.6rem;
+}
+
+.s-feat__title {
+font-family: "Lora", serif;
+	font-weight: 600;
+	font-size: 0.9375rem;
+	color: var(--burnt-oak);
+	margin-bottom: 0.55rem;
+	letter-spacing: 0.01em;
+}
+
+.s-feat__desc {
+font-family: "Baloo Bhaijaan 2", sans-serif;
+	font-size: 0.8rem;
+	color: var(--quaternary-text-color);
+	line-height: 1.75;
+}
+
+}

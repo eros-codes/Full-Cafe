@@ -1,8 +1,0 @@
-@import url(../../common/global.css);
-@import url(../../common/header.css);
-@import url(../../common/footer.css);
-@import url("./menu-header.css");
-@import url("./Mobile/mobile.css") screen and (max-width: 767px);
-@import url("./Tablet/tablet.css") screen and (min-width: 768px) and (max-width: 1023px);
-@import url("./Laptop/laptop.css") screen and (min-width: 1024px);
-@import url("../../common/motion.css");
