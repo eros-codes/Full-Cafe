@@ -9,7 +9,7 @@ import { CLOCK_TIME, CLOSING_TIME, combineDateAndTime, isValidDateString, normal
 import { setCookie, signAdminToken } from '../lib/auth.js';
 import { confirmationMessage, sendMockSms } from '../lib/sms.js';
 import { ROLE_GROUPS, USERNAME_PATTERN, canManageRole, isAdminRole, normalizeUsername } from '../lib/roles.js';
-import { adminMenuRouter } from './admin-menu.routes.js';
+import { adminMenuRouter } from './admin/menu.routes.js';
 import { todayKey } from '../middleware/site-visit.js';
 import { findConflictingReservations } from '../services/availability.service.js';
 import { createHttpError, prismaCode } from '../lib/http-error.js';

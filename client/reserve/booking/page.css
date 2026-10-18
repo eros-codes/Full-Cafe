@@ -4,7 +4,8 @@
 @import '../../shared/styles/app-base.css';
 @import '../../shared/styles/header.css';
 @import '../../shared/styles/footer.css';
-@import '../css/index.css';
+@import '../css/common.css';
+@import './booking.css';
 @import '../css/responsive.css';
 @import '../../shared/styles/motion.css';
 @import '../css/motion.css';

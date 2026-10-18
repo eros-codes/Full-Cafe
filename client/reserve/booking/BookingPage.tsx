@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { api, errorText } from '../../shared/api';
 import { faNumber, toman } from '../../shared/format';
-import { ICONS } from '../../shared/icons';
 import { useLatest } from '../../shared/useLatest';
 import { DurationChips } from '../common/DurationChips';
 import { Topbar } from '../../shared/chrome/Topbar';
@@ -9,6 +8,8 @@ import { ReserveFooter } from '../common/ReserveFooter';
 import type { CurrentUser, PublicConfig } from '../common/types';
 import { FloorMap } from '../map/FloorMap';
 import type { MapTable } from '../map/types';
+import { card, DetailContent, type Detail } from './DetailContent';
+import { useSheet } from './useSheet';
 
 const ZONE_FA: Record<string, string> = { WINDOW: 'سالن پنجره', CENTER: 'سالن وسط', ROOF: 'روف گاردن' };
 
@@ -31,34 +32,9 @@ interface AvailabilityResult {
 
 type Notice = { className: string; text: string } | null;
 
-type Detail =
-	| { kind: 'skeleton' }
-	| { kind: 'card'; title: string; lines: string[]; action?: boolean }
-	| { kind: 'suggestions'; items: { startTime: string; endTime: string }[] };
-
-const card = (title: string, ...lines: string[]): Detail => ({ kind: 'card', title, lines });
-
 // Every new detail is a fresh set of elements, so its entry animation (css/motion.css) replays,
 // as it did when the panel's HTML was replaced.
 let detailCounter = 0;
-
-/** Bottom sheet for the table details on phones (≤767px); a plain side panel on larger screens. */
-function useSheet() {
-	const [state, setState] = useState<'none' | 'open' | 'closed'>('none');
-	useEffect(() => {
-		const query = window.matchMedia('(max-width: 767px)');
-		const onResize = () => {
-			if (!query.matches) setState('none');
-		};
-		window.addEventListener('resize', onResize);
-		return () => window.removeEventListener('resize', onResize);
-	}, []);
-	const open = useCallback(() => {
-		if (window.matchMedia('(max-width: 767px)').matches) setState('open');
-	}, []);
-	const close = useCallback(() => setState((s) => (s === 'open' ? 'closed' : s)), []);
-	return { state, open, close };
-}
 
 export function BookingPage() {
 	const [config, setConfig] = useState<PublicConfig | null>(null);
@@ -679,42 +655,3 @@ export function BookingPage() {
 	);
 }
 
-function DetailContent({ detail, onReserve, onSuggestion }: { detail: Detail; onReserve: () => void; onSuggestion: (startTime: string) => void }) {
-	if (detail.kind === 'skeleton') {
-		return (
-			<>
-				<div className="skeleton" style={{ height: '15px', width: '55%', marginBottom: '10px' }}></div>
-				<div className="skeleton" style={{ height: '11px', width: '85%' }}></div>
-			</>
-		);
-	}
-	if (detail.kind === 'suggestions') {
-		return (
-			<>
-				<h4>ساعت‌های نزدیک آزاد</h4>
-				<p>یکی رو انتخاب کن تا همون لحظه بررسی بشه.</p>
-				<div className="chip-row" id="suggestionRow">
-					{detail.items.map((item) => (
-						<button key={item.startTime} type="button" className="chip" onClick={() => onSuggestion(item.startTime)}>
-							{`${item.startTime} تا ${item.endTime}`}
-						</button>
-					))}
-				</div>
-			</>
-		);
-	}
-	return (
-		<>
-			<h4>{detail.title}</h4>
-			{detail.lines.map((line, i) => (
-				<p key={i}>{line}</p>
-			))}
-			{detail.action && (
-				<button className="primary-btn" id="openReserve" style={{ marginTop: '10px' }} onClick={onReserve}>
-					{ICONS.check}
-					<span>ادامه رزرو</span>
-				</button>
-			)}
-		</>
-	);
-}
