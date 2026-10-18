@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, errorText } from '../../shared/api';
 import { ICONS } from '../../shared/icons';
 import { DetailRow } from '../common/DetailRow';
-import { Topbar } from '../common/Topbar';
+import { Topbar } from '../../shared/chrome/Topbar';
 import { ReserveFooter } from '../common/ReserveFooter';
 import { PAYMENT_STATUS_FA, REFUND_STATUS_FA, faDateTime, faHours, faNumber, statusFa, tablesText, toman } from '../common/format';
 import type { Reservation } from '../common/types';

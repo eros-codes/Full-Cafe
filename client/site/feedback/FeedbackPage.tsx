@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError } from '../../shared/api';
 import { faNumber } from '../../shared/format';
 import { safeStorage } from '../../shared/storage';
-import { HamburgerButton, MobileDrawer, SiteFooter, useDrawer } from '../common/SiteChrome';
+import { HamburgerButton, MobileDrawer, SiteFooter, useDrawer } from '../../shared/chrome/SiteChrome';
 import { ChatPlayer } from './ChatPlayer';
 import { postReview } from './api';
 

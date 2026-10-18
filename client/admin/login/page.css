@@ -1,5 +1,5 @@
 /* Every stylesheet of this page, in cascade order. One file per page, so the production build keeps
    exactly this order (separately imported files shared between pages were split into common chunks
    and could load in a different order). */
-@import '../../reserve/css/global.css';
+@import '../../shared/styles/app-base.css';
 @import '../css/admin-login.css';

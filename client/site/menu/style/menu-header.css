@@ -1,4 +1,4 @@
-/* The menu page's own part of the header: the category bar under it. The header itself is site/common/header.css. */
+/* The menu page's own part of the header: the category bar under it. The header itself is shared/styles/header.css. */
 
 .menu-nav {
 	position: relative;

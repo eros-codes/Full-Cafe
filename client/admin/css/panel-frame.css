@@ -1,0 +1,47 @@
+/* panel-frame.css — keeps the admin shell and content area scrollable without the page itself scrolling. */
+
+html,
+body {
+	height: 100dvh;
+	overflow: hidden;
+}
+
+.shell {
+	height: 100dvh;
+	display: flex;
+	flex-direction: column;
+	padding-bottom: 16px;
+}
+
+.shell > .menu-header {
+	flex: 0 0 auto;
+}
+
+.shell > .admin-layout {
+	flex: 1 1 auto;
+	min-height: 0;
+	grid-template-rows: minmax(0, 1fr);
+}
+
+.admin-menu {
+	min-height: 0;
+	overflow-y: auto;
+	align-content: start;
+}
+
+.admin-content {
+	min-height: 0;
+	max-height: 100%;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+@media (max-width: 1023px) {
+	.shell > .admin-layout {
+		grid-template-rows: auto minmax(0, 1fr);
+	}
+
+	.admin-menu {
+		overflow-y: hidden;
+	}
+}

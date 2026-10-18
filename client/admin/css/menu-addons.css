@@ -1,0 +1,90 @@
+/* menu-addons.css — add-on picker and menu-type ordering controls. */
+
+.menu-addon-picks {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+	gap: 8px;
+	max-height: 232px;
+	overflow-y: auto;
+	padding: 2px;
+}
+
+.field .menu-addon-picks label.checkbox-row {
+	justify-content: flex-start;
+	align-items: flex-start;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-xs);
+	background: rgba(255, 255, 255, 0.35);
+	color: var(--rich-sabel);
+	font-size: 13px;
+	text-align: start;
+	opacity: 1;
+	transition:
+		border-color var(--dur) var(--ease),
+		background var(--dur) var(--ease);
+}
+
+.field .menu-addon-picks label.checkbox-row:hover {
+	border-color: var(--rich-sabel);
+}
+
+.field .menu-addon-picks label.checkbox-row:has(input:checked) {
+	border-color: var(--rich-sabel);
+	background: rgba(255, 255, 255, 0.6);
+}
+
+.menu-addon-picks .checkbox-row input[type='checkbox'] {
+	margin-top: 1px;
+}
+
+.menu-addon-price {
+	display: block;
+	margin-top: 2px;
+	color: var(--deep-taupe);
+	font-size: 11.5px;
+	font-weight: 400;
+	opacity: 0.8;
+}
+
+.menu-addons-line {
+	margin-top: 3px;
+	font-size: 11.5px;
+}
+
+.menu-order-btns {
+	display: inline-flex;
+	gap: 6px;
+}
+
+.menu-order-btn {
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	display: grid;
+	place-items: center;
+	border: 1px solid var(--line);
+	border-radius: var(--r-xs);
+	background: transparent;
+	color: var(--rich-sabel);
+	cursor: pointer;
+	transition:
+		border-color var(--dur) var(--ease),
+		background var(--dur) var(--ease);
+}
+
+.menu-order-btn:hover:not(:disabled) {
+	border-color: var(--rich-sabel);
+	background: var(--line-soft);
+}
+
+.menu-order-btn:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+.menu-order-btn svg {
+	width: 16px;
+	height: 16px;
+}

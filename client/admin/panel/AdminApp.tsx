@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api, errorText } from '../../shared/api';
 import { ICONS, type IconName } from '../../shared/icons';
-import { Topbar } from '../../reserve/common/Topbar';
+import { Topbar } from '../../shared/chrome/Topbar';
 import type { MapTable } from '../../reserve/map/types';
 import { LOGIN_URL, adminApi } from '../common/adminApi';
 import { ROLE_FA, can, type Admin } from '../common/roles';

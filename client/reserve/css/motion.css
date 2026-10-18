@@ -1,5 +1,5 @@
 /* motion.css — motion that only the reservation pages need. The shared part (touch feedback on the header,
-   drawer, the "pop" on changed numbers, all keyframes, reduced-motion) is in site/common/motion.css.
+   drawer, the "pop" on changed numbers, all keyframes and reduced-motion rules) is in shared/styles/motion.css.
    Individual `scale` / `translate` properties are used so they don't mix with existing transforms
    (e.g. buttons lifting on hover).
    Important: don't animate .map-card or its parents; on phones the table details panel is position: fixed

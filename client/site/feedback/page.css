@@ -1,10 +1,10 @@
 /* Every stylesheet of this page, in cascade order. One file per page, so the production build keeps
    exactly this order (separately imported files shared between pages were split into common chunks
    and could load in a different order). */
-@import '../common/global.css';
-@import '../common/header.css';
-@import '../common/footer.css';
+@import '../../shared/styles/site-base.css';
+@import '../../shared/styles/header.css';
+@import '../../shared/styles/footer.css';
 @import './style/chat.css';
 @import './style/form.css';
 @import './style/message.css';
-@import '../common/motion.css';
+@import '../../shared/styles/motion.css';

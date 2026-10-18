@@ -3,7 +3,7 @@ import { ApiError, api, errorText } from '../../shared/api';
 import { ICONS } from '../../shared/icons';
 import { DetailRow } from '../common/DetailRow';
 import { OtpWidget } from '../common/OtpWidget';
-import { Topbar } from '../common/Topbar';
+import { Topbar } from '../../shared/chrome/Topbar';
 import { ReserveFooter } from '../common/ReserveFooter';
 import { faDateTime, statusFa, tablesText, toman } from '../common/format';
 import type { CurrentUser, Reservation } from '../common/types';

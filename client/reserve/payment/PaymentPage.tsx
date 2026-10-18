@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from 'rea
 import { api, errorText } from '../../shared/api';
 import { ICONS } from '../../shared/icons';
 import { HoldRing } from '../common/HoldRing';
-import { Topbar } from '../common/Topbar';
+import { Topbar } from '../../shared/chrome/Topbar';
 import { ReserveFooter } from '../common/ReserveFooter';
 import { endTimeFa, faDateTime, faNumber, tablesText, toman } from '../common/format';
 import type { Reservation } from '../common/types';

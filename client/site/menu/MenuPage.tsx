@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import { ApiError } from '../../shared/api';
 import { faNumber } from '../../shared/format';
 import { safeStorage } from '../../shared/storage';
-import { HamburgerButton, MobileDrawer, SiteFooter, useDrawer } from '../common/SiteChrome';
+import { HamburgerButton, MobileDrawer, SiteFooter, useDrawer } from '../../shared/chrome/SiteChrome';
 import { fetchCategories, fetchMenuTypes, fetchProducts, type AddOn, type Category, type MenuType, type Product } from './api';
 import { OrderDialog } from './OrderDialog';
 import { ProductCard } from './ProductCard';

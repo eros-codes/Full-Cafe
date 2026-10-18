@@ -4,7 +4,7 @@ import { faNumber, toman } from '../../shared/format';
 import { ICONS } from '../../shared/icons';
 import { useLatest } from '../../shared/useLatest';
 import { DurationChips } from '../common/DurationChips';
-import { Topbar } from '../common/Topbar';
+import { Topbar } from '../../shared/chrome/Topbar';
 import { ReserveFooter } from '../common/ReserveFooter';
 import type { CurrentUser, PublicConfig } from '../common/types';
 import { FloorMap } from '../map/FloorMap';

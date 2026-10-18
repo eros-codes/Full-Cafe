@@ -1,8 +1,9 @@
 /* Every stylesheet of this page, in cascade order. One file per page, so the production build keeps
    exactly this order (separately imported files shared between pages were split into common chunks
    and could load in a different order). */
-@import '../../reserve/css/global.css';
-@import '../../site/common/header.css';
+@import '../../shared/styles/app-base.css';
+@import '../../shared/styles/header.css';
 @import '../css/admin.css';
 @import '../css/admin-menu.css';
-@import '../css/phase2.css';
+@import '../css/menu-addons.css';
+@import '../css/panel-frame.css';

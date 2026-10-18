@@ -318,8 +318,3 @@ body {
 	display: flex;
 	flex-direction: column;
 }
-
-.reserve-menu-header {
-	width: 100vw;
-	margin-inline: calc((100% - 100vw) / 2);
-}
