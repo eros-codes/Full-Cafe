@@ -1,0 +1,93 @@
+/* app-base.css — پایه‌ی صفحه‌های رزرو: ریست و متغیرهای مخصوص رزرو.
+   رنگ‌ها و فونت‌ها از shared/styles/tokens.css و fonts.css میان (همون فایل‌هایی که منو و بقیه‌ی سایت استفاده می‌کنن). */
+
+@import url('./fonts.css');
+@import url('./tokens.css');
+
+:root {
+	--bgc: #C5BCAD;
+
+	--ok: #6e8151;
+	--ok-ink: #46592f;
+	--warn: #96703c;
+	--warn-ink: #6b4e26;
+	--danger: #7a3f35;
+	--danger-ink: #63302a;
+
+	--line: rgba(66, 46, 47, 0.12);
+	--line-soft: rgba(66, 46, 47, 0.07);
+
+	--shadow: 0 6px 24px rgba(11, 15, 30, 0.06);
+	--shadow-hover: 0 14px 36px rgba(9, 15, 21, 0.14);
+	--shadow-lift: 0 20px 46px rgba(9, 15, 21, 0.18);
+
+	--r-xs: 5px;
+	--r-sm: 8px;
+
+	--ease: cubic-bezier(0.4, 0, 0.2, 1);
+	--dur: 300ms;
+
+	--font-fa: 'Baloo Bhaijaan 2', Tahoma, sans-serif;
+	--font-serif: 'Lora', serif;
+	--fs-page-title: clamp(24px, 3vw, 36px);
+}
+
+* {
+	box-sizing: border-box;
+	border: none;
+}
+html {
+	direction: rtl;
+	scroll-behavior: smooth;
+	font-size: 14px;
+}
+
+body {
+	margin: 0;
+	font-family: var(--font-fa);
+	font-size: 15px;
+	color: var(--burnt-oak);
+	/* background: linear-gradient(172deg, var(--chapel-white) 0%, var(--antique-veil) 100%); */
+	background: var(--bgc);
+
+	min-height: 100vh;
+}
+
+a {
+	background-color: transparent;
+	color: inherit;
+	text-decoration: none;
+}
+a.brand {
+	background-color: transparent;
+}
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+button {
+	cursor: pointer;
+	background: none;
+}
+h1,
+h2,
+h3,
+h4,
+p {
+	margin: 0;
+	font-family: var(--font-fa) !important;
+}
+table {
+	border-collapse: collapse;
+}
+::selection {
+	background: var(--rich-sabel);
+	color: var(--chapel-white);
+}
+:focus-visible {
+	outline: 1.5px solid var(--rich-sabel);
+	outline-offset: 3px;
+}

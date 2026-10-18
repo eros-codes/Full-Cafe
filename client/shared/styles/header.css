@@ -1,5 +1,5 @@
 /* header.css — the one header (and mobile drawer) of the whole site: menu, feedback and the reservation pages.
-   Markup: SiteChrome.tsx (HamburgerButton, MobileDrawer) and reserve/common/Topbar.tsx.
+   Markup: SiteChrome.tsx (HamburgerButton, MobileDrawer) and shared/chrome/Topbar.tsx.
    Page-specific bits (the menu's category bar, the order button) stay in that page's own stylesheet. */
 
 /* The header and drawer must not depend on the page's own reset (the reservation pages have a different one). */
@@ -30,6 +30,11 @@
 	backdrop-filter: blur(2px);
 	padding-bottom: 0.5rem;
 	font-family: var(--font-chrome);
+}
+
+.reserve-menu-header {
+	width: 100vw;
+	margin-inline: calc((100% - 100vw) / 2);
 }
 
 .menu-header-top {
