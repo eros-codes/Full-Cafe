@@ -96,3 +96,60 @@
 	width: 16px;
 	height: 16px;
 }
+
+/* ─── Panel frame: the page itself never scrolls ─────────────────────────────────────────────────────
+   The header stays at the top and the section list on the side; only the section content (and, if it
+   is taller than the screen, the section list) scrolls inside its own box. */
+
+html,
+body {
+	height: 100dvh;
+	overflow: hidden;
+}
+
+.shell {
+	height: 100dvh;
+	display: flex;
+	flex-direction: column;
+	padding-bottom: 16px;
+}
+
+.shell > .menu-header {
+	flex: 0 0 auto;
+}
+
+.shell > .admin-layout {
+	flex: 1 1 auto;
+	min-height: 0;
+	grid-template-rows: minmax(0, 1fr);
+}
+
+.admin-menu {
+	min-height: 0;
+	overflow-y: auto;
+	align-content: start;
+}
+
+.admin-content {
+	min-height: 0;
+	max-height: 100%;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+@media (max-width: 1023px) {
+	/* phones and tablets: the section tabs sit on top, the content scrolls under them */
+	.shell > .admin-layout {
+		grid-template-rows: auto minmax(0, 1fr);
+	}
+
+	.admin-menu {
+		overflow-y: hidden;
+	}
+}
+
+/* the shared header runs edge to edge, outside the centred .shell (same as on the reservation pages) */
+.reserve-menu-header {
+	width: 100vw;
+	margin-inline: calc((100% - 100vw) / 2);
+}

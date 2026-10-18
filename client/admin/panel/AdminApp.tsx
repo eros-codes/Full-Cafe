@@ -153,7 +153,7 @@ export function AdminApp() {
 			<main className="shell">
 				<Topbar href="/" sub={admin ? `${admin.name} · ${ROLE_FA[admin.role] || admin.role}` : 'در حال بارگذاری...'} subId="adminInfo">
 					<a href="/">سایت</a>
-					<button id="adminLogout" className="ghost-btn" onClick={logout}>
+					<button id="adminLogout" onClick={logout}>
 						خروج
 					</button>
 				</Topbar>

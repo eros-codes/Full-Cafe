@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { errorText } from '../../shared/api';
 import { useLatest } from '../../shared/useLatest';
 
@@ -11,7 +12,9 @@ interface Props {
 	children: ReactNode;
 }
 
-/** The dialog used by every form of the menu sections (products, categories, add-ons, reviews…). */
+/** The dialog used by every form of the menu sections (products, categories, add-ons, reviews…).
+ *  It is rendered on <body>, not inside the panel: the panel's sections are animated (a transform), and a
+ *  `position: fixed` element inside a transformed parent is positioned against that parent, not the screen. */
 export function MenuModal({ title, submitLabel = 'ذخیره', onSubmit, onClose, children }: Props) {
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
@@ -40,7 +43,7 @@ export function MenuModal({ title, submitLabel = 'ذخیره', onSubmit, onClose
 		}
 	};
 
-	return (
+	return createPortal(
 		<div
 			id="menuModal"
 			className="modal open"
@@ -66,6 +69,7 @@ export function MenuModal({ title, submitLabel = 'ذخیره', onSubmit, onClose
 					</button>
 				</div>
 			</form>
-		</div>
+		</div>,
+		document.body,
 	);
 }
