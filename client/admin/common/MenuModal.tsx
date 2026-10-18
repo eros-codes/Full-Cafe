@@ -12,6 +12,7 @@ interface Props {
 	children: ReactNode;
 }
 
+
 /** The dialog used by every form of the menu sections (products, categories, add-ons, reviews…).
  *  It is rendered on <body>, not inside the panel: the panel's sections are animated (a transform), and a
  *  `position: fixed` element inside a transformed parent is positioned against that parent, not the screen. */
