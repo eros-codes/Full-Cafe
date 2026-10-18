@@ -1,3 +1,23 @@
+@keyframes slide-in-bottom {
+	from { transform: translateY(52px); opacity: 0; }
+	to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes slide-in-top {
+	from { transform: translateY(-52px); opacity: 0; }
+	to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes slide-out-top {
+	from { transform: translateY(0);     opacity: 1; }
+	to   { transform: translateY(-52px); opacity: 0; }
+}
+
+@keyframes slide-out-bottom {
+	from { transform: translateY(0);    opacity: 1; }
+	to   { transform: translateY(52px); opacity: 0; }
+}
+
 .msg-exchange {
 position: absolute;
 	inset: 0;
@@ -85,9 +105,11 @@ font-family: "Baloo Bhaijaan 2", sans-serif;
 	margin-top: 2px;
 }
 
-.msg--enter-bottom,
+@media (prefers-reduced-motion: reduce) {
+	.msg--enter-bottom,
 	.msg--enter-top,
 	.msg--exit-top,
 	.msg--exit-bottom {
-animation-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
 }

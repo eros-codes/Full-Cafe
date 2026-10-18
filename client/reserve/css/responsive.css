@@ -312,6 +312,7 @@ svg {
 /* The page styles define the content/footer spacing; this shared rule only handles the page frame. */
 .shell {
 	flex: 1 0 auto;
+	padding-bottom: 0;
 }
 
 body {

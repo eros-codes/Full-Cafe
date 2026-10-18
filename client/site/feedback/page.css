@@ -5,6 +5,6 @@
 @import '../../shared/styles/header.css';
 @import '../../shared/styles/footer.css';
 @import './style/chat.css';
-@import './style/form.css';
 @import './style/message.css';
+@import './style/form.css';
 @import '../../shared/styles/motion.css';

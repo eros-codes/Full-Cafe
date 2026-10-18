@@ -6,14 +6,6 @@ opacity: 1;
 width: 100%;
 }
 
-.s-nav__link--active {
-opacity: 1;
-}
-
-.s-nav__link--active::after {
-width: 100%;
-}
-
 @media screen and (max-width: 767px) {
 
 .s-header {
@@ -205,4 +197,13 @@ transform: rotate(-6deg) scale(1.08);
 	filter: brightness(0) invert(1) opacity(1);
 }
 
+}
+
+/* must come after the per-breakpoint .s-nav__link rules above (same specificity, later wins) */
+.s-nav__link--active {
+opacity: 1;
+}
+
+.s-nav__link--active::after {
+width: 100%;
 }

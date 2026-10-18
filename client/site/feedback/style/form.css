@@ -75,10 +75,6 @@ background-color: rgba(239, 68, 68, 0.13);
 	color: #7f1d1d;
 }
 
-.submit-btn {
-transition: none;
-}
-
 @media screen and (max-width: 767px) {
 
 .form-section {
@@ -404,4 +400,10 @@ font-family: "Baloo Bhaijaan 2", sans-serif;
 	transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease, margin-top 0.3s ease;
 }
 
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.submit-btn {
+		transition: none;
+	}
 }

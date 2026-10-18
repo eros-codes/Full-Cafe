@@ -1,3 +1,12 @@
+@keyframes pulse-status {
+	0%, 100% { opacity: 1; }
+	50%       { opacity: 0.3; }
+}
+
+@keyframes loading-dots {
+	to { width: 1.25em; }
+}
+
 body {
 display: flex;
 	flex-direction: column;
@@ -64,7 +73,7 @@ display: flex;
 	gap: 5px;
 	font-family: "Baloo Bhaijaan 2", sans-serif;
 	font-size: 0.7rem;
-	color: var(--deep-tauqe);
+	color: var(--green);
 	direction: rtl;
 }
 
@@ -100,7 +109,7 @@ width: 34px;
 	justify-content: center;
 	border-radius: 50%;
 	background: none;
-	color: var(--deep-tauqe);
+	color: var(--secondary-text-color);
 	cursor: pointer;
 	transition: color 0.18s ease, background-color 0.18s ease;
 }
@@ -151,10 +160,6 @@ width: 5px;
 width: 14px;
 	border-radius: 3px;
 	background-color: var(--chapel-white);
-}
-
-.status-dot {
-animation: none;
 }
 
 .chat-container.chat-container--empty .chat-controls,
@@ -267,4 +272,10 @@ position: relative;
 height: 9rem;
 }
 
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.status-dot {
+		animation: none;
+	}
 }
