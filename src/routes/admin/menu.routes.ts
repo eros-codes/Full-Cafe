@@ -1,12 +1,21 @@
 import express from 'express';
 import multer from 'multer';
 import fs from 'fs/promises';
-import type { Prisma } from '@prisma/client';
+import type { CategoryKind, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { createHttpError, prismaCode } from '../../lib/http-error.js';
 import { currentAdmin } from '../../lib/request.js';
 import { requireRole } from '../../middleware/auth.js';
 import { ROLE_GROUPS } from '../../lib/roles.js';
+import {
+	invalidateRecommenderCache,
+	isCategoryKind,
+	readOptionIds,
+	readProductTags,
+	replaceCategoryTags,
+	replaceProductTags,
+	type ProductTagsInput,
+} from '../../services/recommender.service.js';
 import {
 	PLACEHOLDER_IMAGE,
 	PRODUCTS_DIR,
@@ -26,6 +35,15 @@ adminMenuRouter.use(
 	['/products', '/categories', '/menu-types', '/addons', '/reviews', '/upload'],
 	requireRole(...ROLE_GROUPS.staff),
 );
+// Any successful change to the menu also changes what «انتخاب برای من» suggests: drop its cache at once.
+adminMenuRouter.use((req, res, next) => {
+	if (req.method !== 'GET') {
+		res.on('finish', () => {
+			if (res.statusCode < 400) invalidateRecommenderCache();
+		});
+	}
+	next();
+});
 // The menu's top-level structure (its tabs) is a manager decision; staff can read it for their forms.
 const requireManager = requireRole(...ROLE_GROUPS.manager);
 
@@ -218,13 +236,17 @@ adminMenuRouter.delete('/menu-types/:id', requireManager, async (req, res, next)
 interface CategoryFields {
 	name: string;
 	menuTypeId: number;
+	/** Drink / food / dessert for «انتخاب برای من»; null = left out of it. */
+	kind?: CategoryKind | null;
+	/** Tags every product of the category inherits; undefined on PATCH = leave as is. */
+	tagOptionIds?: number[];
 }
 
 async function readCategoryInput(body: unknown, partial: false): Promise<InputResult<CategoryFields>>;
 async function readCategoryInput(body: unknown, partial: true): Promise<InputResult<Partial<CategoryFields>>>;
 async function readCategoryInput(body: unknown, partial: boolean): Promise<InputResult<Partial<CategoryFields>>> {
 	const data: Partial<CategoryFields> = {};
-	const { name, menuTypeId } = (body ?? {}) as Record<string, unknown>;
+	const { name, menuTypeId, kind, tagOptionIds } = (body ?? {}) as Record<string, unknown>;
 	if (name !== undefined || !partial) {
 		if (typeof name !== 'string' || !name.trim()) return { ok: false, error: 'نام دسته‌بندی الزامی است' };
 		if (name.trim().length > NAME_MAX) return { ok: false, error: `نام دسته‌بندی حداکثر ${NAME_MAX} کاراکتر است` };
@@ -236,16 +258,33 @@ async function readCategoryInput(body: unknown, partial: boolean): Promise<Input
 		if (!(await prisma.menuType.findUnique({ where: { id } }))) return { ok: false, error: 'دسته‌ی اصلی پیدا نشد', status: 404 };
 		data.menuTypeId = id;
 	}
+	if (kind !== undefined) {
+		if (kind !== null && kind !== '' && !isCategoryKind(kind)) return { ok: false, error: 'نوع دسته نامعتبر است' };
+		data.kind = isCategoryKind(kind) ? kind : null;
+	}
+	if (tagOptionIds !== undefined) {
+		const ids = await readOptionIds(tagOptionIds);
+		if (!ids.ok) return ids;
+		data.tagOptionIds = ids.data;
+	}
 	return { ok: true, data };
+}
+
+const categoryInclude = {
+	_count: { select: { products: true } },
+	menuType: { select: { id: true, name: true } },
+	tags: { select: { optionId: true } },
+} satisfies Prisma.CategoryInclude;
+
+/** Admin shape: the category plus the ids of the tags its products inherit. */
+function toAdminCategory({ tags, ...category }: Prisma.CategoryGetPayload<{ include: typeof categoryInclude }>) {
+	return { ...category, tagOptionIds: tags.map((t) => t.optionId).sort((a, b) => a - b) };
 }
 
 adminMenuRouter.get('/categories', async (_req, res, next) => {
 	try {
-		const categories = await prisma.category.findMany({
-			orderBy: { id: 'asc' },
-			include: { _count: { select: { products: true } }, menuType: { select: { id: true, name: true } } },
-		});
-		res.json({ categories });
+		const categories = await prisma.category.findMany({ orderBy: { id: 'asc' }, include: categoryInclude });
+		res.json({ categories: categories.map(toAdminCategory) });
 	} catch (error) {
 		next(error);
 	}
@@ -256,8 +295,13 @@ adminMenuRouter.post('/categories', async (req, res, next) => {
 		const input = await readCategoryInput(req.body, false);
 		if (!input.ok) return res.status(input.status ?? 400).json({ message: input.error });
 		const adminId = currentAdmin(req).id;
-		const category = await prisma.category.create({ data: { ...input.data, createdById: adminId, updatedById: adminId } });
-		res.status(201).json({ category });
+		const { tagOptionIds, ...fields } = input.data;
+		const category = await prisma.$transaction(async (tx) => {
+			const created = await tx.category.create({ data: { ...fields, createdById: adminId, updatedById: adminId } });
+			if (tagOptionIds) await replaceCategoryTags(tx, created.id, tagOptionIds);
+			return tx.category.findUniqueOrThrow({ where: { id: created.id }, include: categoryInclude });
+		});
+		res.status(201).json({ category: toAdminCategory(category) });
 	} catch (error) {
 		next(error);
 	}
@@ -269,8 +313,13 @@ adminMenuRouter.patch('/categories/:id', async (req, res, next) => {
 		if (!id) return res.status(400).json({ message: 'شناسه نامعتبر است' });
 		const input = await readCategoryInput(req.body, true);
 		if (!input.ok) return res.status(input.status ?? 400).json({ message: input.error });
-		const category = await prisma.category.update({ where: { id }, data: { ...input.data, updatedById: currentAdmin(req).id } });
-		res.json({ category });
+		const { tagOptionIds, ...fields } = input.data;
+		const category = await prisma.$transaction(async (tx) => {
+			await tx.category.update({ where: { id }, data: { ...fields, updatedById: currentAdmin(req).id } });
+			if (tagOptionIds) await replaceCategoryTags(tx, id, tagOptionIds);
+			return tx.category.findUniqueOrThrow({ where: { id }, include: categoryInclude });
+		});
+		res.json({ category: toAdminCategory(category) });
 	} catch (error) {
 		if (prismaCode(error) === 'P2025') return res.status(404).json({ message: 'دسته‌بندی پیدا نشد' });
 		next(error);
@@ -389,6 +438,10 @@ interface ProductFields {
 	categoryId: number;
 	/** Attached add-ons in display order; undefined on PATCH means "leave as is". */
 	addOnIds?: number[];
+	/** Out of stock today (still listed, cannot be ordered or recommended). */
+	isAvailable?: boolean;
+	/** Tag groups the product sets itself; undefined on PATCH = leave as is. Groups not listed are inherited from the category. */
+	tags?: ProductTagsInput[];
 }
 
 async function readAddOnIds(value: unknown): Promise<InputResult<number[]>> {
@@ -408,7 +461,7 @@ async function readProductInput(body: unknown, partial: false): Promise<InputRes
 async function readProductInput(body: unknown, partial: true, currentImage: string): Promise<InputResult<Partial<ProductFields>>>;
 async function readProductInput(body: unknown, partial: boolean, currentImage: string | null = null): Promise<InputResult<Partial<ProductFields>>> {
 	const data: Partial<ProductFields> = {};
-	const { name, price, description, image, categoryId, addOnIds } = (body ?? {}) as Record<string, unknown>;
+	const { name, price, description, image, categoryId, addOnIds, isAvailable, tags } = (body ?? {}) as Record<string, unknown>;
 
 	if (name !== undefined || !partial) {
 		if (typeof name !== 'string' || !name.trim()) return { ok: false, error: 'نام محصول الزامی است' };
@@ -447,18 +500,37 @@ async function readProductInput(body: unknown, partial: boolean, currentImage: s
 		if (!ids.ok) return ids;
 		data.addOnIds = ids.data;
 	}
+	if (isAvailable !== undefined) {
+		if (typeof isAvailable !== 'boolean') return { ok: false, error: 'وضعیت موجود بودن نامعتبر است' };
+		data.isAvailable = isAvailable;
+	}
+	if (tags !== undefined) {
+		const parsed = await readProductTags(tags);
+		if (!parsed.ok) return parsed;
+		data.tags = parsed.data;
+	}
 	return { ok: true, data };
 }
 
 const productInclude = {
 	addOns: { orderBy: { sortOrder: 'asc' }, select: { addOnId: true } },
+	tagGroups: { select: { groupId: true } },
+	tags: { select: { optionId: true } },
 } satisfies Prisma.ProductInclude;
 
 type ProductWithAddOnIds = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
 
-/** Admin shape: the product plus the ids of its add-ons in display order. */
-function toAdminProduct({ addOns, ...product }: ProductWithAddOnIds) {
-	return { ...product, addOnIds: addOns.map((link) => link.addOnId) };
+/**
+ * Admin shape: the product, the ids of its add-ons in display order, and its own tags (the groups it sets
+ * itself and their options; every other group comes from the category).
+ */
+function toAdminProduct({ addOns, tagGroups, tags, ...product }: ProductWithAddOnIds) {
+	return {
+		...product,
+		addOnIds: addOns.map((link) => link.addOnId),
+		tagGroupIds: tagGroups.map((t) => t.groupId).sort((a, b) => a - b),
+		tagOptionIds: tags.map((t) => t.optionId).sort((a, b) => a - b),
+	};
 }
 
 function addOnLinks(ids: number[]) {
@@ -478,12 +550,15 @@ adminMenuRouter.post('/products', async (req, res, next) => {
 	try {
 		const input = await readProductInput(req.body, false);
 		if (!input.ok) return res.status(input.status ?? 400).json({ message: input.error });
-		const { addOnIds = [], ...fields } = input.data;
+		const { addOnIds = [], tags, ...fields } = input.data;
 		if (fields.image) fields.image = await promoteTempImage(fields.image);
 		const adminId = currentAdmin(req).id;
-		const product = await prisma.product.create({
-			data: { ...fields, createdById: adminId, updatedById: adminId, addOns: { create: addOnLinks(addOnIds) } },
-			include: productInclude,
+		const product = await prisma.$transaction(async (tx) => {
+			const created = await tx.product.create({
+				data: { ...fields, createdById: adminId, updatedById: adminId, addOns: { create: addOnLinks(addOnIds) } },
+			});
+			if (tags?.length) await replaceProductTags(tx, created.id, tags);
+			return tx.product.findUniqueOrThrow({ where: { id: created.id }, include: productInclude });
 		});
 		res.status(201).json({ product: toAdminProduct(product) });
 	} catch (error) {
@@ -500,20 +575,23 @@ adminMenuRouter.patch('/products/:id', async (req, res, next) => {
 
 		const input = await readProductInput(req.body, true, existing.image);
 		if (!input.ok) return res.status(input.status ?? 400).json({ message: input.error });
-		const { addOnIds, ...fields } = input.data;
+		const { addOnIds, tags, ...fields } = input.data;
 		const imageChanged = fields.image !== undefined && fields.image !== existing.image;
 		if (fields.image !== undefined && imageChanged) fields.image = await promoteTempImage(fields.image);
 		else delete fields.image;
 
-		const product = await prisma.product.update({
-			where: { id },
-			data: {
-				...fields,
-				updatedById: currentAdmin(req).id,
-				// لیست افزودنی‌ها یکجا جایگزین می‌شود (ترتیب همان ترتیب ارسالی است)
-				...(addOnIds ? { addOns: { deleteMany: {}, create: addOnLinks(addOnIds) } } : {}),
-			},
-			include: productInclude,
+		const product = await prisma.$transaction(async (tx) => {
+			await tx.product.update({
+				where: { id },
+				data: {
+					...fields,
+					updatedById: currentAdmin(req).id,
+					// لیست افزودنی‌ها یکجا جایگزین می‌شود (ترتیب همان ترتیب ارسالی است)
+					...(addOnIds ? { addOns: { deleteMany: {}, create: addOnLinks(addOnIds) } } : {}),
+				},
+			});
+			if (tags) await replaceProductTags(tx, id, tags);
+			return tx.product.findUniqueOrThrow({ where: { id }, include: productInclude });
 		});
 		// فایل قبلی فقط بعد از ذخیره‌ی موفق پاک می‌شود
 		if (imageChanged) await removeImage(existing.image);

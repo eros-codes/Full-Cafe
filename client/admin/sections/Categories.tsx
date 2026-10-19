@@ -4,15 +4,44 @@ import { ICONS } from '../../shared/icons';
 import { adminApi } from '../common/adminApi';
 import { MenuModal } from '../common/MenuModal';
 import { EmptyState, ErrorNotice, Skeleton, fa, useFlash } from '../common/ui';
-import { MenuFlash, type CategoryRow, type MenuTypeRow } from './menu-common';
+import { MenuFlash, type CategoryKind, type CategoryRow, type MenuTypeRow } from './menu-common';
+import { CategoryTagsField, KINDS, KIND_FA, fetchTagGroups, type TagGroupRow } from './tags-common';
 
-/** Categories, each under one of the menu's main types (café, restaurant, …). Reloaded on every visit. */
+const KIND_NONE_LABEL = 'بدون نوع (در «انتخاب برای من» نیست)';
+
+const readKind = (value: string): CategoryKind | null => ((KINDS as readonly string[]).includes(value) ? (value as CategoryKind) : null);
+
+function KindSelect({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {
+	return (
+		<select id={id} name="kind" value={value} onChange={(e) => onChange(e.target.value)}>
+			<option value="">{KIND_NONE_LABEL}</option>
+			{KINDS.map((kind) => (
+				<option key={kind} value={kind}>
+					{KIND_FA[kind]}
+				</option>
+			))}
+		</select>
+	);
+}
+
+/** Labels of the tags a category gives its products (active groups only), for the table. */
+function tagLabels(category: CategoryRow, groups: TagGroupRow[]): string {
+	const labels = groups.filter((g) => g.isActive).flatMap((g) => g.options.filter((o) => category.tagOptionIds.includes(o.id)).map((o) => o.label));
+	return labels.length ? labels.join('، ') : '—';
+}
+
+/**
+ * Categories, each under one of the menu's main types (café, restaurant, …), with their kind (drink / food /
+ * dessert) and the tags their products inherit for «انتخاب برای من». Reloaded on every visit.
+ */
 export function Categories({ visit }: { visit: number }) {
 	const [categories, setCategories] = useState<CategoryRow[] | null>(null);
 	const [menuTypes, setMenuTypes] = useState<MenuTypeRow[]>([]);
+	const [groups, setGroups] = useState<TagGroupRow[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [name, setName] = useState('');
 	const [typeId, setTypeId] = useState('');
+	const [kind, setKind] = useState('');
 	const [adding, setAdding] = useState(false);
 	const [editing, setEditing] = useState<CategoryRow | null>(null);
 	const [deleting, setDeleting] = useState<number | null>(null);
@@ -22,11 +51,16 @@ export function Categories({ visit }: { visit: number }) {
 	useEffect(() => {
 		let current = true;
 		if (reloadKey === 0) setCategories(null);
-		Promise.all([adminApi<{ categories: CategoryRow[] }>('/api/admin/categories'), adminApi<{ menuTypes: MenuTypeRow[] }>('/api/admin/menu-types')])
-			.then(([c, t]) => {
+		Promise.all([
+			adminApi<{ categories: CategoryRow[] }>('/api/admin/categories'),
+			adminApi<{ menuTypes: MenuTypeRow[] }>('/api/admin/menu-types'),
+			fetchTagGroups(),
+		])
+			.then(([c, t, g]) => {
 				if (!current) return;
 				setCategories(c.categories);
 				setMenuTypes(t.menuTypes);
+				setGroups(g);
 				setError(null);
 				setTypeId((id) => (t.menuTypes.some((m) => String(m.id) === id) ? id : String(t.menuTypes[0]?.id ?? '')));
 			})
@@ -46,8 +80,9 @@ export function Categories({ visit }: { visit: number }) {
 		if (!name.trim()) return show('نام دسته را وارد کن.');
 		setAdding(true);
 		try {
-			await adminApi('/api/admin/categories', { method: 'POST', body: { name: name.trim(), menuTypeId: Number(typeId) } });
+			await adminApi('/api/admin/categories', { method: 'POST', body: { name: name.trim(), menuTypeId: Number(typeId), kind: readKind(kind) } });
 			setName('');
+			setKind('');
 			reload();
 			show('دسته اضافه شد.', 'ok');
 		} catch (err) {
@@ -81,7 +116,7 @@ export function Categories({ visit }: { visit: number }) {
 			<MenuFlash flash={flash} />
 			<form className="card card-pad menu-inline-form" noValidate onSubmit={create}>
 				<h4>افزودن دسته‌بندی</h4>
-				<div className="row">
+				<div className="row row-3">
 					<div className="field">
 						<label htmlFor="cName">نام دسته</label>
 						<input id="cName" name="name" maxLength={80} placeholder="مثلاً نوشیدنی گرم" value={name} onChange={(e) => setName(e.target.value)} />
@@ -95,6 +130,10 @@ export function Categories({ visit }: { visit: number }) {
 								</option>
 							))}
 						</select>
+					</div>
+					<div className="field">
+						<label htmlFor="cKind">نوع</label>
+						<KindSelect id="cKind" value={kind} onChange={setKind} />
 					</div>
 				</div>
 				<button type="submit" className="primary-btn" disabled={adding || !menuTypes.length}>
@@ -110,6 +149,8 @@ export function Categories({ visit }: { visit: number }) {
 							<tr>
 								<th>نام</th>
 								<th>منو</th>
+								<th>نوع</th>
+								<th>برچسب‌ها</th>
 								<th>محصولات</th>
 								<th>عملیات</th>
 							</tr>
@@ -121,6 +162,10 @@ export function Categories({ visit }: { visit: number }) {
 										<strong>{c.name}</strong>
 									</td>
 									<td>{c.menuType?.name ?? '—'}</td>
+									<td className="menu-nowrap">{c.kind ? KIND_FA[c.kind] : '—'}</td>
+									<td>
+										<small className="menu-desc">{tagLabels(c, groups)}</small>
+									</td>
 									<td>{fa(c._count?.products)}</td>
 									<td className="table-actions-cell">
 										<button type="button" className="secondary-btn" onClick={() => setEditing(c)}>
@@ -142,6 +187,7 @@ export function Categories({ visit }: { visit: number }) {
 				<CategoryForm
 					category={editing}
 					menuTypes={menuTypes}
+					groups={groups}
 					onClose={() => setEditing(null)}
 					onSaved={() => {
 						reload();
@@ -153,16 +199,29 @@ export function Categories({ visit }: { visit: number }) {
 	);
 }
 
-function CategoryForm({ category, menuTypes, onClose, onSaved }: { category: CategoryRow; menuTypes: MenuTypeRow[]; onClose: () => void; onSaved: () => void }) {
+interface FormProps {
+	category: CategoryRow;
+	menuTypes: MenuTypeRow[];
+	groups: TagGroupRow[];
+	onClose: () => void;
+	onSaved: () => void;
+}
+
+function CategoryForm({ category, menuTypes, groups, onClose, onSaved }: FormProps) {
 	const [name, setName] = useState(category.name);
 	const [typeId, setTypeId] = useState(String(category.menuTypeId));
+	const [kind, setKind] = useState(category.kind ?? '');
+	const [tagOptionIds, setTagOptionIds] = useState(category.tagOptionIds);
 	return (
 		<MenuModal
 			title="ویرایش دسته‌بندی"
 			onClose={onClose}
 			onSubmit={async () => {
 				if (!name.trim()) throw new Error('نام دسته الزامی است.');
-				await adminApi(`/api/admin/categories/${category.id}`, { method: 'PATCH', body: { name: name.trim(), menuTypeId: Number(typeId) } });
+				await adminApi(`/api/admin/categories/${category.id}`, {
+					method: 'PATCH',
+					body: { name: name.trim(), menuTypeId: Number(typeId), kind: readKind(kind), tagOptionIds },
+				});
 				onSaved();
 			}}
 		>
@@ -180,6 +239,11 @@ function CategoryForm({ category, menuTypes, onClose, onSaved }: { category: Cat
 					))}
 				</select>
 			</div>
+			<div className="field">
+				<label htmlFor="ecKind">نوع (برای «انتخاب برای من»)</label>
+				<KindSelect id="ecKind" value={kind} onChange={setKind} />
+			</div>
+			<CategoryTagsField groups={groups} kind={readKind(kind)} value={tagOptionIds} onChange={setTagOptionIds} />
 		</MenuModal>
 	);
 }

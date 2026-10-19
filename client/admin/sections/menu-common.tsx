@@ -11,12 +11,19 @@ export interface MenuTypeRow {
 	_count?: { categories: number };
 }
 
+/** Drink / food / dessert: decides which questions of «انتخاب برای من» apply. */
+export type CategoryKind = 'DRINK' | 'FOOD' | 'DESSERT';
+
 export interface CategoryRow {
 	id: number;
 	name: string;
 	menuTypeId: number;
 	menuType?: { id: number; name: string };
 	_count?: { products: number };
+	/** null = not part of «انتخاب برای من» (e.g. hookah). */
+	kind: CategoryKind | null;
+	/** Tags every product of the category inherits. */
+	tagOptionIds: number[];
 }
 
 export interface AddOnRow {
@@ -35,6 +42,12 @@ export interface ProductRow {
 	image: string;
 	categoryId: number;
 	addOnIds: number[];
+	/** false = «ناموجود»: listed on the menu, not orderable, never recommended. */
+	isAvailable: boolean;
+	/** Tag groups the product sets itself (every other group comes from its category). */
+	tagGroupIds: number[];
+	/** The product's own options (of those groups only). */
+	tagOptionIds: number[];
 }
 
 export function imageSrc(image: string | null | undefined): string {

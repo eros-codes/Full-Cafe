@@ -1,0 +1,2447 @@
+{
+	"exportedAt": "2026-10-19T16:13:47.116Z",
+	"menuTypes": [
+		{
+			"ref": 1,
+			"name": "کافه",
+			"sortOrder": 0,
+			"isActive": true
+		},
+		{
+			"ref": 2,
+			"name": "رستوران",
+			"sortOrder": 1,
+			"isActive": true
+		},
+		{
+			"ref": 3,
+			"name": "صبحانه",
+			"sortOrder": 2,
+			"isActive": true
+		}
+	],
+	"categories": [
+		{
+			"ref": 1,
+			"name": "قهوه",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				2,
+				12,
+				15
+			]
+		},
+		{
+			"ref": 2,
+			"name": "قهوه دمی",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				2,
+				12,
+				15
+			]
+		},
+		{
+			"ref": 3,
+			"name": "قهوه سرد",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				3,
+				12,
+				15
+			]
+		},
+		{
+			"ref": 4,
+			"name": "شکلات بار",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				2,
+				9,
+				13,
+				51
+			]
+		},
+		{
+			"ref": 5,
+			"name": "چای و دمنوش",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				2
+			]
+		},
+		{
+			"ref": 6,
+			"name": "دتاکس واتر \"NEW\"",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				3,
+				10,
+				13
+			]
+		},
+		{
+			"ref": 7,
+			"name": "ماکتیل",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				3,
+				13
+			]
+		},
+		{
+			"ref": 8,
+			"name": "ایس‌تی",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				3,
+				10,
+				12
+			]
+		},
+		{
+			"ref": 9,
+			"name": "اسموتی",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				3,
+				13,
+				24
+			]
+		},
+		{
+			"ref": 10,
+			"name": "میلک شیک",
+			"menuTypeRef": 1,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				3,
+				5,
+				9,
+				13,
+				28,
+				51
+			]
+		},
+		{
+			"ref": 11,
+			"name": "کیک و وافل",
+			"menuTypeRef": 1,
+			"kind": "DESSERT",
+			"tagOptionRefs": [
+				5
+			]
+		},
+		{
+			"ref": 12,
+			"name": "غذای اصلی",
+			"menuTypeRef": 2,
+			"kind": "FOOD",
+			"tagOptionRefs": [
+				28,
+				41,
+				48
+			]
+		},
+		{
+			"ref": 13,
+			"name": "پیتزا",
+			"menuTypeRef": 2,
+			"kind": "FOOD",
+			"tagOptionRefs": [
+				28,
+				37,
+				48
+			]
+		},
+		{
+			"ref": 14,
+			"name": "برگر",
+			"menuTypeRef": 2,
+			"kind": "FOOD",
+			"tagOptionRefs": [
+				28,
+				39,
+				41,
+				48
+			]
+		},
+		{
+			"ref": 15,
+			"name": "پنینی",
+			"menuTypeRef": 2,
+			"kind": "FOOD",
+			"tagOptionRefs": [
+				37,
+				41,
+				48,
+				49
+			]
+		},
+		{
+			"ref": 16,
+			"name": "پاستا",
+			"menuTypeRef": 2,
+			"kind": "FOOD",
+			"tagOptionRefs": [
+				28,
+				37,
+				41,
+				48
+			]
+		},
+		{
+			"ref": 17,
+			"name": "سالاد و پیش غذا",
+			"menuTypeRef": 2,
+			"kind": "FOOD",
+			"tagOptionRefs": [
+				26,
+				48,
+				49
+			]
+		},
+		{
+			"ref": 18,
+			"name": "نوشیدنی",
+			"menuTypeRef": 2,
+			"kind": "DRINK",
+			"tagOptionRefs": [
+				3
+			]
+		},
+		{
+			"ref": 19,
+			"name": "صبحانه",
+			"menuTypeRef": 3,
+			"kind": "FOOD",
+			"tagOptionRefs": [
+				47
+			]
+		}
+	],
+	"addOns": [
+		{
+			"ref": 1,
+			"name": "شیر اضافه",
+			"price": 20000,
+			"isActive": true
+		}
+	],
+	"products": [
+		{
+			"ref": 1,
+			"name": "اسپرسو کامرشیال",
+			"price": 225000,
+			"description": "قهوه‌‌ی ترکیبی ۵۰٪ ؛ غلیظ و پرکافئین با طعم کلاسیک و تلخی متعادل.",
+			"image": "1792240176665-317318133.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [
+				1
+			],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				10,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 2,
+			"name": "اسپرسو اسپشیال(سینگل اورجین)",
+			"price": 260000,
+			"description": "قهوه‌ای با دانه‌های ویژه، رایحه پیچیده و طعمی عمیق‌تر. عصاره‌گیری با قهوه‌ تک خواستگاه.",
+			"image": "1792240176674-906621221.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				10,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 3,
+			"name": "آمریکانو",
+			"price": 225000,
+			"description": "اسپرسویی رقیق‌شده با آب داغ، طعمی سبک‌تر و متعادل.",
+			"image": "1792240176681-418838362.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				10,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 4,
+			"name": "آمریکانو طعم دار",
+			"price": 245000,
+			"description": "کارامل / فندق / شکلات / وانیل / دارچین / نارگیل/ کارابین رام/ زنجبیل/ آیریش",
+			"image": "1792240176687-342077061.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				22,
+				26,
+				51
+			]
+		},
+		{
+			"ref": 5,
+			"name": "آمریکانو اسپشیال",
+			"price": 0,
+			"description": "آمریکانو با دانه‌های اسپشیالتی؛ طعمی شفاف و تازه. دم‌آوری با قهوه تک خواستگاه.",
+			"image": "1792240176695-676726723.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				10,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 6,
+			"name": "قهوه ترک فندقی",
+			"price": 215000,
+			"description": "قهوه ترک با کرم شکلات فندقی؛ طعمی غنی و شیرین.",
+			"image": "1792240176702-219797213.jpg",
+			"categoryRef": 2,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				10,
+				15,
+				16,
+				19,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 7,
+			"name": "آمریکانو اسپشیال طعم دار",
+			"price": 282000,
+			"description": "نسخه طعم‌دار آمریکانو اسپشیال با رایحه‌های طبیعی و متنوع.",
+			"image": "1792240176709-548741619.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				22,
+				26,
+				51
+			]
+		},
+		{
+			"ref": 8,
+			"name": "لاته کلاسیک",
+			"price": 305000,
+			"description": "اسپرسو با شیر بخار داده و فوم شیر، بافتی کرمی و طعمی ملایم و خوش‌آیند.",
+			"image": "1792240176716-624076891.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				9,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 9,
+			"name": "لاته طعم دار",
+			"price": 325000,
+			"description": "اسپرسو + شیر داغ + سیروپ کارامل / فندق / شکلات / وانیل / دارچین / نارگیل / کارابین رام/ زنجبیل/ آیریش",
+			"image": "1792240176722-986634527.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				22,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 10,
+			"name": "کاپوچینو",
+			"price": 290000,
+			"description": "قهوه با فوم شیر فراوان، ترکیبی متعادل از شیر و قهوه.",
+			"image": "1792240176730-342678189.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				9,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 11,
+			"name": "ماکیاتو",
+			"price": 225000,
+			"description": "اسپرسو با مقدار کمی فوم شیر؛ طعمی قوی و غلیظ از قهوه با لکه‌ای از فوم شیر.",
+			"image": "1792240176738-628674227.png",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				9,
+				26,
+				51
+			]
+		},
+		{
+			"ref": 12,
+			"name": "کورداتی",
+			"price": 0,
+			"description": "نسبت مساوی اسپرسو و شیر؛ طعمی متعادل و ملایم.",
+			"image": "1792240176745-971085830.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				9,
+				26,
+				51
+			]
+		},
+		{
+			"ref": 13,
+			"name": "موکاچینو",
+			"price": 335000,
+			"description": "اسپرسو، شیر و شکلات؛ نوشیدنی شیرین و انرژی‌بخش.",
+			"image": "1792240176754-413163392.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				15,
+				16,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 14,
+			"name": "کارامل ماکیاتو",
+			"price": 325000,
+			"description": "لاته با طعم کارامل؛ شیرین و نرم با طعمی دلپذیر.",
+			"image": "1792240176760-802978281.jpg",
+			"categoryRef": 1,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				15,
+				17,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 15,
+			"name": "قهوه ترک کلاسیک",
+			"price": 200000,
+			"description": "قهوه‌ای سنتی با بافت غلیظ و طعمی قوی؛ مناسب بعد از غذا.",
+			"image": "1792240176767-486032019.jpg",
+			"categoryRef": 2,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				10,
+				27,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 16,
+			"name": "قهوه فرانسه",
+			"price": 287000,
+			"description": "قهوه‌ای ملایم با شیر؛ مناسب برای صبح یا عصر.",
+			"image": "1792240176774-182034356.jpg",
+			"categoryRef": 2,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				9,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 17,
+			"name": "یونانی",
+			"price": 220000,
+			"description": "قهوه ترک با شیر و ادویه‌های هل، میخک و دارچین؛ طعمی معطر و گرم",
+			"image": "1792240176780-425592299.png",
+			"categoryRef": 2,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				9,
+				15,
+				22,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 18,
+			"name": "V 60",
+			"price": 325000,
+			"description": "قهوه دمی با طعمی شفاف و اسیدیته ملایم؛ مناسب تجربه نت‌های قهوه. دم‌آوری با قهوه اسپشیال سینگل اورجین.",
+			"image": "1792240176786-317038439.jpg",
+			"categoryRef": 2,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				10,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 19,
+			"name": "آفوگاتو",
+			"price": 375000,
+			"description": "اسپرسو داغ روی بستنی وانیلی با توت‌فرنگی و موز؛ ترکیبی شیرین و پرانرژی.",
+			"image": "1792240176793-127626165.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				15,
+				18,
+				24,
+				28,
+				51
+			]
+		},
+		{
+			"ref": 20,
+			"name": "کلد برو",
+			"price": 285000,
+			"description": "قهوه سرد با عصاره‌گیری طولانی؛ طعمی نرم، کم‌تلخ و با اسیدیته ملایم. دم‌آوری شده با قهوه اسپشیال تک خواستگاه.",
+			"image": "1792240176801-668688849.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				7,
+				10,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 21,
+			"name": "آیس آمریکانو",
+			"price": 235000,
+			"description": "آمریکانو سرو‌شده با یخ؛ خنک و با طعم سبک و تازه.",
+			"image": "1792240176807-611658016.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				10,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 22,
+			"name": "آیس آمریکانو طعم‌دار",
+			"price": 255000,
+			"description": "کارامل / فندق / شکلات / وانیل / دارچین / نارگیل/ کارابین رام/ زنجبیل/ آیریش",
+			"image": "1792240176815-623677757.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				22,
+				26,
+				51
+			]
+		},
+		{
+			"ref": 23,
+			"name": "آیس آمریکانو اسپشیال",
+			"price": 270000,
+			"description": "آمریکانو سرد با دانه‌های اسپشیالتی؛ طعمی شفاف و رایحه میوه‌ای.",
+			"image": "1792240176824-833960916.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				7,
+				10,
+				15,
+				24,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 24,
+			"name": "آیس لاته",
+			"price": 310000,
+			"description": "لاته سرد با شیر بخار‌داده نشده؛ طعمی نرم و بافتی خنک و کرمی.",
+			"image": "1792240176830-772779756.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				9,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 25,
+			"name": "آیس لاته طعم‌دار",
+			"price": 330000,
+			"description": "اسپرسو دبل + شیر + سیروپ کارامل / فندق / شکلات / وانیل / دارچین / نارگیل/ کارابین رام/ زنجبیل/ آیریش",
+			"image": "1792240176836-115647090.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				22,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 26,
+			"name": "آیس موکا",
+			"price": 330000,
+			"description": "ترکیب سرد اسپرسو، شیر و شکلات؛ طعمی شیرین و تازه.",
+			"image": "1792240176843-810500534.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				15,
+				16,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 27,
+			"name": "های انرژی",
+			"price": 335000,
+			"description": "ترکیبی انرژی‌بخش از اسپرسو و نوشیدنی انرژی‌زا؛ افزایش‌دهنده‌ی هوشیاری و انرژی.",
+			"image": "1792240176850-537990640.jpg",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				10,
+				26,
+				51
+			]
+		},
+		{
+			"ref": 28,
+			"name": "کوک اسپرسو",
+			"price": 320000,
+			"description": "ترکیب اسپرسو و نوشابه کولا؛ طعمی متفاوت با ترکیب تلخی و شیرینی.",
+			"image": "1792240176857-498373079.png",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				26,
+				51,
+				53
+			]
+		},
+		{
+			"ref": 29,
+			"name": "موکا فوم",
+			"price": 345000,
+			"description": "ترکیب اسپرسو و نوشابه کولا؛ طعمی متفاوت با ترکیب تلخی و شیرینی.",
+			"image": "1792240176864-218475586.png",
+			"categoryRef": 3,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				15,
+				16,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 30,
+			"name": "چای کلاسیک",
+			"price": 135000,
+			"description": "چای سیاه دم‌کشیده با عطر طبیعی؛ تقویت‌کننده انرژی و افزایش تمرکز.",
+			"image": "1792240176871-985863343.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				12,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 31,
+			"name": "چای دمی همراه دور‌چین",
+			"price": 150000,
+			"description": "چای دمی با گل محمدی، دارچین، زنجبیل، عسل و شاهسپران؛ ضدالتهاب و تقویت سیستم گوارش.",
+			"image": "1792240176876-714077856.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				12,
+				22,
+				23,
+				26,
+				51,
+				53
+			]
+		},
+		{
+			"ref": 32,
+			"name": "چای زعفران",
+			"price": 205000,
+			"description": "چای سیاه همراه زعفران؛ آرامش‌بخش و ضدافسردگی طبیعی.",
+			"image": "1792240176882-978448083.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				12,
+				21,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 33,
+			"name": "چای هل",
+			"price": 165000,
+			"description": "",
+			"image": "1792240176890-446000089.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				12,
+				22,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 34,
+			"name": "چای دارچین",
+			"price": 160000,
+			"description": "چای سیاه با دارچین تازه؛ کمک به کنترل قند خون و بهبود گردش خون.",
+			"image": "1792240176896-153510098.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				12,
+				22,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 35,
+			"name": "چای کرک",
+			"price": 255000,
+			"description": "چای غلیظ با فوم کرکی؛ ترکیبی از ادویه‌ها با پایه هل؛ انرژی‌بخش و تقویت‌کننده بدن.",
+			"image": "1792240176903-214028453.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				12,
+				22,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 36,
+			"name": "ماسالا",
+			"price": 230000,
+			"description": "چای سیاه با ادویه‌های ماسالا؛ افزایش ایمنی و بهبود هضم.",
+			"image": "1792240176913-7602284.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				12,
+				22,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 37,
+			"name": "میلک‌تی",
+			"price": 202000,
+			"description": "چای، شیر بخار داده شده",
+			"image": "1792240176920-151066189.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				9,
+				12,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 38,
+			"name": "ماچا لاته",
+			"price": 252000,
+			"description": "",
+			"image": "1792240176926-148633316.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				9,
+				12,
+				23,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 39,
+			"name": "وانیل ماسالا",
+			"price": 27000,
+			"description": "چای ماسالا + وانیل",
+			"image": "1792240176932-461458316.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				12,
+				18,
+				22,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 40,
+			"name": "چای سبز",
+			"price": 160000,
+			"description": "چای سبز دم‌کشیده؛ سرشار از آنتی‌اکسیدان و کمک به کاهش وزن.",
+			"image": "1792240176938-261231476.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				12,
+				23,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 41,
+			"name": "دمنوش روف",
+			"price": 207000,
+			"description": "",
+			"image": "1792240176944-811412868.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				23,
+				26,
+				51
+			]
+		},
+		{
+			"ref": 42,
+			"name": "دمنوش انرژی",
+			"price": 217000,
+			"description": "شلیل اسلایس‌شده، زعفران، زنجبیل و دارچین؛ افزایش انرژی و بهبود گردش خون.",
+			"image": "1792240176951-331976800.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				21,
+				22,
+				24,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 43,
+			"name": "دمنوش آرامش",
+			"price": 197000,
+			"description": "گل گاوزبان، اسطوخودوس و لیموترش؛ کاهش استرس و بهبود خواب.",
+			"image": "1792240176957-486405170.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				23,
+				24,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 44,
+			"name": "دمنوش سرماخوردگی",
+			"price": 172000,
+			"description": "پونه، کاکوتی، آویشن، شاهسپران و عسل؛ ضدعفونی‌کننده و تسکین‌دهنده علائم سرماخوردگی.",
+			"image": "1792240176963-71748677.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				23,
+				26,
+				51,
+				53
+			]
+		},
+		{
+			"ref": 45,
+			"name": "دمنوش ترکیبی",
+			"price": 165000,
+			"description": "",
+			"image": "1792240176970-33059347.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				23,
+				26,
+				51
+			]
+		},
+		{
+			"ref": 46,
+			"name": "دمنوش گل گاوزبان",
+			"price": 165000,
+			"description": "دم‌کرده گل گاوزبان؛ آرام‌بخش و کاهش التهاب",
+			"image": "1792240176977-756456921.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				23,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 47,
+			"name": "دمنوش به لیمو",
+			"price": 0,
+			"description": "دم‌کرده برگ به‌لیمو؛ تقویت سیستم گوارش و ضد اضطراب",
+			"image": "1792240176983-616267741.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				23,
+				24,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 48,
+			"name": "دمنوش کاکوتی",
+			"price": 0,
+			"description": "دم‌کرده گیاه کاکوتی؛ ضدعفونی‌کننده و تقویت‌کننده سیستم ایمنی",
+			"image": "1792240176990-667833092.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				23,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 49,
+			"name": "دمنوش بهار نارنج",
+			"price": 0,
+			"description": "دم‌کرده گل بهارنارنج؛ آرامش‌بخش و کاهش فشار خون.",
+			"image": "1792240176996-440954377.jpg",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				10,
+				13,
+				23,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 50,
+			"name": "میلک‌تی کارامل",
+			"price": 217000,
+			"description": "چای، کارامل، شیر بخار داده شده",
+			"image": "placeholder.png",
+			"categoryRef": 5,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				8,
+				11,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				5,
+				9,
+				12,
+				17,
+				27,
+				51
+			]
+		},
+		{
+			"ref": 51,
+			"name": "هات نوتلا",
+			"price": 310000,
+			"description": "",
+			"image": "1792240177003-930108534.png",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				5,
+				16,
+				19,
+				28
+			]
+		},
+		{
+			"ref": 52,
+			"name": "هات پسته زعفران",
+			"price": 310000,
+			"description": "شیر گرم با پودر پسته و زعفران؛ مغذی و آرامش‌دهنده.",
+			"image": "1792240177009-290245701.jpg",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				5,
+				19,
+				21,
+				28
+			]
+		},
+		{
+			"ref": 53,
+			"name": "هات چاکلیت",
+			"price": 250000,
+			"description": "شیر و شکلات شیرین شده؛ گرم‌کننده و انرژی‌رسان.",
+			"image": "1792240177014-293285258.jpg",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				5,
+				16,
+				28
+			]
+		},
+		{
+			"ref": 54,
+			"name": "هات چاکلیت طعم‌دار",
+			"price": 265000,
+			"description": "هات چاکلت با طعم‌هایی مثل وانیل، کارامل، نارگیل یا فندق؛ خوش‌بو و دلپذیر.",
+			"image": "1792240177021-678238222.jpg",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				5,
+				16,
+				17,
+				18,
+				19,
+				20,
+				28
+			]
+		},
+		{
+			"ref": 55,
+			"name": "وای چاکلیت",
+			"price": 240000,
+			"description": "شکلات سفید با شیر؛ طعمی ملایم و شیرین.",
+			"image": "1792240177028-405916354.jpg",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				5,
+				16,
+				27
+			]
+		},
+		{
+			"ref": 56,
+			"name": "دارکو چاکلت",
+			"price": 285000,
+			"description": "شکلات تلخ + کرم فندق + شیر داغ",
+			"image": "1792240177034-346214648.jpg",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				6,
+				7,
+				16,
+				19,
+				28
+			]
+		},
+		{
+			"ref": 57,
+			"name": "ثعلب دارچین",
+			"price": 240000,
+			"description": "ثعلب + دارچین",
+			"image": "1792240177039-947857709.png",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				5,
+				22,
+				27
+			]
+		},
+		{
+			"ref": 58,
+			"name": "پینک چاکلت",
+			"price": 250000,
+			"description": "",
+			"image": "1792240177046-560395690.jpg",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				5,
+				16,
+				27
+			]
+		},
+		{
+			"ref": 59,
+			"name": "هات نارگیل",
+			"price": 310000,
+			"description": "پودر نارگیل، شیر بخار داده شده",
+			"image": "1792240177051-517287939.jpg",
+			"categoryRef": 4,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25
+			],
+			"ownTagOptionRefs": [
+				5,
+				20,
+				27
+			]
+		},
+		{
+			"ref": 60,
+			"name": "سامر دتاکس",
+			"price": 285000,
+			"description": "آبِ طعم‌دار شده با میوه‌های تازه. کمک به هیدراتاسیون بدن و پاکسازی طبیعی؛ انتخابی سالم و بدون کالری.",
+			"image": "1792240177057-300008562.jpg",
+			"categoryRef": 6,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				4,
+				14,
+				25,
+				50
+			],
+			"ownTagOptionRefs": [
+				6,
+				24,
+				26,
+				51,
+				52,
+				53
+			]
+		},
+		{
+			"ref": 61,
+			"name": "پیده زبان",
+			"price": 850000,
+			"description": "زبان + پیاز کاراملی + پنیر موزارلا + سس مخصوص",
+			"image": "1792240177063-269247615.jpg",
+			"categoryRef": 12,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				35,
+				43
+			],
+			"ownTagOptionRefs": [
+				30,
+				36,
+				44
+			]
+		},
+		{
+			"ref": 62,
+			"name": "رستو پیده",
+			"price": 760000,
+			"description": "رست بیف + قارچ + زیتون +سس قارچ + پنیر موزارلا + سس مخصوص روف",
+			"image": "1792240177069-26018664.jpg",
+			"categoryRef": 12,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				35,
+				43
+			],
+			"ownTagOptionRefs": [
+				30,
+				36,
+				44
+			]
+		},
+		{
+			"ref": 63,
+			"name": "سانچار پیده",
+			"price": 760000,
+			"description": "سالامی + سوجوک + گودا + سس مخصوص روف",
+			"image": "1792240177074-845385152.jpg",
+			"categoryRef": 12,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				35,
+				43
+			],
+			"ownTagOptionRefs": [
+				32,
+				36,
+				44
+			]
+		},
+		{
+			"ref": 64,
+			"name": "تاووکلو پیده",
+			"price": 620000,
+			"description": "فیله مرغ + گوجه‌فرنگی + ریحان + پنیر موزارلا + سس مخصوص روف",
+			"image": "1792240177080-257549799.jpg",
+			"categoryRef": 12,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				35,
+				43
+			],
+			"ownTagOptionRefs": [
+				31,
+				36,
+				44
+			]
+		},
+		{
+			"ref": 65,
+			"name": "بشقاب میگو",
+			"price": 900000,
+			"description": "میگو با مرینیت مخصوص + سس قارچ ویژه + سس مخصوص روف( سرو همراه سیب زمینی سرخ‌شده)",
+			"image": "1792240177085-629317276.jpg",
+			"categoryRef": 12,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				35,
+				43
+			],
+			"ownTagOptionRefs": [
+				33,
+				44
+			]
+		},
+		{
+			"ref": 66,
+			"name": "تیرینیتا پیتزه (دو نفره)",
+			"price": 1100000,
+			"description": "فیله مرغ + بیکن + سالامی + قارچ + زیتون + پنیر موزارلا",
+			"image": "1792240177092-491616690.jpg",
+			"categoryRef": 13,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				40,
+				43
+			],
+			"ownTagOptionRefs": [
+				31,
+				32,
+				42,
+				44
+			]
+		},
+		{
+			"ref": 67,
+			"name": "سیرو استیک پستو",
+			"price": 988000,
+			"description": "راسته گوساله + قارچ + گوجه‌فرنگی + زیتون + پیاز + سس پستو + پنیر موزارلا",
+			"image": "1792240177099-206307936.jpg",
+			"categoryRef": 13,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				40,
+				43
+			],
+			"ownTagOptionRefs": [
+				30,
+				41,
+				44
+			]
+		},
+		{
+			"ref": 68,
+			"name": "سالامی پیتزا (دونفره)",
+			"price": 800000,
+			"description": "سالامی + قارچ + زیتون + عسل تند + پنیر موزارلا",
+			"image": "1792240177105-811758260.jpg",
+			"categoryRef": 13,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				40,
+				43
+			],
+			"ownTagOptionRefs": [
+				32,
+				42,
+				45
+			]
+		},
+		{
+			"ref": 69,
+			"name": "میگو پیتزا (دو نفره)",
+			"price": 1250000,
+			"description": "میگو + قارچ + زیتون + پنیر موزارلا",
+			"image": "1792240177111-973683140.jpg",
+			"categoryRef": 13,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				40,
+				43
+			],
+			"ownTagOptionRefs": [
+				33,
+				42,
+				44
+			]
+		},
+		{
+			"ref": 70,
+			"name": "تاکسنو پیتزا",
+			"price": 890000,
+			"description": "سینه بوقلمون + قارچ + گوجه‌فرنگی + فلفل دلمه‌ای + زیتون + پنیر موزارلا",
+			"image": "1792240177118-348894795.jpg",
+			"categoryRef": 13,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				40,
+				43
+			],
+			"ownTagOptionRefs": [
+				31,
+				41,
+				44
+			]
+		},
+		{
+			"ref": 71,
+			"name": "سیرو استیک",
+			"price": 908000,
+			"description": "راسته گوساله + قارچ + گوجه + زیتون + پنیر موزارلا",
+			"image": "placeholder.png",
+			"categoryRef": 13,
+			"isAvailable": true,
+			"addOnRefs": [],
+			"ownTagGroupRefs": [
+				29,
+				40,
+				43
+			],
+			"ownTagOptionRefs": [
+				30,
+				41,
+				44
+			]
+		}
+	],
+	"tagGroups": [
+		{
+			"ref": 1,
+			"key": "temp",
+			"name": "دما",
+			"question": "گرم یا سرد؟",
+			"questionByKind": null,
+			"multi": false,
+			"ordered": false,
+			"strictness": "SOFT",
+			"importance": 5,
+			"kinds": [
+				"DRINK",
+				"DESSERT"
+			],
+			"isActive": true,
+			"sortOrder": 0,
+			"options": [
+				{
+					"ref": 2,
+					"label": "گرم",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 3,
+					"label": "سرد",
+					"key": null,
+					"sortOrder": 1
+				}
+			]
+		},
+		{
+			"ref": 4,
+			"key": "taste",
+			"name": "شیرینی",
+			"question": "چه‌قدر شیرین باشه؟",
+			"questionByKind": null,
+			"multi": false,
+			"ordered": true,
+			"strictness": "SOFT",
+			"importance": 4,
+			"kinds": [
+				"DRINK",
+				"DESSERT"
+			],
+			"isActive": true,
+			"sortOrder": 1,
+			"options": [
+				{
+					"ref": 5,
+					"label": "شیرین",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 6,
+					"label": "کم‌شیرین",
+					"key": null,
+					"sortOrder": 1
+				},
+				{
+					"ref": 7,
+					"label": "تلخ",
+					"key": null,
+					"sortOrder": 2
+				}
+			]
+		},
+		{
+			"ref": 8,
+			"key": "milk",
+			"name": "شیر",
+			"question": "با شیر باشه یا بدون شیر؟",
+			"questionByKind": null,
+			"multi": false,
+			"ordered": false,
+			"strictness": "SOFT",
+			"importance": 3,
+			"kinds": [
+				"DRINK"
+			],
+			"isActive": true,
+			"sortOrder": 2,
+			"options": [
+				{
+					"ref": 9,
+					"label": "با شیر",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 10,
+					"label": "بدون شیر",
+					"key": null,
+					"sortOrder": 1
+				}
+			]
+		},
+		{
+			"ref": 11,
+			"key": "caffeine",
+			"name": "کافئین",
+			"question": "کافئین داشته باشه؟",
+			"questionByKind": null,
+			"multi": false,
+			"ordered": false,
+			"strictness": "SOFT",
+			"importance": 3,
+			"kinds": [
+				"DRINK"
+			],
+			"isActive": true,
+			"sortOrder": 3,
+			"options": [
+				{
+					"ref": 12,
+					"label": "با کافئین",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 13,
+					"label": "بدون کافئین",
+					"key": null,
+					"sortOrder": 1
+				}
+			]
+		},
+		{
+			"ref": 14,
+			"key": "flavor",
+			"name": "طعم",
+			"question": "چه طعمی دوست داری؟",
+			"questionByKind": null,
+			"multi": true,
+			"ordered": false,
+			"strictness": "SOFT",
+			"importance": 3,
+			"kinds": [
+				"DRINK",
+				"DESSERT"
+			],
+			"isActive": true,
+			"sortOrder": 4,
+			"options": [
+				{
+					"ref": 15,
+					"label": "قهوه‌ای",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 16,
+					"label": "شکلاتی",
+					"key": null,
+					"sortOrder": 1
+				},
+				{
+					"ref": 17,
+					"label": "کاراملی",
+					"key": null,
+					"sortOrder": 2
+				},
+				{
+					"ref": 18,
+					"label": "وانیلی",
+					"key": null,
+					"sortOrder": 3
+				},
+				{
+					"ref": 19,
+					"label": "آجیلی",
+					"key": null,
+					"sortOrder": 4
+				},
+				{
+					"ref": 20,
+					"label": "نارگیلی",
+					"key": null,
+					"sortOrder": 5
+				},
+				{
+					"ref": 21,
+					"label": "زعفرانی",
+					"key": null,
+					"sortOrder": 6
+				},
+				{
+					"ref": 22,
+					"label": "ادویه‌ای",
+					"key": null,
+					"sortOrder": 7
+				},
+				{
+					"ref": 23,
+					"label": "گیاهی",
+					"key": null,
+					"sortOrder": 8
+				},
+				{
+					"ref": 24,
+					"label": "میوه‌ای",
+					"key": null,
+					"sortOrder": 9
+				}
+			]
+		},
+		{
+			"ref": 25,
+			"key": "weight",
+			"name": "سنگینی",
+			"question": "سبک یا سنگین؟",
+			"questionByKind": {
+				"FOOD": "یه چیز سبک یا یه غذای سیرکننده؟"
+			},
+			"multi": false,
+			"ordered": true,
+			"strictness": "SOFT",
+			"importance": 3,
+			"kinds": [
+				"DRINK",
+				"FOOD",
+				"DESSERT"
+			],
+			"isActive": true,
+			"sortOrder": 5,
+			"options": [
+				{
+					"ref": 26,
+					"label": "سبک",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 27,
+					"label": "متوسط",
+					"key": null,
+					"sortOrder": 1
+				},
+				{
+					"ref": 28,
+					"label": "سنگین",
+					"key": null,
+					"sortOrder": 2
+				}
+			]
+		},
+		{
+			"ref": 29,
+			"key": "protein",
+			"name": "پروتئین",
+			"question": "چه پروتئینی دوست داری؟",
+			"questionByKind": null,
+			"multi": true,
+			"ordered": false,
+			"strictness": "SOFT",
+			"importance": 4,
+			"kinds": [
+				"FOOD"
+			],
+			"isActive": true,
+			"sortOrder": 6,
+			"options": [
+				{
+					"ref": 30,
+					"label": "با گوشت قرمز",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 31,
+					"label": "با مرغ و بوقلمون",
+					"key": null,
+					"sortOrder": 1
+				},
+				{
+					"ref": 32,
+					"label": "با سالامی و سوسیس",
+					"key": null,
+					"sortOrder": 2
+				},
+				{
+					"ref": 33,
+					"label": "با میگو و غذای دریایی",
+					"key": null,
+					"sortOrder": 3
+				},
+				{
+					"ref": 34,
+					"label": "گیاهی",
+					"key": null,
+					"sortOrder": 4
+				}
+			]
+		},
+		{
+			"ref": 35,
+			"key": "cuisine",
+			"name": "سبک غذا",
+			"question": "چه سبک غذایی؟",
+			"questionByKind": null,
+			"multi": true,
+			"ordered": false,
+			"strictness": "SOFT",
+			"importance": 3,
+			"kinds": [
+				"FOOD"
+			],
+			"isActive": true,
+			"sortOrder": 7,
+			"options": [
+				{
+					"ref": 36,
+					"label": "ترکی",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 37,
+					"label": "ایتالیایی",
+					"key": null,
+					"sortOrder": 1
+				},
+				{
+					"ref": 38,
+					"label": "ایرانی",
+					"key": null,
+					"sortOrder": 2
+				},
+				{
+					"ref": 39,
+					"label": "فست‌فود",
+					"key": null,
+					"sortOrder": 3
+				}
+			]
+		},
+		{
+			"ref": 40,
+			"key": "portion",
+			"name": "اندازه",
+			"question": "برای چند نفر؟",
+			"questionByKind": null,
+			"multi": false,
+			"ordered": false,
+			"strictness": "SOFT",
+			"importance": 3,
+			"kinds": [
+				"FOOD"
+			],
+			"isActive": true,
+			"sortOrder": 8,
+			"options": [
+				{
+					"ref": 41,
+					"label": "یک‌نفره",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 42,
+					"label": "دونفره",
+					"key": null,
+					"sortOrder": 1
+				}
+			]
+		},
+		{
+			"ref": 43,
+			"key": "spice",
+			"name": "تندی",
+			"question": "تند باشه؟",
+			"questionByKind": null,
+			"multi": false,
+			"ordered": true,
+			"strictness": "SOFT",
+			"importance": 2,
+			"kinds": [
+				"FOOD"
+			],
+			"isActive": true,
+			"sortOrder": 9,
+			"options": [
+				{
+					"ref": 44,
+					"label": "ملایم",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 45,
+					"label": "تند",
+					"key": null,
+					"sortOrder": 1
+				}
+			]
+		},
+		{
+			"ref": 46,
+			"key": "mealtime",
+			"name": "وعده",
+			"question": "برای چه وعده‌ای؟",
+			"questionByKind": null,
+			"multi": false,
+			"ordered": false,
+			"strictness": "SOFT",
+			"importance": 2,
+			"kinds": [
+				"FOOD"
+			],
+			"isActive": true,
+			"sortOrder": 10,
+			"options": [
+				{
+					"ref": 47,
+					"label": "برای صبحانه",
+					"key": null,
+					"sortOrder": 0
+				},
+				{
+					"ref": 48,
+					"label": "برای ناهار و شام",
+					"key": null,
+					"sortOrder": 1
+				},
+				{
+					"ref": 49,
+					"label": "برای میان‌وعده",
+					"key": null,
+					"sortOrder": 2
+				}
+			]
+		},
+		{
+			"ref": 50,
+			"key": "diet",
+			"name": "محدودیت غذایی",
+			"question": "محدودیت غذایی داری؟",
+			"questionByKind": null,
+			"multi": true,
+			"ordered": false,
+			"strictness": "HARD",
+			"importance": 3,
+			"kinds": [
+				"DRINK",
+				"FOOD",
+				"DESSERT"
+			],
+			"isActive": true,
+			"sortOrder": 11,
+			"options": [
+				{
+					"ref": 51,
+					"label": "گیاهخوار",
+					"key": "vegetarian",
+					"sortOrder": 0
+				},
+				{
+					"ref": 52,
+					"label": "وگان",
+					"key": "vegan",
+					"sortOrder": 1
+				},
+				{
+					"ref": 53,
+					"label": "بدون لبنیات",
+					"key": "no-dairy",
+					"sortOrder": 2
+				}
+			]
+		}
+	]
+}

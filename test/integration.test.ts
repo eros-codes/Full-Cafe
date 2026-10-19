@@ -551,6 +551,241 @@ describe('Roof API (integration)', { skip }, () => {
 	});
 
 	// ─── regressions found during the merge ──────────────────────────────────────
+	// ─── «انتخاب برای من» (recommender data, tags, inheritance) ─────────────────
+	describe('recommender', () => {
+		let main: Client;
+		let staff: Client;
+		let temp: any; // دما: گرم / سرد
+		let caffeine: any; // کافئین: با / بدون
+		let diet: any; // محدودیت (HARD): گیاهخوار / وگان
+		let coffee: any; // category «قهوه» (DRINK) with «با کافئین» + «گرم»
+		const opt = (group: any, label: string): number => group.options.find((o: any) => o.label === label).id;
+		const productIn = (data: any, id: number) => data.products.find((p: any) => p.id === id);
+
+		test('setup: accounts, the on/off switch and the status endpoint', async () => {
+			for (const [username, role] of [
+				['rec-main', 'MAIN'],
+				['rec-staff', 'SECONDARY'],
+			]) {
+				const res = await dev.post('/api/admin/admins', { name: username, username, password: 'RecPass12345', role });
+				assert.equal(res.status, 201, res.text);
+			}
+			main = await login('rec-main', 'RecPass12345');
+			staff = await login('rec-staff', 'RecPass12345');
+
+			assert.deepEqual((await client().get('/api/recommender')).json, { enabled: false }, 'off until the café switches it on');
+			assert.deepEqual((await client().get('/api/recommender/status')).json, { enabled: false });
+			assert.equal((await main.patch('/api/admin/settings', { recommenderEnabled: 'yes' })).status, 400, 'only true / false');
+			assert.equal((await staff.patch('/api/admin/settings', { recommenderEnabled: true })).status, 403, 'a manager switch');
+			assert.equal((await main.patch('/api/admin/settings', { recommenderEnabled: true })).status, 200);
+			assert.equal((await main.get('/api/admin/settings')).json.settings.recommenderEnabled, '1');
+			const empty = (await client().get('/api/recommender')).json;
+			assert.equal(empty.enabled, true);
+			assert.deepEqual((await client().get('/api/recommender/status')).json, { enabled: false }, 'no questions yet: the button stays hidden');
+		});
+
+		test('tag groups: only the manager defines them, input is validated', async () => {
+			const base = { name: 'دما', question: 'گرم یا سرد؟', kinds: ['DRINK', 'DESSERT'], importance: 5, options: ['گرم', 'سرد'] };
+			assert.equal((await staff.post('/api/admin/tag-groups', base)).status, 403);
+			assert.equal((await staff.get('/api/admin/tag-groups')).status, 200, 'staff read them for the product form');
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, kinds: [] })).status, 400, 'at least one kind');
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, kinds: ['PIZZA'] })).status, 400);
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, importance: 6 })).status, 400);
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, question: ' ' })).status, 400);
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, key: 'Bad Key' })).status, 400);
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, options: ['گرم', 'گرم'] })).status, 400, 'no duplicate options');
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, strictness: 'MAYBE' })).status, 400);
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, ordered: 'yes' })).status, 400, 'a scale is true / false');
+
+			const created = await main.post('/api/admin/tag-groups', { ...base, key: 'temp', questionByKind: { DESSERT: 'دسر گرم یا سرد؟', DRINK: '' } });
+			assert.equal(created.status, 201, created.text);
+			temp = created.json.group;
+			assert.deepEqual(temp.options.map((o: any) => o.label), ['گرم', 'سرد']);
+			assert.deepEqual(temp.questionByKind, { DESSERT: 'دسر گرم یا سرد؟' }, 'empty texts are dropped');
+			assert.equal(temp.ordered, false, 'not a scale unless said so');
+			const scale = await main.patch(`/api/admin/tag-groups/${temp.id}`, { ordered: true });
+			assert.equal(scale.status, 200, scale.text);
+			assert.equal(scale.json.group.ordered, true);
+			assert.equal((await main.patch(`/api/admin/tag-groups/${temp.id}`, { ordered: false })).json.group.ordered, false);
+			assert.equal((await main.post('/api/admin/tag-groups', { ...base, key: 'temp' })).status, 409, 'keys are unique');
+
+			const caf = await main.post('/api/admin/tag-groups', { name: 'کافئین', question: 'کافئین داشته باشه؟', kinds: ['DRINK'], importance: 3, options: ['با کافئین', 'بدون'] });
+			assert.equal(caf.status, 201, caf.text);
+			caffeine = caf.json.group;
+			// rename an option, add one, reorder, refuse duplicates
+			const renamed = await main.patch(`/api/admin/tag-options/${opt(caffeine, 'بدون')}`, { label: 'بدون کافئین' });
+			assert.equal(renamed.status, 200, renamed.text);
+			assert.equal((await main.patch(`/api/admin/tag-options/${opt(caffeine, 'با کافئین')}`, { label: 'بدون کافئین' })).status, 409);
+			const extra = await main.post(`/api/admin/tag-groups/${caffeine.id}/options`, { label: 'کم‌کافئین' });
+			assert.equal(extra.status, 201, extra.text);
+			caffeine = extra.json.group;
+			const ids = caffeine.options.map((o: any) => o.id).reverse();
+			assert.equal((await main.put(`/api/admin/tag-groups/${caffeine.id}/options/order`, { ids: ids.slice(1) })).status, 400);
+			const reordered = await main.put(`/api/admin/tag-groups/${caffeine.id}/options/order`, { ids });
+			assert.deepEqual(reordered.json.group.options.map((o: any) => o.label), ['کم‌کافئین', 'بدون کافئین', 'با کافئین']);
+			assert.equal((await main.del(`/api/admin/tag-options/${opt(reordered.json.group, 'کم‌کافئین')}`)).status, 200, 'unused: deleted at once');
+			caffeine = (await main.get('/api/admin/tag-groups')).json.groups.find((g: any) => g.id === caffeine.id);
+
+			// the diet group (HARD) with the vegan → vegetarian rule, as the seed creates it
+			diet = await prisma.tagGroup.create({
+				data: {
+					key: 'diet-test',
+					name: 'محدودیت',
+					question: 'محدودیت غذایی داری؟',
+					kinds: ['DRINK', 'FOOD', 'DESSERT'],
+					multi: true,
+					strictness: 'HARD',
+					options: { create: [{ label: 'گیاهخوار', key: 'vegetarian' }, { label: 'وگان', key: 'vegan', sortOrder: 1 }] },
+				},
+				include: { options: true },
+			});
+		});
+
+		test('categories: kind and inherited tags (vegan also means vegetarian)', async () => {
+			const res = await staff.post('/api/admin/categories', {
+				name: 'قهوه',
+				menuTypeId: cafeTypeId,
+				kind: 'DRINK',
+				tagOptionIds: [opt(caffeine, 'با کافئین'), opt(temp, 'گرم')],
+			});
+			assert.equal(res.status, 201, res.text);
+			coffee = res.json.category;
+			assert.equal(coffee.kind, 'DRINK');
+			assert.deepEqual(coffee.tagOptionIds, [opt(temp, 'گرم'), opt(caffeine, 'با کافئین')].sort((a, b) => a - b));
+			assert.equal((await staff.patch(`/api/admin/categories/${coffee.id}`, { kind: 'SNACK' })).status, 400);
+			assert.equal((await staff.patch(`/api/admin/categories/${coffee.id}`, { tagOptionIds: [999999] })).status, 404);
+
+			const salads = await staff.post('/api/admin/categories', { name: 'سالاد', menuTypeId: cafeTypeId, kind: 'FOOD' });
+			const veganOnly = await staff.put(`/api/admin/categories/${salads.json.category.id}/tags`, { optionIds: [diet.options[1].id] });
+			assert.equal(veganOnly.status, 200, veganOnly.text);
+			const saved = (await staff.get('/api/admin/categories')).json.categories.find((c: any) => c.id === salads.json.category.id);
+			assert.deepEqual(saved.tagOptionIds, diet.options.map((o: any) => o.id).sort((a: number, b: number) => a - b), 'vegan implies vegetarian');
+			assert.equal((await staff.put(`/api/admin/categories/${salads.json.category.id}/kind`, { kind: null })).status, 200);
+			assert.equal((await staff.put(`/api/admin/categories/${salads.json.category.id}/kind`, { kind: 'X' })).status, 400);
+			assert.equal((await staff.del(`/api/admin/categories/${salads.json.category.id}`)).status, 200);
+		});
+
+		test('products inherit per group, override a group (even to none), and only the right ones are served', async () => {
+			const mk = async (name: string, extra: Record<string, unknown> = {}, categoryId = coffee.id) => {
+				const res = await staff.post('/api/admin/products', { name, price: 90000, categoryId, ...extra });
+				assert.equal(res.status, 201, res.text);
+				return res.json.product;
+			};
+			const latte = await mk('لاته');
+			assert.deepEqual([latte.tagGroupIds, latte.tagOptionIds, latte.isAvailable], [[], [], true]);
+			const decaf = await mk('دی‌کف', { tags: [{ groupId: caffeine.id, optionIds: [opt(caffeine, 'بدون کافئین')] }] });
+			const unknownTemp = await mk('قهوه‌ی روز', { tags: [{ groupId: temp.id, optionIds: [] }] });
+			const soldOut = await mk('موکا', { isAvailable: false });
+			assert.equal(soldOut.isAvailable, false);
+			assert.equal((await staff.post('/api/admin/products', { name: 'x', price: 1, categoryId: coffee.id, isAvailable: 'no' })).status, 400);
+			assert.equal(
+				(await staff.post('/api/admin/products', { name: 'x', price: 1, categoryId: coffee.id, tags: [{ groupId: temp.id, optionIds: [opt(caffeine, 'با کافئین')] }] })).status,
+				400,
+				'an option must belong to its group',
+			);
+			assert.equal(
+				(await staff.post('/api/admin/products', { name: 'x', price: 1, categoryId: coffee.id, tags: [{ groupId: 999999, optionIds: [] }] })).status,
+				404,
+			);
+
+			// a category without a kind and a hidden tab are never part of the recommender
+			const noKind = await staff.post('/api/admin/categories', { name: 'قلیان‌ها', menuTypeId: cafeTypeId });
+			const hookah = await mk('قلیان دوسیب', {}, noKind.json.category.id);
+			const hiddenType = await main.post('/api/admin/menu-types', { name: 'مخفی' });
+			await main.patch(`/api/admin/menu-types/${hiddenType.json.menuType.id}`, { isActive: false });
+			const hiddenCat = await staff.post('/api/admin/categories', { name: 'نوشیدنی مخفی', menuTypeId: hiddenType.json.menuType.id, kind: 'DRINK' });
+			const hidden = await mk('نوشیدنی مخفی', {}, hiddenCat.json.category.id);
+
+			const data = (await client().get('/api/recommender')).json;
+			assert.equal(data.enabled, true);
+			const served = data.products.map((p: any) => p.id);
+			for (const p of [soldOut, hookah, hidden]) assert.ok(!served.includes(p.id), `${p.name} is not served`);
+			assert.deepEqual(productIn(data, latte.id).optionIds, [opt(temp, 'گرم'), opt(caffeine, 'با کافئین')].sort((a, b) => a - b), 'inherits everything');
+			assert.deepEqual(productIn(data, decaf.id).optionIds, [opt(temp, 'گرم'), opt(caffeine, 'بدون کافئین')].sort((a, b) => a - b), 'own caffeine, inherited temperature');
+			assert.deepEqual(productIn(data, unknownTemp.id).optionIds, [opt(caffeine, 'با کافئین')], 'temperature overridden to none');
+			assert.deepEqual(productIn(data, unknownTemp.id).noneGroupIds, [temp.id], '«هیچ‌کدام» is served (a miss, not unknown)');
+			assert.deepEqual(productIn(data, latte.id).noneGroupIds, []);
+			assert.deepEqual(productIn(data, decaf.id).noneGroupIds, [], 'a group with an own option is not «هیچ‌کدام»');
+			assert.equal(productIn(data, latte.id).kind, 'DRINK');
+			assert.equal(data.groups.find((g: any) => g.id === temp.id).ordered, false, 'the scale flag is served');
+			assert.equal(productIn(data, latte.id).categoryName, 'قهوه');
+			assert.deepEqual(productIn(data, latte.id).addOns, []);
+			assert.deepEqual((await client().get('/api/recommender/status')).json, { enabled: true });
+			assert.equal(
+				(await client().get(`/api/products?categoryId=${coffee.id}`)).json.find((p: any) => p.id === soldOut.id).isAvailable,
+				false,
+				'the menu still lists a sold-out product, marked',
+			);
+
+			// an inactive group disappears from the questions and from every product's tags
+			await main.patch(`/api/admin/tag-groups/${caffeine.id}`, { isActive: false });
+			const withoutCaffeine = (await client().get('/api/recommender')).json;
+			assert.ok(!withoutCaffeine.groups.some((g: any) => g.id === caffeine.id));
+			assert.deepEqual(productIn(withoutCaffeine, latte.id).optionIds, [opt(temp, 'گرم')]);
+			await main.patch(`/api/admin/tag-groups/${caffeine.id}`, { isActive: true });
+
+			// a product moved back to inheriting: PUT with no groups
+			assert.equal((await staff.put(`/api/admin/products/${decaf.id}/tags`, { tags: [] })).status, 200);
+			assert.deepEqual(productIn((await client().get('/api/recommender')).json, decaf.id).optionIds, productIn(data, latte.id).optionIds);
+			assert.equal((await staff.put(`/api/admin/products/${decaf.id}/tags`, { tags: 'x' })).status, 400);
+
+			// bulk: «سرد» on two products; the inherited «گرم» is kept (copied from the category first)
+			const bulk = await staff.post('/api/admin/products/tags/bulk', { productIds: [latte.id, decaf.id], addOptionIds: [opt(temp, 'سرد')] });
+			assert.equal(bulk.status, 200, bulk.text);
+			assert.equal(bulk.json.count, 2);
+			const afterBulk = (await client().get('/api/recommender')).json;
+			assert.deepEqual(productIn(afterBulk, latte.id).optionIds, [opt(temp, 'گرم'), opt(temp, 'سرد'), opt(caffeine, 'با کافئین')].sort((a, b) => a - b));
+			const removeHot = await staff.post('/api/admin/products/tags/bulk', { productIds: [latte.id], removeOptionIds: [opt(temp, 'گرم')] });
+			assert.equal(removeHot.status, 200);
+			assert.deepEqual(productIn((await client().get('/api/recommender')).json, latte.id).optionIds, [opt(temp, 'سرد'), opt(caffeine, 'با کافئین')].sort((a, b) => a - b));
+			assert.equal((await staff.post('/api/admin/products/tags/bulk', { productIds: [], addOptionIds: [opt(temp, 'سرد')] })).status, 400);
+			assert.equal((await staff.post('/api/admin/products/tags/bulk', { productIds: [latte.id] })).status, 400, 'nothing to change');
+			assert.equal(
+				(await staff.post('/api/admin/products/tags/bulk', { productIds: [latte.id], addOptionIds: [opt(temp, 'سرد')], removeOptionIds: [opt(temp, 'سرد')] })).status,
+				400,
+			);
+
+			// coverage counts every product with a kind (sold-out and hidden ones too: they come back). Only the
+			// hidden drink (no tags at all) misses the temperature: «قهوه‌ی روز» set it to «هیچ‌کدام», which is done
+			const coverage = (await staff.get('/api/admin/tags/coverage')).json;
+			const tempCoverage = coverage.groups.find((g: any) => g.id === temp.id);
+			assert.deepEqual([tempCoverage.relevant, tempCoverage.tagged], [5, 4], JSON.stringify(tempCoverage));
+			assert.ok(!coverage.incomplete.some((i: any) => i.productId === unknownTemp.id), '«هیچ‌کدام» is not missing');
+			assert.deepEqual(coverage.incomplete.find((i: any) => i.productId === hidden.id)?.missingGroupIds, [temp.id, caffeine.id]);
+			assert.ok(!coverage.incomplete.some((i: any) => i.productId === latte.id));
+			assert.ok(coverage.withoutKind >= 1);
+			assert.ok(!coverage.groups.some((g: any) => g.id === diet.id), 'restrictions are not counted as missing');
+
+			// deleting an option or a group in use asks first
+			const usedOption = await main.del(`/api/admin/tag-options/${opt(temp, 'سرد')}`);
+			assert.equal(usedOption.status, 409);
+			assert.equal(usedOption.json.productCount, 2);
+			const usedGroup = await main.del(`/api/admin/tag-groups/${caffeine.id}`);
+			assert.equal(usedGroup.status, 409);
+			assert.ok(usedGroup.json.categoryCount >= 1);
+			assert.equal((await staff.del(`/api/admin/tag-groups/${caffeine.id}?force=1`)).status, 403);
+			assert.equal((await main.del(`/api/admin/tag-groups/${caffeine.id}?force=1`)).status, 200);
+			const afterDelete = (await client().get('/api/recommender')).json;
+			assert.deepEqual(productIn(afterDelete, latte.id).optionIds, [opt(temp, 'سرد')], 'its options left every product');
+
+			// clean up what other suites count
+			for (const p of [latte, decaf, unknownTemp, soldOut, hookah, hidden]) assert.equal((await staff.del(`/api/admin/products/${p.id}`)).status, 200);
+			for (const c of [coffee.id, noKind.json.category.id, hiddenCat.json.category.id]) assert.equal((await staff.del(`/api/admin/categories/${c}`)).status, 200);
+			assert.equal((await main.del(`/api/admin/menu-types/${hiddenType.json.menuType.id}`)).status, 200);
+		});
+
+		test('group order is the manager\'s; the switch turns everything off again', async () => {
+			const groups = (await main.get('/api/admin/tag-groups')).json.groups.map((g: any) => g.id);
+			assert.equal((await main.put('/api/admin/tag-groups/order', { ids: groups.slice(1) })).status, 400);
+			assert.equal((await staff.put('/api/admin/tag-groups/order', { ids: [...groups].reverse() })).status, 403);
+			const reordered = await main.put('/api/admin/tag-groups/order', { ids: [...groups].reverse() });
+			assert.deepEqual(reordered.json.groups.map((g: any) => g.id), [...groups].reverse());
+			assert.equal((await main.patch('/api/admin/settings', { recommenderEnabled: false })).status, 200);
+			assert.deepEqual((await client().get('/api/recommender')).json, { enabled: false }, 'served fresh, not from the cache');
+			assert.deepEqual((await client().get('/api/recommender/status')).json, { enabled: false });
+		});
+	});
+
 	describe('input validation regressions', () => {
 		test('settings: unknown keys, negative cleaning buffer and min > max are refused', async () => {
 			assert.equal((await dev.patch('/api/admin/settings', { cleaningBufferMinutes: -500 })).status, 400);

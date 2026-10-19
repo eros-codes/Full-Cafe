@@ -31,7 +31,7 @@ export function TrackPage() {
 		<main className="shell">
 			<Topbar sub="پیگیری رزرو مهمان">
 				<a href="/reserve">رزرو جدید</a>
-				<a href="/reserve/profile">حساب من</a>
+				<a href="/reserve/profile">پروفایل</a>
 			</Topbar>
 
 			<section className="page-head">

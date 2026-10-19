@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 
-// Pieces shared by every public page (menu, feedback, reservation): the mobile drawer (with its hamburger
-// button) and the footer. Styles: header.css and footer.css in this folder.
+// Pieces shared by every public page (menu, feedback, reservation) and the admin panel: the drawer (with its
+// hamburger button, on every screen size) and the footer. Styles: header.css and footer.css in this folder.
 
-type LinkKey = 'menu' | 'about' | 'contact' | 'feedback' | 'reserve' | 'profile' | 'track';
+export type LinkKey = 'menu' | 'about' | 'contact' | 'feedback' | 'reserve' | 'profile' | 'track';
 
 const LINKS: Record<LinkKey, { href: string; label: string; icon: ReactNode }> = {
 	menu: {
@@ -180,7 +180,14 @@ export function HamburgerButton({ drawer }: { drawer: Drawer }) {
 }
 
 /** The backdrop and the drawer itself (placed at the end of the page, like the original markup). */
+/** The page the visitor is on is left out of the drawer (a link to itself would only reload it). */
+function isCurrentPage(href: string): boolean {
+	const here = window.location.pathname.replace(/\/+$/, '') || '/';
+	return href === here;
+}
+
 export function MobileDrawer({ drawer, links }: { drawer: Drawer; links: LinkKey[] }) {
+	const shown = links.filter((key) => !isCurrentPage(LINKS[key].href));
 	return (
 		<>
 			<div id="drawer-backdrop" className={`drawer-backdrop${drawer.open ? ' visible' : ''}`} onClick={drawer.closeDrawer}></div>
@@ -206,7 +213,7 @@ export function MobileDrawer({ drawer, links }: { drawer: Drawer; links: LinkKey
 				<img src="/images/Logo-3.PNG" alt="روف" className="drawer-logo" />
 				<nav className="mobile-drawer-nav">
 					<ul className="menu-footer-links">
-						{links.map((key) => (
+						{shown.map((key) => (
 							<li key={key}>
 								<a href={LINKS[key].href}>
 									{LINKS[key].icon}
@@ -221,7 +228,10 @@ export function MobileDrawer({ drawer, links }: { drawer: Drawer; links: LinkKey
 	);
 }
 
-export function SiteFooter({ links, credit, className }: { links: LinkKey[]; credit: string; className?: string }) {
+/** The same credit line on every page. */
+const CREDIT = 'Made with love 🤍';
+
+export function SiteFooter({ links, className }: { links: LinkKey[]; className?: string }) {
 	return (
 		<footer className={className ? `menu-footer ${className}` : 'menu-footer'}>
 			<div>
@@ -240,7 +250,7 @@ export function SiteFooter({ links, credit, className }: { links: LinkKey[]; cre
 				</div>
 			</div>
 			<h6 className="menu-footer-copyright">تمامی حقوق این سایت متعلق به کافه روف می باشد.</h6>
-			<h6 className="menu-footer-credit">{credit}</h6>
+			<h6 className="menu-footer-credit">{CREDIT}</h6>
 		</footer>
 	);
 }

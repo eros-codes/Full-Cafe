@@ -10,6 +10,8 @@ import { setCookie, signAdminToken } from '../lib/auth.js';
 import { confirmationMessage, sendMockSms } from '../lib/sms.js';
 import { ROLE_GROUPS, USERNAME_PATTERN, canManageRole, isAdminRole, normalizeUsername } from '../lib/roles.js';
 import { adminMenuRouter } from './admin/menu.routes.js';
+import { adminTagsRouter } from './admin/tags.routes.js';
+import { RECOMMENDER_SETTING, invalidateRecommenderCache } from '../services/recommender.service.js';
 import { todayKey } from '../middleware/site-visit.js';
 import { findConflictingReservations } from '../services/availability.service.js';
 import { createHttpError, prismaCode } from '../lib/http-error.js';
@@ -26,6 +28,8 @@ adminRouter.get('/me', (req, res) => {
 
 // منو، دسته‌بندی، نظرات و آپلود تصویر (از قالب کافه)
 adminRouter.use(adminMenuRouter);
+// برچسب‌ها و گروه‌های «انتخاب برای من»
+adminRouter.use(adminTagsRouter);
 
 adminRouter.get('/dashboard', requireRole(...ROLE_GROUPS.manager), async (_req, res, next) => {
 	try {
@@ -545,18 +549,24 @@ const NUMBER_SETTING_BOUNDS: Record<string, { min: number; max: number }> = {
 };
 
 const TEXT_SETTINGS: readonly string[] = ['currencyLabel', 'cafeName'];
+// on/off switches, stored as "1" / "0"
+const BOOLEAN_SETTINGS: readonly string[] = [RECOMMENDER_SETTING];
 
 adminRouter.patch('/settings', requireRole(...ROLE_GROUPS.manager), async (req, res, next) => {
 	try {
 		const updates: [string, unknown][] = Object.entries(req.body || {});
 		// فقط تنظیمات شناخته‌شده؛ قبلاً هر کلید دلخواهی در جدول تنظیمات ذخیره می‌شد
-		const unknown = updates.find(([key]) => !Object.hasOwn(NUMBER_SETTING_BOUNDS, key) && !TEXT_SETTINGS.includes(key));
+		const unknown = updates.find(([key]) => !Object.hasOwn(NUMBER_SETTING_BOUNDS, key) && !TEXT_SETTINGS.includes(key) && !BOOLEAN_SETTINGS.includes(key));
 		if (unknown) return res.status(400).json({ message: `تنظیم «${unknown[0]}» شناخته‌شده نیست.` });
 		for (const [key, value] of updates) {
 			if (TEXT_SETTINGS.includes(key)) {
 				if (typeof value !== 'string' || !value.trim() || value.length > 60) {
 					return res.status(400).json({ message: `مقدار «${key}» نامعتبر است.` });
 				}
+				continue;
+			}
+			if (BOOLEAN_SETTINGS.includes(key)) {
+				if (typeof value !== 'boolean') return res.status(400).json({ message: `مقدار «${key}» باید روشن یا خاموش باشد.` });
 				continue;
 			}
 			const bounds = NUMBER_SETTING_BOUNDS[key];
@@ -571,7 +581,11 @@ adminRouter.patch('/settings', requireRole(...ROLE_GROUPS.manager), async (req, 
 		if (Number(merged.minDurationMinutes ?? 60) > Number(merged.maxDurationMinutes ?? 240)) {
 			return res.status(400).json({ message: 'حداقل مدت رزرو نمی‌تواند از حداکثر بیشتر باشد.' });
 		}
-		for (const [key, value] of updates) await setSetting(key, TEXT_SETTINGS.includes(key) ? String(value).trim() : Number(value));
+		for (const [key, value] of updates) {
+			if (BOOLEAN_SETTINGS.includes(key)) await setSetting(key, value ? '1' : '0');
+			else await setSetting(key, TEXT_SETTINGS.includes(key) ? String(value).trim() : Number(value));
+		}
+		invalidateRecommenderCache();
 		res.json({ settings: await getSettings() });
 	} catch (error) {
 		next(error);

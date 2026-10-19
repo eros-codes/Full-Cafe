@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ApiError } from '../../shared/api';
 import { faNumber } from '../../shared/format';
 import { safeStorage } from '../../shared/storage';
@@ -7,8 +7,12 @@ import { fetchCategories, fetchMenuTypes, fetchProducts, type AddOn, type Catego
 import { OrderDialog } from './OrderDialog';
 import { ProductCard } from './ProductCard';
 import { ProductDialog } from './ProductDialog';
+import { RecommenderLauncher, RecommenderLoadingShell, preloadDialog } from './recommender/Launcher';
 import { addItem, clearOrder, decreaseItem, loadOrder, productQuantity, removeItem, totalQuantity, type OrderItem } from './order';
 import { useBump } from './useBump';
+
+// «انتخاب برای من»: its dialog (and the engine) load only when the feature is on, a few seconds after the page
+const RecommenderDialog = lazy(() => preloadDialog().then((module) => ({ default: module.RecommenderDialog })));
 
 const TYPE_KEY = 'currentMenuType';
 const CATEGORY_KEY = 'currentCategory';
@@ -46,6 +50,10 @@ export function MenuPage() {
 	const [openProduct, setOpenProduct] = useState<Product | null>(null);
 	const [orderOpen, setOrderOpen] = useState(false);
 	const [tabsScrollable, setTabsScrollable] = useState(false);
+	const [recommenderOpen, setRecommenderOpen] = useState(false);
+	// mounted from the first opening on, so closing and opening again continues where the customer was
+	const [recommenderMounted, setRecommenderMounted] = useState(false);
+	const recommenderButtonRef = useRef<HTMLButtonElement>(null);
 
 	const optionsRef = useRef<HTMLDivElement>(null);
 	const indicatorRef = useRef<HTMLSpanElement>(null);
@@ -187,6 +195,15 @@ export function MenuPage() {
 	const add = useCallback((product: Product, addOns: AddOn[] = []) => setOrder(addItem(product, addOns)), []);
 	const closeProduct = useCallback(() => setOpenProduct(null), []);
 	const closeOrder = useCallback(() => setOrderOpen(false), []);
+	const openRecommender = () => {
+		setRecommenderMounted(true);
+		setRecommenderOpen(true);
+	};
+	const closeRecommender = useCallback(() => {
+		setRecommenderOpen(false);
+		// the button is shown again on the next render
+		requestAnimationFrame(() => recommenderButtonRef.current?.focus());
+	}, []);
 
 	/** Card "−": the product's most recently added line (any add-on variant). */
 	const decreaseProduct = (product: Product) => {
@@ -203,9 +220,9 @@ export function MenuPage() {
 					<div className="menu-header-top">
 						<div className="menu-header-right">
 							<HamburgerButton drawer={drawer} />
-							<div className="menu-logo">
+							<a className="menu-logo" href="/" aria-label="صفحه‌ی اصلی">
 								<img src="/images/Logo-2.PNG" alt="روف" />
-							</div>
+							</a>
 							<button
 								id="order-list-button"
 								className={`order-list-button${total > 0 ? ' has-order' : ''}`}
@@ -283,7 +300,7 @@ export function MenuPage() {
 				</main>
 			</div>
 
-			<SiteFooter links={['about', 'contact', 'reserve', 'feedback']} credit="Made with love 🤍" />
+			<SiteFooter links={['about', 'contact', 'reserve', 'feedback']} />
 			<MobileDrawer drawer={drawer} links={['about', 'contact', 'feedback', 'reserve']} />
 
 			<OrderDialog
@@ -297,6 +314,17 @@ export function MenuPage() {
 				onClear={() => setOrder(clearOrder())}
 			/>
 			<ProductDialog product={openProduct} order={order} onAdd={add} onDecrease={(key) => setOrder(decreaseItem(key))} onClose={closeProduct} />
+
+			<RecommenderLauncher
+				hidden={recommenderOpen || orderOpen || openProduct !== null}
+				onOpen={openRecommender}
+				buttonRef={recommenderButtonRef}
+			/>
+			{recommenderMounted && (
+				<Suspense fallback={recommenderOpen ? <RecommenderLoadingShell onClose={closeRecommender} /> : null}>
+					<RecommenderDialog open={recommenderOpen} productOpen={openProduct !== null} onOpenProduct={setOpenProduct} onClose={closeRecommender} />
+				</Suspense>
+			)}
 		</>
 	);
 }

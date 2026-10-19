@@ -1,0 +1,12 @@
+# Every text file is stored and checked out with LF line endings (see .editorconfig),
+# whatever the editor or OS. Images and fonts are binary and never touched.
+* text=auto eol=lf
+*.png binary
+*.PNG binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.woff2 binary

@@ -20,6 +20,7 @@ import { Reviews } from '../sections/Reviews';
 import { Settings } from '../sections/Settings';
 import { TableEditorDialog } from '../sections/TableEditorDialog';
 import { Tables, type TableDialogTarget } from '../sections/Tables';
+import { Tags } from '../sections/Tags';
 
 type SectionKey =
 	| 'dashboard'
@@ -30,6 +31,7 @@ type SectionKey =
 	| 'addons'
 	| 'categories'
 	| 'menuTypes'
+	| 'tags'
 	| 'reviews'
 	| 'hours'
 	| 'closures'
@@ -46,6 +48,7 @@ const SECTIONS: { key: SectionKey; label: string; icon: IconName }[] = [
 	{ key: 'addons', label: 'افزودنی‌ها', icon: 'addOn' },
 	{ key: 'categories', label: 'دسته‌بندی منو', icon: 'tag' },
 	{ key: 'menuTypes', label: 'دسته‌های اصلی منو', icon: 'layers' },
+	{ key: 'tags', label: 'انتخاب برای من', icon: 'spark' },
 	{ key: 'reviews', label: 'نظرات', icon: 'chat' },
 	{ key: 'hours', label: 'ساعت کاری', icon: 'clock' },
 	{ key: 'closures', label: 'تعطیلی‌ها', icon: 'ban' },
@@ -151,7 +154,19 @@ export function AdminApp() {
 	return (
 		<>
 			<main className="shell">
-				<Topbar href="/" sub={admin ? `${admin.name} · ${ROLE_FA[admin.role] || admin.role}` : 'در حال بارگذاری...'} subId="adminInfo">
+				<Topbar
+					href="/"
+					sub={admin ? `${admin.name} · ${ROLE_FA[admin.role] || admin.role}` : 'در حال بارگذاری...'}
+					subId="adminInfo"
+					drawerLinks={['about', 'menu', 'feedback', 'reserve']}
+				>
+					{/* who is logged in: several admins with different roles share one panel */}
+					{admin && (
+						<span className="admin-who" title={`${admin.name} · ${ROLE_FA[admin.role] || admin.role}`}>
+							<span className="admin-who-name">{admin.name}</span>
+							<span className="admin-who-role">{ROLE_FA[admin.role] || admin.role}</span>
+						</span>
+					)}
 					<a href="/">سایت</a>
 					<button id="adminLogout" onClick={logout}>
 						خروج
@@ -217,6 +232,16 @@ export function AdminApp() {
 										hint="تب‌های بالای صفحه‌ی منو (کافه، صبحانه، …). ترتیب این فهرست همان ترتیب تب‌هاست؛ دسته‌ی مخفی با همه‌ی محصولاتش در سایت دیده نمی‌شود."
 									>
 										{shown('menuTypes') && <MenuTypes visit={visit('menuTypes')} />}
+									</Section>
+								)}
+								{isMain && (
+									<Section
+										id="tags"
+										active={active === 'tags'}
+										title="انتخاب برای من: سوال‌ها و برچسب‌ها"
+										hint="سوال‌هایی که از مشتری پرسیده می‌شود و گزینه‌هایشان. هر محصول برچسب‌هایش را از دسته‌اش می‌گیرد و می‌تواند برچسب‌های خودش را هم داشته باشد."
+									>
+										{shown('tags') && <Tags visit={visit('tags')} />}
 									</Section>
 								)}
 								<Section id="reviews" active={active === 'reviews'} title="نظرات مشتریان" hint="نظرها بعد از تایید شما در صفحه‌ی «ثبت نظر» سایت نمایش داده می‌شوند.">

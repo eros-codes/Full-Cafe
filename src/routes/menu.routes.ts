@@ -81,6 +81,8 @@ menuRouter.get('/products', async (req, res, next) => {
 				description: true,
 				image: true,
 				categoryId: true,
+				// ناموجود هم در منو دیده می‌شود (با برچسب «ناموجود»)، ولی سفارش داده نمی‌شود
+				isAvailable: true,
 				// فقط افزودنی‌های فعال، به ترتیبی که در پنل برای همین محصول چیده شده
 				addOns: {
 					where: { addOn: { isActive: true } },

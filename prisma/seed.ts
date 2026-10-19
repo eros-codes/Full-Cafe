@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient, type Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { seedMenuAndQuestions } from './seed-menu.js';
 
 const prisma = new PrismaClient();
 
@@ -18,6 +19,8 @@ const settings = [
 	['currencyLabel', 'تومان'],
 	['reminderBeforeMinutes', '180'],
 	['cafeName', 'Roof'],
+	// «انتخاب برای من» خاموش شروع می‌شود؛ بعد از برچسب‌زدن منو از تنظیمات پنل روشنش کن
+	['recommenderEnabled', '0'],
 ];
 
 async function main() {
@@ -720,6 +723,9 @@ async function main() {
 			});
 		}
 	}
+
+	// منو (با عکس‌ها) و سوال‌های «انتخاب برای من» از prisma/seed-data؛ فقط روی دیتابیس خالی
+	await seedMenuAndQuestions(prisma);
 
 	console.log('Seed completed.');
 	console.log(`Developer admin: ${username}`);

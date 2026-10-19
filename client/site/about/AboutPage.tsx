@@ -86,6 +86,9 @@ export function AboutPage() {
 					<a href="/reserve" className="s-nav__link">
 						رزرو میز
 					</a>
+					<a href="/feedback" className="s-nav__link">
+						نظرات
+					</a>
 				</nav>
 				<a href="#" className="s-header__logo">
 					<img src="/images/Logo-2.PNG" alt="روف" />

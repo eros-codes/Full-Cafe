@@ -294,36 +294,45 @@ model MenuType {
 }
 
 model Category {
-  id          Int        @id @default(autoincrement())
+  id          Int                 @id @default(autoincrement())
   name        String
   menuTypeId  Int
-  menuType    MenuType   @relation(fields: [menuTypeId], references: [id], onDelete: Restrict)
+  menuType    MenuType            @relation(fields: [menuTypeId], references: [id], onDelete: Restrict)
+  /// Drink, food or dessert, for «انتخاب برای من». Empty = the category stays out of the recommender (e.g. hookah).
+  kind        CategoryKind?
   products    Product[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  /// Tags every product of this category inherits (a product can set its own per tag group instead).
+  tags        CategoryTagOption[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
   createdById String?
   updatedById String?
-  createdBy   AdminUser? @relation("categoriesCreated", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy   AdminUser? @relation("categoriesUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdBy   AdminUser?          @relation("categoriesCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy   AdminUser?          @relation("categoriesUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([menuTypeId])
 }
 
 model Product {
-  id          Int            @id @default(autoincrement())
+  id          Int                @id @default(autoincrement())
   name        String
   price       Int
-  description String         @default("")
-  image       String         @default("placeholder.png")
+  description String             @default("")
+  image       String             @default("placeholder.png")
   categoryId  Int
-  category    Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category    Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  /// Out of stock today: still listed on the menu (marked), but cannot be ordered or recommended.
+  isAvailable Boolean            @default(true)
   addOns      ProductAddOn[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  /// Tag groups this product sets itself (its own options replace the category's for that group, even when empty).
+  tagGroups   ProductTagGroup[]
+  tags        ProductTagOption[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
   createdById String?
   updatedById String?
-  createdBy   AdminUser?     @relation("productsCreated", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy   AdminUser?     @relation("productsUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdBy   AdminUser?         @relation("productsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy   AdminUser?         @relation("productsUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([categoryId])
 }
@@ -376,4 +385,92 @@ model SiteVisit {
 
   @@unique([visitDate, visitorHash])
   @@index([visitDate])
+}
+
+// ─── «انتخاب برای من» (menu recommender) ─────────────────────────────────────
+
+enum CategoryKind {
+  DRINK
+  FOOD
+  DESSERT
+}
+
+/// SOFT = taste (only changes the score), HARD = restriction (a product must have every chosen option).
+enum TagStrictness {
+  SOFT
+  HARD
+}
+
+/// A question of the recommender and its answers, e.g. «گرم یا سرد؟» → گرم / سرد.
+model TagGroup {
+  id             Int               @id @default(autoincrement())
+  /// Optional technical name (temp, weight, diet, …); the starter groups have one.
+  key            String?           @unique
+  /// Short name for the admin panel, e.g. «دما».
+  name           String
+  /// Default question text shown to the customer.
+  question       String
+  /// Optional question per kind: {"DRINK": "...", "DESSERT": "..."}.
+  questionByKind Json?
+  /// Can the customer pick more than one answer?
+  multi          Boolean           @default(false)
+  /// The options are a scale (شیرین ← کم‌شیرین ← تلخ): a neighbour of the answer counts half.
+  ordered        Boolean           @default(false)
+  strictness     TagStrictness     @default(SOFT)
+  /// 1..5, only used for SOFT groups.
+  importance     Int               @default(3)
+  /// Kinds this question makes sense for.
+  kinds          CategoryKind[]
+  isActive       Boolean           @default(true)
+  sortOrder      Int               @default(0)
+  options        TagOption[]
+  products       ProductTagGroup[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model TagOption {
+  id         Int                 @id @default(autoincrement())
+  groupId    Int
+  group      TagGroup            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  /// Written to read well in the result sentence («با کافئین», not «دارد»).
+  label      String
+  /// Optional technical name used by rules (e.g. vegan → vegetarian).
+  key        String?
+  sortOrder  Int                 @default(0)
+  products   ProductTagOption[]
+  categories CategoryTagOption[]
+
+  @@unique([groupId, key])
+  @@index([groupId])
+}
+
+model ProductTagGroup {
+  productId Int
+  groupId   Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  group     TagGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([productId, groupId])
+  @@index([groupId])
+}
+
+model ProductTagOption {
+  productId Int
+  optionId  Int
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  option    TagOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, optionId])
+  @@index([optionId])
+}
+
+model CategoryTagOption {
+  categoryId Int
+  optionId   Int
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  option     TagOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, optionId])
+  @@index([optionId])
 }

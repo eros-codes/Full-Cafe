@@ -26,6 +26,8 @@ export interface Product {
 	image: string;
 	categoryId: number;
 	addOns: AddOn[];
+	/** false = «ناموجود» today: still listed, cannot be ordered. */
+	isAvailable: boolean;
 }
 
 export const fetchMenuTypes = () => api<MenuType[]>('/api/menu-types', { fallbackMessage: 'خطا در دریافت منو' });

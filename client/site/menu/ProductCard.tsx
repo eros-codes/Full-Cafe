@@ -16,10 +16,11 @@ export function ProductCard({ product, index, quantity, onOpen, onIncrease, onDe
 	const quantityText = quantity > 0 ? faNumber(quantity) : '';
 	const quantityRef = useBump<HTMLSpanElement>(quantityText);
 	const src = productImageUrl(product.image);
+	const soldOut = product.isAvailable === false;
 
 	return (
 		<section
-			className={`food-card${quantity > 0 ? ' has-order' : ''}`}
+			className={`food-card${quantity > 0 ? ' has-order' : ''}${soldOut ? ' is-sold-out' : ''}`}
 			data-product-id={product.id}
 			style={{ animationDelay: `${index * 0.04}s` }}
 			onClick={onOpen}
@@ -40,33 +41,37 @@ export function ProductCard({ product, index, quantity, onOpen, onIncrease, onDe
 				</div>
 				<p className="food-description">{product.description}</p>
 				<div className="food-order-control" aria-label={`کنترل سفارش ${product.name}`}>
-					<div className="food-order-stepper">
-						<button
-							type="button"
-							className="food-order-btn food-order-increase"
-							aria-label={`افزودن ${product.name} به لیست سفارش`}
-							onClick={(event) => {
-								event.stopPropagation();
-								onIncrease();
-							}}
-						>
-							+
-						</button>
-						<span className="food-order-quantity" ref={quantityRef}>
-							{quantityText}
-						</span>
-						<button
-							type="button"
-							className="food-order-btn food-order-decrease"
-							aria-label={`کم کردن ${product.name}`}
-							onClick={(event) => {
-								event.stopPropagation();
-								onDecrease();
-							}}
-						>
-							−
-						</button>
-					</div>
+					{soldOut ? (
+						<span className="food-sold-out">ناموجود</span>
+					) : (
+						<div className="food-order-stepper">
+							<button
+								type="button"
+								className="food-order-btn food-order-increase"
+								aria-label={`افزودن ${product.name} به لیست سفارش`}
+								onClick={(event) => {
+									event.stopPropagation();
+									onIncrease();
+								}}
+							>
+								+
+							</button>
+							<span className="food-order-quantity" ref={quantityRef}>
+								{quantityText}
+							</span>
+							<button
+								type="button"
+								className="food-order-btn food-order-decrease"
+								aria-label={`کم کردن ${product.name}`}
+								onClick={(event) => {
+									event.stopPropagation();
+									onDecrease();
+								}}
+							>
+								−
+							</button>
+						</div>
+					)}
 				</div>
 			</div>
 		</section>

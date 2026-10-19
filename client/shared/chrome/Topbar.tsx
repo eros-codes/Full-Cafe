@@ -1,5 +1,7 @@
 import { useCallback, useRef, type ReactNode } from 'react';
-import { HamburgerButton, MobileDrawer, useDrawer } from './SiteChrome';
+import { HamburgerButton, MobileDrawer, useDrawer, type LinkKey } from './SiteChrome';
+
+const RESERVE_DRAWER: LinkKey[] = ['about', 'menu', 'feedback', 'reserve', 'profile', 'track'];
 
 /**
  * Reservation navigation: the same header (shared/styles/header.css) as the menu page, and a mobile drawer
@@ -7,7 +9,22 @@ import { HamburgerButton, MobileDrawer, useDrawer } from './SiteChrome';
  * `.type-indicator` the menu uses for its tabs, but it follows the mouse (hover) instead of the selection,
  * because every reservation link opens another page.
  */
-export function Topbar({ sub, children, navLabel, href = '/reserve', subId }: { sub: string; children: ReactNode; navLabel?: string; href?: string; subId?: string }) {
+export function Topbar({
+	sub,
+	children,
+	navLabel,
+	href = '/',
+	subId,
+	drawerLinks = RESERVE_DRAWER,
+}: {
+	sub: string;
+	children: ReactNode;
+	navLabel?: string;
+	href?: string;
+	subId?: string;
+	/** Pages listed in the drawer (hamburger). */
+	drawerLinks?: LinkKey[];
+}) {
 	const drawer = useDrawer();
 	const navRef = useRef<HTMLElement>(null);
 	const indicatorRef = useRef<HTMLSpanElement>(null);
@@ -34,7 +51,7 @@ export function Topbar({ sub, children, navLabel, href = '/reserve', subId }: { 
 				<div className="menu-header-top">
 					<div className="menu-header-right">
 						<HamburgerButton drawer={drawer} />
-						<a className="menu-logo" href={href} aria-label="کافه روف">
+						<a className="menu-logo" href={href} aria-label="صفحه‌ی اصلی">
 							<img src="/images/Logo-2.PNG" alt="روف" />
 						</a>
 					</div>
@@ -52,7 +69,7 @@ export function Topbar({ sub, children, navLabel, href = '/reserve', subId }: { 
 					</nav>
 				</div>
 			</header>
-			<MobileDrawer drawer={drawer} links={['about', 'feedback', 'menu', 'reserve']} />
+			<MobileDrawer drawer={drawer} links={drawerLinks} />
 		</>
 	);
 }

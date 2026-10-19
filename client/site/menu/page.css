@@ -8,4 +8,5 @@
 @import './style/menu-main.css';
 @import './style/order.css';
 @import './style/product-dialog.css';
+@import './style/recommender.css';
 @import '../../shared/styles/motion.css';

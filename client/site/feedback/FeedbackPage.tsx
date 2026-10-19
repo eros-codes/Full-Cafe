@@ -175,9 +175,9 @@ export function FeedbackPage() {
 					<div className="menu-header-top">
 						<div className="menu-header-right">
 							<HamburgerButton drawer={drawer} />
-							<div className="menu-logo">
+							<a className="menu-logo" href="/" aria-label="صفحه‌ی اصلی">
 								<img src="/images/Logo-2.PNG" alt="روف" />
-							</div>
+							</a>
 						</div>
 					</div>
 				</header>
@@ -190,7 +190,7 @@ export function FeedbackPage() {
 					</section>
 				</main>
 			</div>
-			<SiteFooter links={['about', 'contact', 'reserve', 'menu']} credit="Made with love 🤍 Eros & Nord " />
+			<SiteFooter links={['about', 'contact', 'reserve', 'menu']} />
 			<MobileDrawer drawer={drawer} links={['menu', 'about', 'contact', 'reserve']} />
 		</>
 	);

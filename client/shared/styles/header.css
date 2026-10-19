@@ -125,10 +125,10 @@
 	border-radius: 6px;
 }
 
-/* ─── Hamburger + drawer (phones only) ─── */
+/* ─── Hamburger + drawer ─── */
 
 .mobile-hamburger {
-	display: none;
+	display: inline-flex;
 	width: 3rem;
 	height: 3rem;
 	align-items: center;
@@ -153,17 +153,124 @@
 	border-radius: 2px;
 }
 
-.drawer-backdrop,
+/* The hamburger and the drawer work on every screen size, so every page can reach every other page
+   (on desktop the menu and feedback pages have no other links in their header). */
+.drawer-backdrop {
+	display: block;
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	background: rgba(0, 0, 0, 0.28);
+	backdrop-filter: blur(4px);
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.drawer-backdrop.visible {
+	opacity: 1;
+	visibility: visible;
+}
+
 .mobile-drawer {
-	display: none;
+	position: fixed;
+	top: 0;
+	right: 0;
+	z-index: 101;
+	width: min(80vw, 360px);
+	max-width: 360px;
+	height: 100dvh;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	background: var(--card-color);
+	color: var(--burnt-oak);
+	font-family: var(--font-chrome);
+	box-shadow: 0 6px 30px rgba(0, 0, 0, 0.25);
+	transform: translateX(100vw);
+	transition: transform 0.38s var(--ease-out);
+}
+
+.mobile-drawer.open {
+	transform: translateX(0);
+}
+
+.drawer-close {
+	position: absolute;
+	top: 1.5rem;
+	right: 2rem;
+	background: none;
+	border: none;
+	font-size: 24px;
+	color: var(--burnt-oak);
+	cursor: pointer;
+}
+
+.drawer-logo {
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	width: 56px;
+	height: auto;
+}
+
+.mobile-drawer-nav {
+	margin-top: 48px;
+}
+
+.mobile-drawer-nav .menu-footer-links {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 12px;
+	padding: 0;
+	margin: 0;
+}
+
+.mobile-drawer-nav .menu-footer-links li {
+	list-style: none;
+}
+
+.mobile-drawer-nav .menu-footer-links li + li {
+	border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mobile-drawer-nav .menu-footer-links a {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 8px;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--burnt-oak);
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.mobile-drawer-nav .menu-footer-links a .link-text {
+	flex: 1;
+	text-align: right;
+}
+
+.mobile-drawer-nav .menu-footer-links li svg {
+	width: 1.2rem;
+	height: 1.2rem;
+	color: var(--burnt-oak);
+	opacity: 0.9;
+}
+
+.mobile-drawer-nav .menu-footer-links li:hover svg {
+	opacity: 1;
+}
+
+.mobile-drawer-nav .menu-footer-links a:hover {
+	background: rgba(0, 0, 0, 0.03);
+	color: var(--burnt-oak);
 }
 
 @media (max-width: 767px) {
-	.mobile-hamburger {
-		display: inline-flex;
-	}
-
-	/* the reservation links stay in the bar on phones too (a bit smaller), next to the logo and the hamburger */
 	.menu-options.menu-links {
 		flex: 1 1 0;
 		width: auto;
@@ -175,120 +282,5 @@
 
 	.menu-options.menu-links :is(a, button) {
 		font-size: 12.5px;
-	}
-
-	.drawer-backdrop {
-		display: block;
-		position: fixed;
-		inset: 0;
-		z-index: 100;
-		background: rgba(0, 0, 0, 0.28);
-		backdrop-filter: blur(4px);
-		opacity: 0;
-		visibility: hidden;
-		transition: opacity 0.25s ease, visibility 0.25s ease;
-	}
-
-	.drawer-backdrop.visible {
-		opacity: 1;
-		visibility: visible;
-	}
-
-	.mobile-drawer {
-		position: fixed;
-		top: 0;
-		right: 0;
-		z-index: 101;
-		width: min(80vw, 360px);
-		max-width: 360px;
-		height: 100dvh;
-		padding: 20px;
-		display: flex;
-		flex-direction: column;
-		background: var(--card-color);
-		color: var(--burnt-oak);
-		font-family: var(--font-chrome);
-		box-shadow: 0 6px 30px rgba(0, 0, 0, 0.25);
-		transform: translateX(100vw);
-		transition: transform 0.38s var(--ease-out);
-	}
-
-	.mobile-drawer.open {
-		transform: translateX(0);
-	}
-
-	.drawer-close {
-		position: absolute;
-		top: 1.5rem;
-		right: 2rem;
-		background: none;
-		border: none;
-		font-size: 24px;
-		color: var(--burnt-oak);
-		cursor: pointer;
-	}
-
-	.drawer-logo {
-		position: absolute;
-		top: 1rem;
-		left: 1rem;
-		width: 56px;
-		height: auto;
-	}
-
-	.mobile-drawer-nav {
-		margin-top: 48px;
-	}
-
-	.mobile-drawer-nav .menu-footer-links {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		justify-content: flex-start;
-		gap: 12px;
-		padding: 0;
-		margin: 0;
-	}
-
-	.mobile-drawer-nav .menu-footer-links li {
-		list-style: none;
-	}
-
-	.mobile-drawer-nav .menu-footer-links li + li {
-		border-top: 1px solid rgba(0, 0, 0, 0.06);
-	}
-
-	.mobile-drawer-nav .menu-footer-links a {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 12px 8px;
-		border-radius: 6px;
-		background: transparent;
-		color: var(--burnt-oak);
-		font-size: 16px;
-		font-weight: 600;
-	}
-
-	.mobile-drawer-nav .menu-footer-links a .link-text {
-		flex: 1;
-		text-align: right;
-	}
-
-	.mobile-drawer-nav .menu-footer-links li svg {
-		width: 1.2rem;
-		height: 1.2rem;
-		color: var(--burnt-oak);
-		opacity: 0.9;
-	}
-
-	.mobile-drawer-nav .menu-footer-links li:hover svg {
-		opacity: 1;
-	}
-
-	.mobile-drawer-nav .menu-footer-links a:hover {
-		background: rgba(0, 0, 0, 0.03);
-		color: var(--burnt-oak);
 	}
 }

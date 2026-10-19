@@ -15,7 +15,9 @@
 		"prisma:migrate": "prisma migrate dev",
 		"prisma:deploy": "prisma migrate deploy",
 		"prisma:studio": "prisma studio",
-		"db:seed": "tsx prisma/seed.ts"
+		"db:seed": "tsx prisma/seed.ts",
+		"db:export-menu": "tsx prisma/export-menu.ts",
+		"simulate:recommender": "tsx scripts/simulate-recommender.ts"
 	},
 	"dependencies": {
 		"@prisma/client": "^5.22.0",

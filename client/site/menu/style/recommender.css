@@ -1,0 +1,708 @@
+/* «انتخاب برای من» on the menu page: the round button at the bottom right and its dialog (questions and
+   suggestions), plus the «ناموجود» marks of sold-out products. Only the menu's own colours and shapes
+   (card colour, header brown, round corners of the product dialog). Layers: launcher 90 (under the
+   drawer), order list 200, this dialog 210, the product dialog 220 (opened from a suggestion, on top). */
+
+/* ─── sold out ──────────────────────────────────────────────────────────── */
+
+.food-card.is-sold-out .food-pic {
+	filter: grayscale(1);
+	opacity: 0.55;
+}
+
+.food-card.is-sold-out .food-name,
+.food-card.is-sold-out .food-price,
+.food-card.is-sold-out .food-description {
+	opacity: 0.6;
+}
+
+.food-sold-out,
+.product-dialog-sold-out {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.15rem 0.65rem;
+	border: 1px solid rgba(66, 46, 47, 0.35);
+	border-radius: 999px;
+	color: var(--header-color);
+	font-size: 0.78rem;
+	font-weight: 700;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+.food-sold-out,
+.product-dialog-sold-out {
+	margin-right: auto;
+}
+
+.product-dialog.is-sold-out .product-dialog-image img {
+	filter: grayscale(1);
+	opacity: 0.7;
+}
+
+.product-dialog.is-sold-out .product-dialog-addon {
+	cursor: default;
+	opacity: 0.6;
+}
+
+/* ─── the round button ──────────────────────────────────────────────────── */
+
+.rec-launcher {
+	position: fixed;
+	right: 1rem;
+	bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+	z-index: 90;
+	display: flex;
+	align-items: center;
+	max-width: calc(100vw - 2rem);
+	padding: 0;
+	border-radius: 999px;
+	background: var(--header-color);
+	color: var(--secondary-text-color);
+	box-shadow: 0 10px 28px rgba(31, 21, 22, 0.32);
+	cursor: pointer;
+	transition:
+		box-shadow 0.25s ease,
+		transform 0.25s ease;
+}
+
+.rec-launcher[hidden] {
+	display: none !important;
+}
+
+/* it arrives a few seconds after the page, as a circle */
+@media (prefers-reduced-motion: no-preference) {
+	.rec-launcher {
+		animation: rec-arrive 0.5s var(--ease-pop) both;
+	}
+}
+
+@keyframes rec-arrive {
+	from {
+		opacity: 0;
+		scale: 0.4;
+	}
+	to {
+		opacity: 1;
+		scale: 1;
+	}
+}
+
+.rec-launcher:hover {
+	box-shadow: 0 14px 34px rgba(31, 21, 22, 0.4);
+}
+
+.rec-launcher:active {
+	transform: scale(0.96);
+}
+
+.rec-launcher:focus-visible {
+	outline: 3px solid var(--blue);
+	outline-offset: 3px;
+}
+
+.rec-launcher-icon {
+	width: 3.5rem;
+	height: 3.5rem;
+	flex: 0 0 3.5rem;
+	display: grid;
+	place-items: center;
+}
+
+.rec-launcher-icon svg {
+	width: 1.65rem;
+	height: 1.65rem;
+}
+
+.rec-launcher-text {
+	max-width: 0;
+	overflow: hidden;
+	opacity: 0;
+	white-space: nowrap;
+	font-size: 0.95rem;
+	font-weight: 700;
+	transition:
+		max-width 0.45s var(--ease-out),
+		opacity 0.3s ease,
+		padding 0.45s var(--ease-out);
+}
+
+.rec-launcher.expanded .rec-launcher-text {
+	max-width: 15rem;
+	opacity: 1;
+	padding-left: 1.2rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	/* a soft ring now and then, to be noticed without being in the way */
+	.rec-launcher::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 3.5rem;
+		height: 3.5rem;
+		border-radius: 50%;
+		box-shadow: 0 0 0 0 rgba(66, 46, 47, 0.45);
+		animation: rec-ring 3.2s ease-out 1.5s infinite;
+		pointer-events: none;
+	}
+}
+
+@keyframes rec-ring {
+	0% {
+		box-shadow: 0 0 0 0 rgba(66, 46, 47, 0.45);
+	}
+	45%,
+	100% {
+		box-shadow: 0 0 0 14px rgba(66, 46, 47, 0);
+	}
+}
+
+/* ─── the dialog ────────────────────────────────────────────────────────── */
+
+body.recommender-open {
+	overflow: hidden;
+}
+
+.rec-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 210;
+	background: rgba(0, 0, 0, 0.42);
+	backdrop-filter: blur(4px);
+	opacity: 0;
+	transition: opacity 0.2s ease;
+}
+
+.rec-backdrop.visible {
+	opacity: 1;
+}
+
+.rec-backdrop[hidden],
+.rec-dialog[hidden],
+.rec-progress[hidden] {
+	display: none !important;
+}
+
+.rec-dialog {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	z-index: 211;
+	width: min(92vw, 440px);
+	max-height: 86dvh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border-radius: 1.55rem;
+	background: var(--card-color);
+	color: var(--primary-text-color);
+	box-shadow: 0 20px 56px rgba(0, 0, 0, 0.32);
+	transform: translate(-50%, -46%) scale(0.96);
+	opacity: 0;
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+.rec-dialog.open {
+	transform: translate(-50%, -50%) scale(1);
+	opacity: 1;
+}
+
+.rec-dialog button {
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.rec-dialog button:focus-visible {
+	outline: 3px solid var(--blue);
+	outline-offset: 2px;
+}
+
+.rec-head {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1rem 1.25rem 0.5rem;
+}
+
+.rec-head-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	color: var(--tertiary-text-color);
+	font-size: 0.85rem;
+	font-weight: 700;
+}
+
+.rec-head-label svg {
+	width: 1.1rem;
+	height: 1.1rem;
+}
+
+.rec-close {
+	width: 2rem;
+	height: 2rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.06);
+	color: var(--primary-text-color);
+	font-size: 1.5rem;
+	line-height: 1;
+}
+
+.rec-progress {
+	flex: 0 0 auto;
+	height: 4px;
+	margin: 0 1.25rem;
+	border-radius: 999px;
+	background: rgba(66, 46, 47, 0.12);
+	overflow: hidden;
+}
+
+.rec-progress span {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--header-color);
+	transition: width 0.35s var(--ease-out);
+}
+
+.rec-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	padding: 1rem 1.25rem 1.25rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.rec-body {
+		animation: roof-fade-up 0.28s var(--ease-out) both;
+	}
+}
+
+.rec-title {
+	font-size: 1.3rem;
+	font-weight: 800;
+	line-height: 1.6;
+	color: var(--primary-text-color);
+}
+
+.rec-title:focus {
+	outline: none;
+}
+
+.rec-sub,
+.rec-note,
+.rec-loading {
+	font-size: 0.9rem;
+	line-height: 1.9;
+	color: var(--tertiary-text-color);
+}
+
+.rec-note {
+	font-size: 0.8rem;
+}
+
+.rec-loading:empty {
+	height: 3rem;
+	border-radius: 1rem;
+	background: linear-gradient(90deg, rgba(66, 46, 47, 0.05), rgba(66, 46, 47, 0.11), rgba(66, 46, 47, 0.05));
+	background-size: 200% 100%;
+	animation: rec-shimmer 1.2s linear infinite;
+}
+
+@keyframes rec-shimmer {
+	from {
+		background-position: 200% 0;
+	}
+	to {
+		background-position: 0 0;
+	}
+}
+
+/* kinds: big tiles with an icon */
+.rec-kinds {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.6rem;
+}
+
+.rec-kinds-1 {
+	grid-template-columns: 1fr;
+}
+
+.rec-kinds-2 {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rec-kind {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+	min-height: 6.2rem;
+	padding: 0.9rem 0.5rem;
+	border: 1px solid rgba(66, 46, 47, 0.14);
+	border-radius: 1.1rem;
+	background: rgba(255, 255, 255, 0.55);
+	color: var(--primary-text-color);
+	transition:
+		background-color 0.2s ease,
+		border-color 0.2s ease,
+		transform 0.2s ease;
+}
+
+.rec-kind svg {
+	width: 2rem;
+	height: 2rem;
+	color: var(--header-color);
+}
+
+.rec-kind span {
+	font-size: 1rem;
+	font-weight: 800;
+}
+
+.rec-kind:hover {
+	border-color: var(--header-color);
+	background: rgba(255, 255, 255, 0.8);
+}
+
+.rec-kind:active,
+.rec-option:active,
+.rec-card:active {
+	transform: scale(0.97);
+}
+
+/* answers */
+.rec-options {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+	gap: 0.6rem;
+}
+
+.rec-option {
+	min-height: 3.4rem;
+	padding: 0.75rem 0.9rem;
+	border: 1px solid rgba(66, 46, 47, 0.14);
+	border-radius: 1rem;
+	background: rgba(255, 255, 255, 0.55);
+	color: var(--primary-text-color);
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.6;
+	transition:
+		background-color 0.2s ease,
+		border-color 0.2s ease,
+		color 0.2s ease,
+		transform 0.2s ease;
+}
+
+.rec-option:hover {
+	border-color: var(--header-color);
+	background: rgba(255, 255, 255, 0.8);
+}
+
+.rec-option.on {
+	border-color: var(--header-color);
+	background: var(--header-color);
+	color: var(--secondary-text-color);
+}
+
+/* «فرقی نداره»: there for whoever really has no preference, but small and in the corner, so the customer
+   picks an answer first */
+.rec-skip {
+	align-self: flex-end;
+	margin-top: -0.3rem;
+	padding: 0.25rem 0.35rem;
+	background: none;
+	color: var(--tertiary-text-color);
+	font-size: 0.82rem;
+	font-weight: 600;
+	opacity: 0.8;
+	text-decoration: underline;
+	text-decoration-color: rgba(109, 95, 84, 0.35);
+	text-underline-offset: 4px;
+	transition:
+		color 0.2s ease,
+		opacity 0.2s ease;
+}
+
+.rec-skip:hover {
+	color: var(--header-color);
+	opacity: 1;
+}
+
+.rec-primary,
+.rec-secondary,
+.rec-ghost {
+	min-height: 3rem;
+	padding: 0.7rem 1.3rem;
+	border-radius: 999px;
+	font-size: 0.95rem;
+	font-weight: 800;
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease,
+		opacity 0.2s ease;
+}
+
+.rec-primary {
+	background: var(--header-color);
+	color: var(--secondary-text-color);
+}
+
+.rec-primary:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.rec-secondary {
+	border: 1px solid var(--header-color);
+	background: transparent;
+	color: var(--header-color);
+}
+
+.rec-secondary:hover {
+	background: rgba(66, 46, 47, 0.06);
+}
+
+.rec-ghost {
+	background: transparent;
+	color: var(--tertiary-text-color);
+}
+
+.rec-ghost:hover {
+	color: var(--header-color);
+}
+
+.rec-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.rec-actions > * {
+	flex: 1 1 auto;
+}
+
+/* restrictions, behind «محدودیت غذایی داری؟» */
+.rec-diet {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	padding-top: 0.25rem;
+}
+
+.rec-link {
+	align-self: center;
+	padding: 0.35rem 0.5rem;
+	background: none;
+	color: var(--header-color);
+	font-size: 0.92rem;
+	font-weight: 700;
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+.rec-diet-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	padding: 0.85rem;
+	border-radius: 1rem;
+	background: rgba(255, 255, 255, 0.4);
+}
+
+.rec-diet-title {
+	margin-bottom: 0.4rem;
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: var(--primary-text-color);
+}
+
+.rec-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+}
+
+.rec-chip {
+	padding: 0.45rem 0.9rem;
+	border: 1px solid rgba(66, 46, 47, 0.2);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.6);
+	color: var(--primary-text-color);
+	font-size: 0.88rem;
+	font-weight: 600;
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease;
+}
+
+.rec-chip.on {
+	border-color: var(--header-color);
+	background: var(--header-color);
+	color: var(--secondary-text-color);
+}
+
+/* suggestions */
+.rec-results {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	list-style: none;
+}
+
+.rec-card {
+	width: 100%;
+	display: grid;
+	grid-template-columns: 4.5rem 1fr auto;
+	align-items: center;
+	gap: 0.8rem;
+	padding: 0.6rem;
+	border-radius: 1.15rem;
+	background: rgba(255, 255, 255, 0.55);
+	color: var(--primary-text-color);
+	text-align: right;
+	transition:
+		background-color 0.2s ease,
+		transform 0.2s ease;
+}
+
+.rec-card:hover {
+	background: rgba(255, 255, 255, 0.85);
+}
+
+.rec-card-pic {
+	width: 4.5rem;
+	height: 4.5rem;
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+	border-radius: 0.9rem;
+	background: rgba(38, 46, 54, 0.08);
+	color: var(--tertiary-text-color);
+}
+
+.rec-card-pic img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.rec-card-pic svg {
+	width: 2rem;
+	height: 2rem;
+}
+
+.rec-card-info {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+
+.rec-card-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 1rem;
+	font-weight: 800;
+}
+
+.rec-card-price {
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--header-color);
+}
+
+.rec-card-reason {
+	font-size: 0.8rem;
+	line-height: 1.7;
+	color: var(--tertiary-text-color);
+}
+
+.rec-card-go {
+	padding-left: 0.3rem;
+	font-size: 1.4rem;
+	color: var(--tertiary-text-color);
+}
+
+.rec-round2 {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 0.9rem;
+	border-radius: 1rem;
+	background: rgba(66, 46, 47, 0.07);
+}
+
+.rec-round2 p {
+	flex: 1;
+	font-size: 0.88rem;
+	line-height: 1.8;
+	color: var(--primary-text-color);
+}
+
+.rec-round2 .rec-secondary {
+	flex: 0 0 auto;
+	min-height: 2.5rem;
+	padding: 0.4rem 1.1rem;
+}
+
+/* bottom row: «قبلی» and «نشونم بده» */
+.rec-foot {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.65rem 1.25rem 0.9rem;
+	box-shadow: inset 0 1px 0 rgba(38, 46, 54, 0.1);
+}
+
+.rec-back,
+.rec-now {
+	padding: 0.45rem 0.4rem;
+	background: none;
+	font-size: 0.92rem;
+	font-weight: 700;
+}
+
+.rec-back {
+	color: var(--tertiary-text-color);
+}
+
+.rec-back span {
+	font-size: 1.1rem;
+}
+
+.rec-now {
+	color: var(--header-color);
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+@media screen and (max-width: 380px) {
+	.rec-kinds {
+		grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+	}
+
+	.rec-title {
+		font-size: 1.15rem;
+	}
+}

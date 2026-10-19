@@ -11,6 +11,7 @@ import { reservationRouter } from './routes/reservation.routes.js';
 import { paymentRouter } from './routes/payment.routes.js';
 import { adminRouter } from './routes/admin.routes.js';
 import { menuRouter } from './routes/menu.routes.js';
+import { recommenderRouter } from './routes/recommender.routes.js';
 import { trackSiteVisit } from './middleware/site-visit.js';
 import { PRODUCTS_DIR, PRODUCTS_URL } from './lib/uploads.js';
 import { clientFiles, legacyRedirects, servePage } from './web/frontend.js';
@@ -91,6 +92,7 @@ app.use('/admin', (_req, res, next) => {
 app.use('/api', authRouter);
 app.use('/api', publicRouter);
 app.use('/api', menuRouter);
+app.use('/api', recommenderRouter);
 app.use('/api/reservations', reservationRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/admin', adminRouter);

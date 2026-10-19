@@ -1,0 +1,559 @@
+/* recommender.css — «انتخاب برای من» in the admin panel: tag pickers (category and product forms),
+   the tag-group cards, bulk tagging in the product list, the sold-out marks and the switch in settings.
+   Only the variables and patterns of admin.css. */
+
+/* ─── tag pickers ─────────────────────────────────────────────────────────── */
+
+.tag-field .tag-field-hint {
+	margin-bottom: 10px;
+	font-size: 12px;
+	line-height: 1.8;
+	text-align: center;
+}
+
+.tag-rows {
+	display: grid;
+	gap: 4px;
+}
+
+.tag-row {
+	display: grid;
+	gap: 8px;
+	padding: 10px 0;
+	border-bottom: 1px dashed var(--line);
+}
+
+.tag-row:last-child {
+	border-bottom: none;
+}
+
+.tag-row-head {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	font-size: 12.5px;
+}
+
+.tag-row-name {
+	color: var(--rich-sabel);
+	font-weight: 600;
+}
+
+.tag-row-note {
+	color: var(--deep-taupe);
+	font-size: 11.5px;
+	opacity: 0.8;
+}
+
+.tag-status {
+	padding: 2px 8px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	color: var(--deep-taupe);
+	font-size: 11px;
+}
+
+.tag-status.own {
+	border-color: rgba(66, 46, 47, 0.35);
+	color: var(--rich-sabel);
+}
+
+.tag-status.warn {
+	border-color: rgba(150, 112, 60, 0.4);
+	color: var(--warn-ink);
+}
+
+.tag-reset {
+	margin-inline-start: auto;
+	padding: 2px 4px;
+	background: none;
+	border: none;
+	color: var(--deep-taupe);
+	font-size: 12px;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+.tag-reset:hover {
+	color: var(--rich-sabel);
+}
+
+.tag-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.tag-chip {
+	padding: 6px 12px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.35);
+	color: var(--deep-taupe);
+	font-family: inherit;
+	font-size: 12.5px;
+	line-height: 1.5;
+	cursor: pointer;
+	transition:
+		border-color var(--dur) var(--ease),
+		background var(--dur) var(--ease),
+		color var(--dur) var(--ease);
+}
+
+button.tag-chip:hover {
+	border-color: var(--rich-sabel);
+	color: var(--rich-sabel);
+}
+
+.tag-chip.on {
+	background: var(--rich-sabel);
+	border-color: var(--rich-sabel);
+	color: var(--chapel-white);
+}
+
+button.tag-chip.on:hover {
+	color: var(--chapel-white);
+}
+
+/* inherited from the category: ticked, but pale and dashed */
+.tag-chip.on.inherited {
+	background: rgba(66, 46, 47, 0.1);
+	border-style: dashed;
+	border-color: rgba(66, 46, 47, 0.45);
+	color: var(--rich-sabel);
+}
+
+button.tag-chip.on.inherited:hover {
+	color: var(--rich-sabel);
+	background: rgba(66, 46, 47, 0.16);
+}
+
+.tag-chip:focus-visible {
+	outline: 2px solid var(--blue);
+	outline-offset: 2px;
+}
+
+.tag-chip.static {
+	cursor: default;
+}
+
+/* ─── «انتخاب برای من» section: group cards ──────────────────────────────── */
+
+.tag-status-notes {
+	display: grid;
+	gap: 8px;
+	margin-bottom: 14px;
+}
+
+.tag-status-notes .hint {
+	font-size: 12.5px;
+	line-height: 1.8;
+}
+
+.tag-toolbar {
+	align-items: center;
+	margin-bottom: 14px;
+}
+
+.tag-toolbar .hint {
+	flex: 1 1 320px;
+	font-size: 12.5px;
+	line-height: 1.8;
+}
+
+.tag-group-list {
+	display: grid;
+	gap: 12px;
+}
+
+.tag-group-card {
+	display: grid;
+	gap: 10px;
+	padding: 14px 16px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-sm);
+	background: rgba(255, 255, 255, 0.35);
+}
+
+.tag-group-card.inactive {
+	background: transparent;
+	border-style: dashed;
+}
+
+.tag-group-card.inactive > :not(.tag-group-actions):not(.tag-group-head) {
+	opacity: 0.6;
+}
+
+.tag-group-head {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.tag-group-name {
+	color: var(--rich-sabel);
+	font-size: 15px;
+}
+
+.tag-group-q {
+	color: var(--burnt-oak);
+	font-size: 14px;
+}
+
+.tag-group-meta {
+	color: var(--deep-taupe);
+	font-size: 12px;
+	line-height: 1.8;
+	opacity: 0.9;
+}
+
+.tag-group-warn {
+	color: var(--warn-ink);
+	font-size: 12px;
+}
+
+.tag-coverage {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+	color: var(--deep-taupe);
+	font-size: 12px;
+}
+
+.tag-coverage-bar {
+	flex: 0 0 140px;
+	height: 6px;
+	border-radius: 999px;
+	background: var(--line);
+	overflow: hidden;
+}
+
+.tag-coverage-bar span {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--rich-sabel);
+}
+
+.tag-group-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.tag-group-actions .secondary-btn,
+.tag-group-actions .danger-btn {
+	padding: 8px 13px;
+	font-size: 12.5px;
+}
+
+/* ─── group form ──────────────────────────────────────────────────────────── */
+
+fieldset.field {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+fieldset.field legend {
+	display: block;
+	width: 100%;
+	margin-bottom: 7px;
+	color: var(--deep-taupe);
+	font-size: 12px;
+	font-weight: 600;
+	opacity: 0.85;
+	text-align: center;
+}
+
+.checkbox-row input[type='radio'] {
+	width: 18px;
+	height: 18px;
+	flex: none;
+	margin: 0;
+	padding: 0;
+	accent-color: var(--rich-sabel);
+	cursor: pointer;
+}
+
+.tag-radio {
+	display: grid;
+	gap: 8px;
+}
+
+.tag-radio label.checkbox-row,
+.tag-kind-picks label.checkbox-row {
+	justify-content: flex-start;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-xs);
+	color: var(--rich-sabel);
+	font-size: 13px;
+	font-weight: 400;
+	text-align: start;
+	opacity: 1;
+}
+
+.tag-radio label.checkbox-row:has(input:checked),
+.tag-kind-picks label.checkbox-row:has(input:checked) {
+	border-color: var(--rich-sabel);
+	background: rgba(66, 46, 47, 0.05);
+}
+
+.tag-kind-picks {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.tag-kind-picks legend {
+	grid-column: 1 / -1;
+}
+
+.tag-check-field {
+	display: flex;
+	align-items: flex-end;
+}
+
+.tag-check-field label.checkbox-row {
+	margin: 0;
+	padding: 12px 0;
+	font-size: 13px;
+	font-weight: 400;
+	opacity: 1;
+}
+
+.tag-ordered-row,
+.form-grid > label.tag-ordered-row {
+	justify-content: flex-start;
+	align-items: flex-start;
+	font-size: 13px;
+	line-height: 1.8;
+	text-align: start;
+}
+
+.tag-ordered-row input[type='checkbox'] {
+	margin-top: 4px;
+}
+
+.tag-kind-texts {
+	display: grid;
+	gap: 10px;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-xs);
+}
+
+.tag-kind-texts summary {
+	color: var(--rich-sabel);
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.tag-option-drafts {
+	display: grid;
+	gap: 8px;
+}
+
+.tag-option-draft {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.tag-option-more {
+	margin-top: 8px;
+}
+
+/* ─── options dialog ──────────────────────────────────────────────────────── */
+
+.tag-option-list {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.tag-option-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.tag-option-row input {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 9px 11px;
+}
+
+.tag-option-row .secondary-btn,
+.tag-option-row .primary-btn {
+	flex: none;
+	width: auto;
+	padding: 9px 13px;
+}
+
+.tag-option-delete {
+	color: var(--danger-ink);
+}
+
+.tag-option-usage {
+	display: block;
+	margin-top: 4px;
+	padding-inline-start: 82px;
+	color: var(--deep-taupe);
+	font-size: 11.5px;
+	opacity: 0.8;
+}
+
+.tag-option-add {
+	padding-top: 12px;
+	border-top: 1px dashed var(--line);
+}
+
+/* ─── product list: sold out, incomplete tags, bulk tagging ───────────────── */
+
+.menu-soldout-badge {
+	margin-inline-start: 8px;
+	padding: 2px 8px;
+	vertical-align: middle;
+}
+
+.menu-row-soldout .menu-thumb {
+	filter: grayscale(1);
+	opacity: 0.6;
+}
+
+.tag-missing {
+	margin-top: 3px;
+	color: var(--warn-ink);
+	font-size: 11.5px;
+}
+
+.menu-select {
+	width: 34px;
+}
+
+.menu-select input[type='checkbox'] {
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	padding: 0;
+	accent-color: var(--rich-sabel);
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+.bulk-bar {
+	position: sticky;
+	bottom: 0;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 12px;
+	padding: 10px 14px;
+	border: 1px solid var(--rich-sabel);
+	border-radius: var(--r-sm);
+	background: var(--chapel-white);
+	box-shadow: var(--shadow);
+	color: var(--rich-sabel);
+	font-size: 13px;
+}
+
+.bulk-bar-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.bulk-bar-actions .secondary-btn {
+	padding: 8px 12px;
+	font-size: 12.5px;
+}
+
+.avail-field {
+	display: grid;
+	gap: 4px;
+}
+
+.avail-field .hint {
+	font-size: 12px;
+	text-align: center;
+}
+
+/* ─── settings ────────────────────────────────────────────────────────────── */
+
+.settings-block {
+	display: grid;
+	gap: 10px;
+	margin-top: 10px;
+	padding-top: 18px;
+	border-top: 1px solid var(--line);
+}
+
+.settings-block h4 {
+	color: var(--rich-sabel);
+	font-size: 14px;
+}
+
+.settings-switch {
+	justify-content: flex-start;
+	font-size: 13.5px;
+	color: var(--rich-sabel);
+}
+
+.settings-block .hint {
+	font-size: 12.5px;
+	line-height: 1.8;
+}
+
+@media (min-width: 768px) {
+	.row.row-3 {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 767px) {
+	.tag-kind-picks {
+		grid-template-columns: 1fr;
+	}
+
+	.tag-option-usage {
+		padding-inline-start: 0;
+	}
+
+	.tag-group-actions > button {
+		flex: 1 1 auto;
+	}
+
+	.bulk-bar {
+		gap: 8px;
+		padding: 8px 10px;
+	}
+
+	.bulk-bar-actions {
+		width: 100%;
+		flex-wrap: nowrap;
+	}
+
+	.bulk-bar-actions .secondary-btn {
+		flex: 1 1 0;
+		padding: 8px 4px;
+		font-size: 12px;
+		white-space: nowrap;
+	}
+
+	.bulk-bar-actions svg {
+		display: none;
+	}
+}

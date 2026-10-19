@@ -54,6 +54,7 @@ export function ProductDialog({ product, order, onAdd, onDecrease, onClose }: Pr
 	const quantity = shown ? keyQuantity(order, key) : 0;
 	const price = (shown?.price ?? 0) + chosen.reduce((sum, addOn) => sum + addOn.price, 0);
 	const src = productImageUrl(shown?.image);
+	const soldOut = shown?.isAvailable === false;
 
 	const toggle = (id: number) => setSelected((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
 
@@ -67,7 +68,7 @@ export function ProductDialog({ product, order, onAdd, onDecrease, onClose }: Pr
 			></div>
 			<section
 				id="product-dialog"
-				className={`product-dialog${isOpen && visible ? ' open' : ''}${quantity > 0 ? ' has-order' : ''}${addOns.length ? ' has-addons' : ''}`}
+				className={`product-dialog${isOpen && visible ? ' open' : ''}${quantity > 0 ? ' has-order' : ''}${addOns.length ? ' has-addons' : ''}${soldOut ? ' is-sold-out' : ''}`}
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="product-dialog-name"
@@ -106,7 +107,7 @@ export function ProductDialog({ product, order, onAdd, onDecrease, onClose }: Pr
 								<legend className="product-dialog-addons-title">افزودنی‌ها</legend>
 								{addOns.map((addOn) => (
 									<label className="product-dialog-addon" key={addOn.id}>
-										<input type="checkbox" checked={selected.includes(addOn.id)} onChange={() => toggle(addOn.id)} />
+										<input type="checkbox" checked={selected.includes(addOn.id)} disabled={soldOut} onChange={() => toggle(addOn.id)} />
 										<span className="product-dialog-addon-name">{addOn.name}</span>
 										<span className="product-dialog-addon-price">
 											{addOn.price > 0 ? `\u200F+${faNumber(addOn.price)} تومان` : 'رایگان'}
@@ -121,25 +122,29 @@ export function ProductDialog({ product, order, onAdd, onDecrease, onClose }: Pr
 							{shown ? `${faNumber(price)} تومان` : ''}
 						</div>
 						<div className="product-dialog-order-control" aria-label="کنترل سفارش محصول">
-							<div className="product-dialog-order-stepper">
-								<button
-									className="product-dialog-order-btn product-dialog-order-increase"
-									type="button"
-									aria-label="افزودن محصول به لیست سفارش"
-									onClick={() => shown && onAdd(shown, chosen)}
-								>
-									+
-								</button>
-								<span className="product-dialog-order-quantity">{quantity > 0 ? faNumber(quantity) : ''}</span>
-								<button
-									className="product-dialog-order-btn product-dialog-order-decrease"
-									type="button"
-									aria-label="کم کردن محصول"
-									onClick={() => onDecrease(key)}
-								>
-									−
-								</button>
-							</div>
+							{soldOut ? (
+								<span className="product-dialog-sold-out">ناموجود</span>
+							) : (
+								<div className="product-dialog-order-stepper">
+									<button
+										className="product-dialog-order-btn product-dialog-order-increase"
+										type="button"
+										aria-label="افزودن محصول به لیست سفارش"
+										onClick={() => shown && onAdd(shown, chosen)}
+									>
+										+
+									</button>
+									<span className="product-dialog-order-quantity">{quantity > 0 ? faNumber(quantity) : ''}</span>
+									<button
+										className="product-dialog-order-btn product-dialog-order-decrease"
+										type="button"
+										aria-label="کم کردن محصول"
+										onClick={() => onDecrease(key)}
+									>
+										−
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>
