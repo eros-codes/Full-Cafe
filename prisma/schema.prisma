@@ -29,9 +29,7 @@ enum TableShape {
 }
 
 enum ReservationStatus {
-  DRAFT
   HOLD
-  PAYMENT_PENDING
   PAYMENT_REVIEW
   CONFIRMED
   CANCELLED
@@ -56,7 +54,6 @@ enum PaymentStatus {
 }
 
 enum PaymentMethod {
-  MOCK
   ZARINPAL
   MANUAL
 }
@@ -213,16 +210,17 @@ model Payment {
   reservation   Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   amount        Int
   status        PaymentStatus @default(PENDING)
-  method        PaymentMethod @default(MOCK)
-  provider      String        @default("mock")
+  method        PaymentMethod @default(ZARINPAL)
+  provider      String        @default("zarinpal")
+  /// Zarinpal's id of one trip to the gateway (each trip is its own payment); the callback looks payments up by it.
   authority     String?
   refId         String?
-  isMock        Boolean       @default(true)
   rawResponse   Json?
   createdAt     DateTime      @default(now())
   verifiedAt    DateTime?
 
   @@index([reservationId])
+  @@index([authority])
 }
 
 model Invoice {
@@ -473,4 +471,44 @@ model CategoryTagOption {
 
   @@id([categoryId, optionId])
   @@index([optionId])
+}
+
+// ─── Games page (/games) ──────────────────────────────────────────────────────
+// The games themselves are code (client/site/games); the database only keeps which ones the café shows
+// and the cards of the word games. Game keys: GAMES in src/services/games.service.ts.
+
+/// A game's place on the games page. A game without a row uses its defaults (GAMES in games.service.ts).
+model GameSetting {
+  key       String   @id
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+/// A deck of cards for the word games: places for «جاسوس», words for «گوشی رو پیشونی» and «پانتومیم»,
+/// words with their forbidden words for «کلمات ممنوعه». One deck can serve several games.
+model GameDeck {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  /// Keys of the games that draw from this deck (e.g. ["heads_up", "charades"]).
+  games     String[]
+  isActive  Boolean    @default(true)
+  sortOrder Int        @default(0)
+  cards     GameCard[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model GameCard {
+  id        Int      @id @default(autoincrement())
+  deckId    Int
+  deck      GameDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  /// The word, the place or the phrase.
+  text      String
+  /// «کلمات ممنوعه»: the words that may not be said while describing `text` (empty for the other games).
+  forbidden String[]
+  sortOrder Int      @default(0)
+
+  @@unique([deckId, text])
+  @@index([deckId])
 }

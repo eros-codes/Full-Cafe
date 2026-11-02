@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import { Prisma, type AdminRole, type CafeTable, type ReservationStatus, type TableShape, type ZoneKey } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { requireAdmin, requireRole } from '../middleware/auth.js';
-import { createManualReservation } from '../services/reservation.service.js';
+import { createManualReservation, ensureInvoice } from '../services/reservation.service.js';
+import { serializable } from '../lib/transaction.js';
 import { getSettings, setSetting } from '../services/settings.service.js';
 import { CLOCK_TIME, CLOSING_TIME, combineDateAndTime, isValidDateString, normalizePhone } from '../lib/time.js';
 import { setCookie, signAdminToken } from '../lib/auth.js';
@@ -11,13 +12,26 @@ import { confirmationMessage, sendMockSms } from '../lib/sms.js';
 import { ROLE_GROUPS, USERNAME_PATTERN, canManageRole, isAdminRole, normalizeUsername } from '../lib/roles.js';
 import { adminMenuRouter } from './admin/menu.routes.js';
 import { adminTagsRouter } from './admin/tags.routes.js';
+import { adminGamesRouter } from './admin/games.routes.js';
 import { RECOMMENDER_SETTING, invalidateRecommenderCache } from '../services/recommender.service.js';
+import { GAMES_SETTING, invalidateGamesCache } from '../services/games.service.js';
 import { todayKey } from '../middleware/site-visit.js';
 import { findConflictingReservations } from '../services/availability.service.js';
 import { createHttpError, prismaCode } from '../lib/http-error.js';
 import { currentAdmin } from '../lib/request.js';
 
 export const adminRouter = express.Router();
+
+/** Payment fields the admin lists need (not the gateway's raw answer). */
+const ADMIN_PAYMENT_FIELDS = {
+	id: true,
+	amount: true,
+	status: true,
+	method: true,
+	refId: true,
+	createdAt: true,
+	verifiedAt: true,
+} satisfies Prisma.PaymentSelect;
 
 adminRouter.use(requireAdmin);
 
@@ -30,6 +44,8 @@ adminRouter.get('/me', (req, res) => {
 adminRouter.use(adminMenuRouter);
 // برچسب‌ها و گروه‌های «انتخاب برای من»
 adminRouter.use(adminTagsRouter);
+// بخش بازی‌ها: بازی‌های روشن و دسته‌کارت‌های بازی‌های کلمه‌ای
+adminRouter.use(adminGamesRouter);
 
 adminRouter.get('/dashboard', requireRole(...ROLE_GROUPS.manager), async (_req, res, next) => {
 	try {
@@ -125,9 +141,7 @@ adminRouter.get('/reservations/counts', async (_req, res, next) => {
 adminRouter.get('/reservations', async (req, res, next) => {
 	try {
 		const VALID_STATUSES: readonly string[] = [
-			'DRAFT',
 			'HOLD',
-			'PAYMENT_PENDING',
 			'PAYMENT_REVIEW',
 			'CONFIRMED',
 			'CANCELLED',
@@ -152,18 +166,18 @@ adminRouter.get('/reservations', async (req, res, next) => {
 			where.status = status as ReservationStatus;
 		}
 		if (req.query.from || req.query.to) {
+			// «YYYY-MM-DD» is a day of the café (Tehran), from its start to the end of the «to» day.
+			// Before, new Date('2026-11-01') was midnight UTC (03:30 in Tehran): the last day was cut off.
 			const startAt: Prisma.DateTimeFilter<'Reservation'> = {};
 			for (const [param, op] of [
 				['from', 'gte'],
-				['to', 'lte'],
+				['to', 'lt'],
 			] as const) {
 				const raw = req.query[param];
 				if (!raw) continue;
-				const parsed = new Date(typeof raw === 'string' ? raw : Number.NaN);
-				if (Number.isNaN(parsed.getTime())) {
-					return res.status(400).json({ message: 'بازه‌ی تاریخ نامعتبر است.' });
-				}
-				startAt[op] = parsed;
+				if (!isValidDateString(raw)) return res.status(400).json({ message: 'بازه‌ی تاریخ نامعتبر است (YYYY-MM-DD).' });
+				const dayStart = combineDateAndTime(raw, '00:00');
+				startAt[op] = op === 'lt' ? new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1) : dayStart;
 			}
 			where.startAt = startAt;
 		}
@@ -175,7 +189,13 @@ adminRouter.get('/reservations', async (req, res, next) => {
 				orderBy: { startAt: 'desc' },
 				take,
 				skip,
-				include: { tables: { include: { table: true } }, payments: { orderBy: { createdAt: 'desc' } }, invoice: true, user: true },
+				include: {
+					tables: { include: { table: true } },
+					// the gateway's raw answer is not needed in the list (it made every row heavy)
+					payments: { orderBy: { createdAt: 'desc' }, select: ADMIN_PAYMENT_FIELDS },
+					invoice: true,
+					user: { select: { id: true, name: true, phone: true } },
+				},
 			}),
 			prisma.reservation.count({ where }),
 		]);
@@ -218,7 +238,7 @@ const STATUS_TRANSITIONS: Record<'CONFIRMED' | 'COMPLETED' | 'NO_SHOW' | 'CANCEL
 	CONFIRMED: ['PAYMENT_REVIEW'],
 	COMPLETED: ['CONFIRMED'],
 	NO_SHOW: ['CONFIRMED'],
-	CANCELLED: ['HOLD', 'PAYMENT_PENDING', 'PAYMENT_REVIEW', 'CONFIRMED'],
+	CANCELLED: ['HOLD', 'PAYMENT_REVIEW', 'CONFIRMED'],
 };
 type SettableStatus = keyof typeof STATUS_TRANSITIONS;
 const SECONDARY_SETTABLE: readonly SettableStatus[] = ['COMPLETED', 'NO_SHOW', 'CANCELLED'];
@@ -255,8 +275,7 @@ adminRouter.patch('/reservations/:id/status', async (req, res, next) => {
 		const moneyTaken = existing.payments.some((p) => p.status === 'PAID' || p.status === 'REVIEW');
 		const owesRefund = nextStatus === 'CANCELLED' && moneyTaken;
 
-		const result = await prisma.$transaction(
-			async (tx) => {
+		const result = await serializable(async (tx) => {
 				// تایید دستی پرداخت از موتور دسترس‌پذیری رد نمی‌شود؛ اگر در این فاصله میز به کس دیگری
 				// رسیده باشد، تایید یعنی رزرو دوبل. در این حالت باید لغو و پول برگردانده شود.
 				if (nextStatus === 'CONFIRMED' && (await findConflictingReservations(existing.id, tx)).length) {
@@ -280,15 +299,18 @@ adminRouter.patch('/reservations/:id/status', async (req, res, next) => {
 					});
 				}
 				if (nextStatus === 'CONFIRMED') {
-					await tx.payment.updateMany({
-						where: { reservationId: existing.id, status: 'REVIEW' },
-						data: { status: 'PAID', verifiedAt: new Date() },
-					});
+					// the latest payment under review is the one that pays for it; any other one (paid on a second gateway
+					// page) is money owed back
+					const [paying, ...extra] = existing.payments.filter((p) => p.status === 'REVIEW').sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+					if (paying) await tx.payment.update({ where: { id: paying.id }, data: { status: 'PAID', verifiedAt: new Date() } });
+					if (extra.length) {
+						await tx.payment.updateMany({ where: { id: { in: extra.map((p) => p.id) } }, data: { status: 'REFUND_PENDING' } });
+						await tx.reservation.update({ where: { id: existing.id }, data: { refundStatus: 'PENDING' } });
+					}
+					await ensureInvoice(tx, existing);
 				}
 				return tx.reservation.findUnique({ where: { id: existing.id } });
-			},
-			{ isolationLevel: 'Serializable' },
-		);
+		});
 		if (!result) return res.status(409).json({ message: 'وضعیت این رزرو همین الان تغییر کرد؛ لیست را تازه کن.' });
 
 		if (nextStatus === 'CANCELLED') {
@@ -311,6 +333,32 @@ adminRouter.patch('/reservations/:id/status', async (req, res, next) => {
 	} catch (error) {
 		if (prismaCode(error) === 'P2025') return res.status(404).json({ message: 'رزرو پیدا نشد.' });
 		if (prismaCode(error) === 'P2034') return res.status(409).json({ message: 'هم‌زمان تغییر دیگری روی این رزرو انجام شد؛ دوباره تلاش کن.' });
+		next(error);
+	}
+});
+
+/**
+ * The café has paid the money back (bank transfer, at the till, …): the refund is done. Manager only, since it is
+ * about the café's money. Before, there was no way to record this: every refund stayed «در انتظار» and
+ * «نیاز به اقدام» only grew.
+ */
+adminRouter.post('/reservations/:id/refund-done', requireRole(...ROLE_GROUPS.manager), async (req, res, next) => {
+	try {
+		const existing = await prisma.reservation.findUnique({ where: { id: req.params.id } });
+		if (!existing) return res.status(404).json({ message: 'رزرو پیدا نشد.' });
+		const reservation = await prisma.$transaction(async (tx) => {
+			// the condition is inside the update: two clicks at once record it once
+			const changed = await tx.reservation.updateMany({ where: { id: existing.id, refundStatus: 'PENDING' }, data: { refundStatus: 'DONE' } });
+			if (changed.count === 0) return null;
+			await tx.payment.updateMany({
+				where: { reservationId: existing.id, status: { in: ['REFUND_PENDING', 'REVIEW'] } },
+				data: { status: 'REFUNDED' },
+			});
+			return tx.reservation.findUnique({ where: { id: existing.id } });
+		});
+		if (!reservation) return res.status(409).json({ message: 'برای این رزرو بازگشت وجهی در انتظار نیست.' });
+		res.json({ reservation });
+	} catch (error) {
 		next(error);
 	}
 });
@@ -550,7 +598,7 @@ const NUMBER_SETTING_BOUNDS: Record<string, { min: number; max: number }> = {
 
 const TEXT_SETTINGS: readonly string[] = ['currencyLabel', 'cafeName'];
 // on/off switches, stored as "1" / "0"
-const BOOLEAN_SETTINGS: readonly string[] = [RECOMMENDER_SETTING];
+const BOOLEAN_SETTINGS: readonly string[] = [RECOMMENDER_SETTING, GAMES_SETTING];
 
 adminRouter.patch('/settings', requireRole(...ROLE_GROUPS.manager), async (req, res, next) => {
 	try {
@@ -586,6 +634,7 @@ adminRouter.patch('/settings', requireRole(...ROLE_GROUPS.manager), async (req, 
 			else await setSetting(key, TEXT_SETTINGS.includes(key) ? String(value).trim() : Number(value));
 		}
 		invalidateRecommenderCache();
+		invalidateGamesCache();
 		res.json({ settings: await getSettings() });
 	} catch (error) {
 		next(error);

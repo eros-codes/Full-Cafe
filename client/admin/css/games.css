@@ -1,0 +1,65 @@
+/* games.css — the «بازی‌ها» section of the admin panel: the switch, the game cards and the deck editor.
+   The cards reuse the look of the «انتخاب برای من» groups (recommender.css). */
+
+.games-switch-block {
+	margin-top: 0;
+	padding-top: 0;
+	border-top: none;
+}
+
+.games-subhead {
+	margin-top: 22px;
+	margin-bottom: 6px;
+	color: var(--rich-sabel);
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.games-hint {
+	margin-bottom: 12px;
+	font-size: 12.5px;
+	line-height: 1.8;
+}
+
+.game-picks {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.game-picks label.checkbox-row {
+	justify-content: flex-start;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-xs);
+	color: var(--rich-sabel);
+	font-size: 13px;
+	font-weight: 400;
+	opacity: 1;
+}
+
+.game-picks label.checkbox-row:has(input:checked) {
+	border-color: var(--rich-sabel);
+	background: rgba(66, 46, 47, 0.05);
+}
+
+.game-cards-text {
+	min-height: 260px;
+	font-size: 14px;
+	line-height: 2;
+	resize: vertical;
+}
+
+.game-cards-hint {
+	margin-top: 6px;
+	font-size: 12px;
+	line-height: 1.8;
+	text-align: start;
+}
+
+@media (max-width: 767px) {
+	.game-picks {
+		grid-template-columns: 1fr;
+	}
+}

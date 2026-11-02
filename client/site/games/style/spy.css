@@ -1,0 +1,150 @@
+/* spy.css — «جاسوس»: the card each player sees, the questions screen and the list of places. */
+
+.spy-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 2.2rem 1.3rem 1.8rem;
+	border-radius: 1.6rem;
+	background: var(--chapel-white);
+	color: var(--burnt-oak);
+	box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+	text-align: center;
+}
+
+.spy-card-spy {
+	border: 1.5px solid rgba(212, 168, 85, 0.65);
+	background: var(--burnt-oak);
+	color: var(--chapel-white);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.spy-card {
+		animation: spy-flip 0.45s var(--ease-out) both;
+	}
+}
+
+@keyframes spy-flip {
+	from {
+		opacity: 0;
+		transform: perspective(700px) rotateY(-70deg) scale(0.92);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.spy-card-icon {
+	width: 4rem;
+	height: 4rem;
+	display: grid;
+	place-items: center;
+	border-radius: 999px;
+	background: rgba(212, 168, 85, 0.14);
+	color: #d4a855;
+}
+
+.spy-card-icon svg {
+	width: 2.5rem;
+	height: 2.5rem;
+}
+
+.spy-card-label {
+	color: var(--tertiary-text-color);
+	font-size: 0.95rem;
+	font-weight: 700;
+}
+
+.spy-card-big {
+	color: inherit;
+	font-size: clamp(1.8rem, 8vw, 2.4rem);
+	font-weight: 800;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+.spy-card-note {
+	max-width: 22rem;
+	color: var(--tertiary-text-color);
+	font-size: 0.92rem;
+	line-height: 1.9;
+}
+
+.spy-card-spy .spy-card-note {
+	color: rgba(239, 234, 228, 0.75);
+}
+
+.spy-play {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1.3rem;
+	padding-block: 0.5rem 0.75rem;
+	text-align: center;
+}
+
+.spy-starter {
+	color: var(--gm-soft);
+	font-size: 0.95rem;
+	line-height: 1.9;
+}
+
+.spy-starter strong {
+	color: var(--gm-ink);
+	font-size: 1rem;
+	font-weight: 800;
+}
+
+.spy-actions {
+	width: 100%;
+	display: grid;
+	gap: 0.55rem;
+}
+
+.spy-place-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem;
+	margin-top: 0.7rem;
+}
+
+.spy-place-list li {
+	padding: 0.5rem 0.7rem;
+	border-radius: 0.8rem;
+	background: rgba(66, 46, 47, 0.06);
+	color: var(--burnt-oak);
+	font-size: 0.9rem;
+	font-weight: 600;
+	line-height: 1.7;
+}
+
+.spy-guess-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+}
+
+.spy-reveal-place {
+	padding: 0.8rem 1rem;
+	border-radius: 1rem;
+	background: rgba(66, 46, 47, 0.06);
+	color: var(--tertiary-text-color);
+	font-size: 0.95rem;
+	text-align: center;
+}
+
+.spy-reveal-place strong {
+	color: var(--burnt-oak);
+	font-size: 1.1rem;
+	font-weight: 800;
+}
+
+/* the peek list on the dark screen */
+.gm-dark .gm-player-grid .gm-player-btn {
+	border-color: rgba(239, 234, 228, 0.18);
+}

@@ -15,3 +15,6 @@ import-simple-cafe.mjs
 
 # menu exported with `npm run db:export-menu` (the café's own data)
 /menu-export/
+
+# games exported with `npm run db:export-games`
+/games-export/

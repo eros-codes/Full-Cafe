@@ -300,8 +300,8 @@ export function MenuPage() {
 				</main>
 			</div>
 
-			<SiteFooter links={['about', 'contact', 'reserve', 'feedback']} />
-			<MobileDrawer drawer={drawer} links={['about', 'contact', 'feedback', 'reserve']} />
+			<SiteFooter links={['about', 'contact', 'reserve', 'feedback', 'games']} />
+			<MobileDrawer drawer={drawer} links={['about', 'contact', 'feedback', 'games', 'reserve']} />
 
 			<OrderDialog
 				open={orderOpen}

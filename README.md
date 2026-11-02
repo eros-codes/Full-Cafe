@@ -4,9 +4,9 @@ One Node.js server runs the whole café site:
 
 | Part | URL | What it is |
 | --- | --- | --- |
-| Café site | `/`, `/menu`, `/feedback` | About page, menu (with add-ons, an order list, sold-out marks and «انتخاب برای من»), customer reviews |
+| Café site | `/`, `/menu`, `/feedback`, `/games` | About page, menu (with add-ons, an order list, sold-out marks and «انتخاب برای من»), customer reviews, party games on one phone |
 | Reservation | `/reserve` (+ `/reserve/payment`, `/invoice`, `/profile`, `/track`) | Live floor map, table booking, Zarinpal payment, invoice, guest tracking, customer profile (SMS login) |
-| Admin panel | `/admin` (login at `/admin/login`) | One panel for reservations, the floor map, menu, menu types, add-ons, categories, the «انتخاب برای من» questions and tags, reviews, hours, closures, settings, reports and admin accounts |
+| Admin panel | `/admin` (login at `/admin/login`) | One panel for reservations, the floor map, menu, menu types, add-ons, categories, the «انتخاب برای من» questions and tags, the games and their cards, reviews, hours, closures, settings, reports and admin accounts |
 | API | `/api/...` | JSON API used by all of the above |
 
 **Stack:** Express 4 + Prisma 5 + PostgreSQL, strict TypeScript on the server; React 19 + Vite 6 (TypeScript) for every page.
@@ -37,12 +37,13 @@ npm run dev                     # http://localhost:3000
 ```bash
 npm install
 npx prisma generate             # the Prisma client must know the new tables (migrate deploy does not do this)
-npx prisma migrate deploy       # adds the recommender tables and columns; existing data is untouched
-npm run db:seed                 # adds what is missing (e.g. the starter questions, the recommender switch); never overwrites
+npx prisma migrate deploy       # adds the new tables and columns (recommender, games); existing data is untouched
+npm run db:seed                 # adds what is missing (questions, the game cards, the switches); never overwrites
 ```
 
 Then, in the admin panel: give each category its kind (drink / food / dessert), tag the categories and products, check
-the coverage in «انتخاب برای من», and turn the feature on in «قیمت و تنظیمات». It starts switched off.
+the coverage in «انتخاب برای من», and turn the feature on in «قیمت و تنظیمات». It starts switched off. The games page
+also starts switched off: turn it on in the «بازی‌ها» section.
 
 Log in at `http://localhost:3000/admin/login` with `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD`.
 
@@ -76,8 +77,10 @@ cached). **Restart the server after every build**, because it caches the page HT
 | `npm start` | Start the production build |
 | `npm run typecheck` | Type-check the server, tests and the React client |
 | `npm test` | Integration tests (see below) |
-| `npm run db:seed` | Seed settings, working hours, floor-map tables, the first admin, and the menu and «انتخاب برای من» questions from `prisma/seed-data/` (safe to re-run; never overwrites existing data) |
+| `npm run db:seed` | Seed settings, working hours, floor-map tables, the first admin, the menu and «انتخاب برای من» questions, and the game cards from `prisma/seed-data/` (safe to re-run; never overwrites existing data) |
 | `npm run db:export-menu` | Export this database's menu (types, categories, products, add-ons, tags, images) to `menu-export/` |
+| `npm run db:export-games` | Export this database's games (order, on/off, every deck and its cards) to `games-export/games.json` |
+| `npm run db:merge-games` | Add the decks and cards of `prisma/seed-data/games.json` that this database does not have yet (after an update brought new cards) |
 | `npm run simulate:recommender` | Simulate 1000 customers on the real menu and report how well «انتخاب برای من» does (`-- 5000` for more) |
 | `npm run prisma:deploy` | Apply migrations (production) |
 | `npm run prisma:migrate` | Create a new migration after editing `schema.prisma` (development) |
@@ -164,6 +167,99 @@ of questions and how often the suggestions contain what they wanted (compared wi
 The data comes from `GET /api/recommender` (cached for a minute on the server, dropped at once after any admin change
 to the menu, the tags or the settings); the engine runs in the browser.
 
+## Games page (/games)
+
+Party games for a table, played on **one phone** that is passed around or put in the middle. Nothing about the players
+goes to the server: the page loads the games and their cards once (`GET /api/games`, also kept on the phone so the games
+still open when the café's Wi-Fi drops), and every game keeps its state on the phone, so a reload, a call or another
+app does not lose it (a game left for more than 6 hours is dropped). A running clock pauses by itself when the phone
+goes to another app, a call or the lock screen, and waits for «ادامه». Leaving a game, with ✕ or the phone's back
+button, ends it: nothing of it is kept. Only a game interrupted by closing the browser shows «ادامه‌ی بازی» on the list.
+
+| Game | Players | How it works on one phone |
+| --- | --- | --- |
+| «جاسوس» | 3–12 | The phone goes round; everyone sees the place except the spy (two spies from 6 players). A timer, the list of possible places, «کارتم یادم رفت», a vote, and the caught spy's last guess. A spy may stop the game to name the place, after the phone has privately checked their card (a citizen knows the place). Points per round. |
+| «گوشی رو پیشونی» | 2–12 | The player holds the phone on the forehead; tilting it down = guessed, up = pass. Without a motion sensor (or permission), the friends tap the two buttons instead. |
+| «پانتومیم» | 2–4 teams | The actor sees the word and acts it out; «گفتن» / «رد». Either as many words as fit in the time, or one word per turn. |
+| «کلمات ممنوعه» | 2–4 teams | The describer sees the word and its forbidden words; an opponent watches and taps «خطا» (−1). |
+| «دوز» | 1–2 | Tic-tac-toe, two players or against the bot. |
+| «چهار در یک ردیف» | 1–2 | Connect four (7 × 6), two players or against the bot. |
+| «نقطه‌بازی» | 1–4 | Dots and boxes on a 3×3, 4×4 or 5×5 board, 2–4 friends or one player against the bot. |
+| «مافیا» | 5–16 + a narrator | The phone deals the roles (each card seen by its owner only; the mafia also see their team), then stays with the narrator (گرداننده, not a player), who leads the game with it: a speaking timer, the vote, and a script for every night step. Roles: پدرخوانده, مافیا, دکتر, کارآگاه, تک‌تیرانداز, شهروند (the specials can be switched off). |
+| «منچ» | 2–4 | Ludo on the classic cross board; any player but the first can be the bot. Three house rules can be switched off. |
+| «شطرنج» | 1–2 | Chess with every rule, two players (the board fixed, or turned to whoever is to move) or against the bot with white, black or each colour in turn. Undo, resign, agreed draw. |
+| «تخته نرد» | 1–2 | Backgammon the Iranian way: no doubling cube, a «مارس» is worth 2 points, a match to 1, 3, 5 or 7. Two players or against the bot. **Off by default** (see below). |
+
+After every turn of the word games the cards are listed and a wrong tap can be fixed before the points are added.
+
+The board games count the wins of the evening and change the starter every round. Their bots run on the phone and
+have two levels: **easy** makes mistakes on purpose, **hard** plays properly. Hard «دوز» is perfect (minimax: it never
+loses); hard «چهار در یک ردیف» looks 6 moves ahead (negamax with alpha-beta and a table of positions already seen; well under 0.1 s per move); hard
+«نقطه‌بازی» takes every box it can, never gives one away while it has a choice, and otherwise gives the fewest.
+Easy «منچ» moves at random (and takes a pawn half of the times it can); hard «منچ» scores every move (a capture, reaching
+home, leaving the yard, a safe cell, getting out of reach, not stopping where an opponent can hit next roll).
+The «شطرنج» bot is our own (no outside engine): alpha-beta search with captures searched to the end, material and
+piece-square tables. Easy looks one move ahead with a lot of noise; hard looks two (so it also
+sees a mate it is threatened with), roughly a 1000-rated club beginner; both always take a mate in one. A move takes well under
+half a second on a phone. The «تخته نرد» bot weighs every complete play: the race, the chance each lone checker is hit
+(counted over the 36 rolls), points made (more in its home board), primes, hits; easy adds a lot of noise.
+
+**«مافیا» rules on the phone:** the mafia are at most (players − 1) / 2, by default a third. Every night the mafia
+choose a target, the doctor saves one player (themselves only once a game), the detective asks about one player (the
+godfather looks like a citizen) and the sniper has one bullet: on a mafia it kills them, on a citizen the sniper dies
+instead. A night step is still called after its player is out (the screen says so), so nobody learns who is gone. The
+town wins when no mafia is left, the mafia when they are as many as the town. Whether the role of a player who leaves is
+announced is a setting. The roles list on the narrator's screen stays closed until tapped.
+
+**«منچ» rules on the phone:** a pawn leaves the yard with a 6 (or a 1 too, when «ورود فقط با ۶» is off), a 6 rolls again
+(«۶ = یه تاس دیگه»), landing on an opponent sends it back except on the start cells and the four stars («خونه‌های
+امن»), and the centre needs the exact count. A single possible move is made by itself. Two players sit opposite.
+
+**«شطرنج» rules on the phone:** castling, en passant, promotion (a choice of four), check, mate and every draw: stalemate,
+threefold repetition, fifty moves without a capture or a pawn move, and too little material to mate. The game is saved
+as its list of moves and rebuilt (each move checked) when the page opens again. «برگردون» takes back a move (against the
+bot: the player's move and the bot's answer). The move list is in standard notation (Nf3, O-O, e8=Q+).
+
+**«تخته نرد» rules on the phone:** the opening throw is one die each (a tie throws again); the higher starts and plays
+both numbers. As many dice as possible must be played; when only one of two can, the bigger one; bearing off the last
+checker ends the game even with a die left. A checker on the bar enters first. Bearing off needs every checker home; a
+bigger number bears off from the furthest point only. The moves of a turn can be taken back until «تموم». A win is 1
+point, a «مارس» (the loser has borne off nothing) 2. It starts **switched off** in «بازی‌ها» (some audiences, state TV
+among them, do not show نرد); turning it on is one tap.
+
+The screen stays on during a game, and short sounds (made on the phone, no audio files) can be muted from the game bar;
+any tap brings the sound back after a reload, a call or the lock screen.
+
+**Admin («بازی‌ها», manager only):** the switch for the whole page (off by default; when off, the page and every link to
+it disappear), each game on/off and the order of the list, and the **decks**. A deck is a list of cards, one per line,
+and can serve several games (places for «جاسوس», words for «گوشی رو پیشونی» and «پانتومیم»). For «کلمات ممنوعه» a line
+is `کلمه: ممنوع، ممنوع، …` (up to 8 forbidden words); a card without them is not used in that game. A word game only
+appears on the site when its active decks hold enough cards (`GAMES` in `src/services/game-catalog.ts`: 10 places, 30
+words, 20 words, 20 cards). The «بازی‌ها» link in the site's drawer and footer only shows while the page is on.
+
+**Seed cards:** `prisma/seed-data/games.json` (13 decks, about 830 cards: places, Iranian landmarks, animals, food, jobs,
+objects, sports, everyday actions, TV series and cartoons, Iranian cities, proverbs, and two «کلمات ممنوعه» decks). Same
+line format as the editor and as `npm run db:export-games`. `npm run db:seed` creates them only when there is no deck
+yet; `npm run db:merge-games` adds the decks and cards of the file a running café does not have (matched by deck name
+and card text; nothing is changed or removed, so a card the café deleted comes back if it is still in the file).
+Review the words before showing the page to an audience.
+
+**The forehead tilt** (`client/site/games/words/tilt.ts`): the phone's orientation (beta, gamma) gives how much the
+screen faces up, `cos(beta)·cos(gamma)`: 0 when the phone stands upright (portrait or landscape, either way round), so
+no calibration is needed. Below −0.5 for 80 ms = correct, above +0.5 = pass, then the phone has to come back near upright.
+Browsers only give the sensor on **https** (or localhost); on an iPhone the player is asked once, from the turn's start
+button. Testing on a phone over plain http on the local network therefore always shows the buttons.
+
+**Code:** `client/site/games/` — `GamesPage.tsx` (the list; a game opens in place with `#spy`, `#heads_up`, …, so the
+phone's back button returns to the list), `catalog.tsx` (title, players, icon, component of each game), `kit/` (shared
+pieces: game frame, setup fields, «pass the phone», clock, scores, sheets, card drawing that avoids the cards this phone
+saw lately, saved state, sounds, wake lock), `spy/` and `words/` (each with a pure `engine.ts`, unit-tested in
+`test/games-engine.test.ts`), `board/` (the board games: `tictactoe-rules.ts`, `connect4.ts`, `dots-rules.ts` are the pure rules
+and bots, unit-tested in `test/board-games.test.ts`; `kit.tsx` is their shared setup, players' bar and result), `mafia/`
+and `ludo/` (each a pure `engine.ts`, unit-tested in `test/mafia-ludo.test.ts`, and its screen), `chess/` and
+`backgammon/` (the same; tested in `test/chess-backgammon.test.ts`, chess with the standard perft counts). Adding
+a game: a key in `GAMES` (`src/services/game-catalog.ts`), its entry in `catalog.tsx`, its folder; no migration needed.
+
 ## Seed menu
 
 `prisma/seed-data/` holds the menu the seed creates on an empty database: `menu.json` (menu types, categories with
@@ -174,6 +270,23 @@ yet, and the questions only when there is no tag group: running the seed on a ca
 
 To start a development database over from scratch: `npx prisma migrate reset` (deletes **everything**, including
 reservations and admin accounts, re-applies the migrations and runs the seed).
+
+## Reservations and payments
+
+- **A verified phone first:** before the hold, the customer confirms their number with an SMS code, in the same
+  booking dialog. That also signs them in (their reservations show in the profile), and the reservation is made
+  with that verified number. A customer who is already signed in skips the code.
+- A booking starts as a **hold** (`holdMinutes`, 10 by default) and is confirmed when Zarinpal confirms the payment.
+  Every trip to the gateway is its own payment (its own authority), so paying on an older gateway page still counts.
+  If the hold ran out meanwhile and the table was taken, the reservation goes to «بررسی پرداخت» for a manager.
+  If the reservation was already paid, the second payment is recorded as owed back.
+- The **invoice** is issued when the reservation is paid (online, confirmed by a manager, or a staff booking), not for
+  a hold. The invoice page of an unpaid reservation says so and links to the payment.
+- **Refunds:** cancelling a paid reservation records a refund owed («بازگشت وجه»; it shows under «نیاز به بررسی»).
+  Once the café has paid it back, the manager records it with «بازگشت وجه انجام شد» in the reservation list (manager
+  only).
+- SMS codes: one per minute per number, five guesses per code. Expired codes and SMS logs older than a year are
+  removed once a day.
 
 ## Working hours
 
@@ -186,9 +299,10 @@ until midnight.
 ```
 prisma/
   schema.prisma            one schema for reservation + menu
-  migrations/              init (phase 1) + menu_types_addons (phase 2) + recommender_tags
+  migrations/              init (phase 1) + menu_types_addons (phase 2) + recommender_tags + games + reservation_payments
   seed.ts                  settings, working hours, floor-map tables, first admin (+ seed-menu.ts: menu and questions)
-  seed-data/               the seed menu: menu.json + product photos (see «Seed menu»)
+  seed-data/               the seed menu: menu.json + product photos (see «Seed menu»), games.json (the game cards)
+  seed-games.ts            games part of the seed + db:merge-games; export-games.ts: npm run db:export-games
   export-menu.ts           npm run db:export-menu: this database's menu → menu-export/ (same format as seed-data)
   export-tables.ts         prints the current tables as seed data (after editing the map in the panel)
 src/                       the server (TypeScript, ES modules)
@@ -197,18 +311,18 @@ src/                       the server (TypeScript, ES modules)
   config.ts                environment variables and production safety checks
   lib/                     auth tokens, roles, uploads, payment (Zarinpal), SMS, time helpers
   middleware/              admin/user auth, site-visit counter
-  routes/                  auth, public, reservations, payments, menu, recommender, admin (+ admin/menu, admin/tags)
-  services/                availability engine, reservation logic, settings cache, recommender data and tags
+  routes/                  auth, public, reservations, payments, menu, recommender, games, admin (+ admin/menu, admin/tags, admin/games)
+  services/                availability engine, reservation logic, settings cache, recommender data and tags, games (catalog, cards)
   web/pages.ts             every page: its URL and its HTML entry (also read by vite.config.ts) + old-URL redirects
   web/frontend.ts          serves the pages (Vite middleware in dev, dist/client in production)
 client/                    the React pages (each page is its own small app with its own stylesheet)
   shared/                  API helper, number formatting, icons, mount, storage
-  site/                    about, menu (+ menu/recommender: engine, dialog, button), feedback (+ common header/drawer/footer)
+  site/                    about, menu (+ menu/recommender: engine, dialog, button), feedback, games (+ common header/drawer/footer)
   reserve/                 booking, payment, invoice, profile, track (+ common parts, floor map, CSS)
   admin/                   login, panel (one component per section in sections/), CSS
   public/                  fonts (self-hosted), images, floor-map files — served at the site root
 scripts/                   simulate-recommender.ts
-test/                      node:test integration suite + recommender engine unit tests
+test/                      node:test integration suite + recommender, games, board games, mafia/ludo and chess/backgammon unit tests
 uploads/products/          product images uploaded from the admin panel (not in git)
 ```
 
@@ -235,7 +349,8 @@ Without `TEST_DATABASE_URL` the integration suite is skipped. It covers admin ro
 menu types, categories, add-ons, uploads, reviews, settings and closure validation, working hours up to 24:00,
 reservation status rules, holds/availability/payment/cancellation, Persian-digit input, page URLs and old-URL
 redirects, and the recommender's data (tag inheritance and overrides, sold-out / no-kind / hidden-tab exclusion,
-bulk tagging, coverage, roles). The recommender engine's unit tests need no database and always run.
+bulk tagging, coverage, roles), and the games API (switch, roles, deck validation and card lines, playable games, order).
+The unit tests of the recommender, the games, the board games (their bots included), «مافیا», «منچ», «شطرنج» and «تخته نرد» need no database and always run.
 
 ## Production checklist
 
@@ -244,7 +359,8 @@ bulk tagging, coverage, roles). The recommender engine's unit tests need no data
 - `PAYMENT_MODE="live"` and a real `ZARINPAL_MERCHANT_ID`.
 - An SMS provider: `src/lib/sms.ts` currently only has the console mode; the provider (sms.ir) is plugged in there.
   The server refuses to start in production with `SMS_MODE="console"`.
-- Run behind nginx (the app trusts one proxy hop in production) with HTTPS.
+- Run behind nginx with HTTPS. Set `TRUST_PROXY` to the number of proxies in front of the app (nginx alone = 1, the default;
+  Cloudflare + nginx = 2). Every rate limit depends on it: one too few and all visitors share one IP.
 - Back up the database and `uploads/products/`.
 
 ## Old addresses

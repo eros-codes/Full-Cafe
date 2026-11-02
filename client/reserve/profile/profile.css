@@ -410,9 +410,7 @@ div.clock-range div.field {
 }
 
 .status.HOLD,
-.status.PAYMENT_PENDING,
-.status.PAYMENT_REVIEW,
-.status.CHANGE_PENDING {
+.status.PAYMENT_REVIEW {
 	border-color: rgba(150, 112, 60, 0.4);
 	color: var(--warn-ink);
 }

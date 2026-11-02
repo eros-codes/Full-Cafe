@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { faDigits } from '../../shared/format';
+import { useGamesEnabled } from '../../shared/chrome/SiteChrome';
 import { headerOnScroll, heroParallax, revealOnScroll } from './effects';
 
 /** Counts up from ۰ to `target` (ease-out, 1.5 s) the first time it is half visible. */
@@ -62,6 +63,7 @@ const MAP_EMBED =
 export function AboutPage() {
 	const headerRef = useRef<HTMLElement>(null);
 	const heroBgRef = useRef<HTMLDivElement>(null);
+	const games = useGamesEnabled();
 
 	useEffect(() => {
 		const cleanups = [revealOnScroll(document.body)];
@@ -89,6 +91,11 @@ export function AboutPage() {
 					<a href="/feedback" className="s-nav__link">
 						نظرات
 					</a>
+					{games && (
+						<a href="/games" className="s-nav__link">
+							بازی‌ها
+						</a>
+					)}
 				</nav>
 				<a href="#" className="s-header__logo">
 					<img src="/images/Logo-2.PNG" alt="روف" />

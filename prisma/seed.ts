@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaClient, type Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { seedMenuAndQuestions } from './seed-menu.js';
+import { seedGames } from './seed-games.js';
 
 const prisma = new PrismaClient();
 
@@ -21,6 +22,8 @@ const settings = [
 	['cafeName', 'Roof'],
 	// «انتخاب برای من» خاموش شروع می‌شود؛ بعد از برچسب‌زدن منو از تنظیمات پنل روشنش کن
 	['recommenderEnabled', '0'],
+	// بخش بازی‌ها هم خاموش شروع می‌شود؛ از بخش «بازی‌ها»ی پنل روشنش کن
+	['gamesEnabled', '0'],
 ];
 
 async function main() {
@@ -726,6 +729,8 @@ async function main() {
 
 	// منو (با عکس‌ها) و سوال‌های «انتخاب برای من» از prisma/seed-data؛ فقط روی دیتابیس خالی
 	await seedMenuAndQuestions(prisma);
+	// دسته‌کارت‌های بازی‌های کلمه‌ای (جاسوس، گوشی رو پیشونی، پانتومیم، کلمات ممنوعه)؛ فقط اگر هیچ دسته‌ای نباشد
+	await seedGames(prisma);
 
 	console.log('Seed completed.');
 	console.log(`Developer admin: ${username}`);

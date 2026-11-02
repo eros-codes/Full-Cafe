@@ -105,6 +105,10 @@ export const ICONS = {
 	spark: (
 		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3.5l1.6 4.4a2 2 0 0 0 1.2 1.2l4.4 1.6-4.4 1.6a2 2 0 0 0-1.2 1.2L10 17.9l-1.6-4.4a2 2 0 0 0-1.2-1.2L2.8 10.7l4.4-1.6a2 2 0 0 0 1.2-1.2z" /><path d="M18 14.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" /></svg>
 	),
+	// the games page: a die
+	dice: (
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4" /><circle cx="8.5" cy="8.5" r=".7" fill="currentColor" /><circle cx="15.5" cy="8.5" r=".7" fill="currentColor" /><circle cx="12" cy="12" r=".7" fill="currentColor" /><circle cx="8.5" cy="15.5" r=".7" fill="currentColor" /><circle cx="15.5" cy="15.5" r=".7" fill="currentColor" /></svg>
+	),
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof ICONS;

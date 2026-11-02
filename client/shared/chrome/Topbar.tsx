@@ -1,7 +1,7 @@
 import { useCallback, useRef, type ReactNode } from 'react';
 import { HamburgerButton, MobileDrawer, useDrawer, type LinkKey } from './SiteChrome';
 
-const RESERVE_DRAWER: LinkKey[] = ['about', 'menu', 'feedback', 'reserve', 'profile', 'track'];
+const RESERVE_DRAWER: LinkKey[] = ['about', 'menu', 'feedback', 'games', 'reserve', 'profile', 'track'];
 
 /**
  * Reservation navigation: the same header (shared/styles/header.css) as the menu page, and a mobile drawer

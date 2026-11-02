@@ -190,8 +190,8 @@ export function FeedbackPage() {
 					</section>
 				</main>
 			</div>
-			<SiteFooter links={['about', 'contact', 'reserve', 'menu']} />
-			<MobileDrawer drawer={drawer} links={['menu', 'about', 'contact', 'reserve']} />
+			<SiteFooter links={['about', 'contact', 'reserve', 'menu', 'games']} />
+			<MobileDrawer drawer={drawer} links={['menu', 'about', 'contact', 'games', 'reserve']} />
 		</>
 	);
 }

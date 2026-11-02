@@ -1,0 +1,363 @@
+/* backgammon.css — «تخته نرد» (backgammon/): the wooden board (always left to right: player 0 at the bottom,
+   home bottom right), the points and checkers, the bar, the trays of borne-off checkers and the dice. */
+
+.bg-play {
+	gap: 0.6rem;
+}
+
+.bg-checker {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 1;
+	display: grid;
+	place-items: center;
+	flex: none;
+	border-radius: 999px;
+}
+
+.bg-p0 {
+	background: radial-gradient(circle at 35% 30%, #fff 0 22%, #f2e9da 55%, #d8c9b0 100%);
+	box-shadow:
+		inset 0 0 0 1.5px #8c7b66,
+		0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.bg-p1 {
+	background: radial-gradient(circle at 35% 30%, #725850 0 18%, #3d2c28 58%, #251917 100%);
+	box-shadow:
+		inset 0 0 0 1.5px #120a09,
+		0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.bg-checker b {
+	font-size: 0.62rem;
+	font-weight: 800;
+	line-height: 1;
+}
+
+.bg-p0 b {
+	color: #3d2c28;
+}
+
+.bg-p1 b {
+	color: #f2e9da;
+}
+
+.bd-piece .bg-checker {
+	width: 1.5rem;
+}
+
+/* ─── board ─── */
+
+.bg-board {
+	width: min(100%, 30rem);
+	align-self: center;
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	padding: 0.35rem;
+	border-radius: 0.9rem;
+	background: linear-gradient(160deg, #7a5539, #5b3d29);
+	box-shadow: 0 10px 28px rgba(66, 46, 47, 0.25);
+}
+
+/* every element gets right to left from the site: the field must be laid out left to right itself */
+.bg-field {
+	direction: ltr;
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr)) minmax(0, 0.7fr) repeat(6, minmax(0, 1fr));
+	overflow: hidden;
+	border-radius: 0.45rem;
+	background: #f1e3c8;
+}
+
+.bg-point {
+	position: relative;
+	aspect-ratio: 1 / 5.3;
+	display: flex;
+	flex-direction: column;
+	padding: 2px 1px;
+	border: none;
+	background: none;
+	cursor: pointer;
+}
+
+.bg-point.bottom {
+	flex-direction: column-reverse;
+}
+
+.bg-point::before {
+	content: '';
+	position: absolute;
+	inset: 0 7%;
+	background: var(--tri);
+	clip-path: polygon(0 0, 100% 0, 50% 90%);
+	transition: background-color 0.2s ease;
+}
+
+.bg-point.bottom::before {
+	clip-path: polygon(50% 10%, 100% 100%, 0 100%);
+}
+
+.bg-point.even {
+	--tri: #9c6040;
+}
+
+.bg-point.odd {
+	--tri: #cfae82;
+}
+
+.bg-point.dest {
+	--tri: #e4b84c;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.bg-point.dest::before {
+		animation: bg-glow 0.9s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes bg-glow {
+	to {
+		opacity: 0.55;
+	}
+}
+
+.bg-stack {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: inherit;
+}
+
+/* the checker that would move: a gold ring */
+.bg-point.movable .bg-checker:last-child,
+.bg-point.selected .bg-checker:last-child,
+.bg-bar.selected .bg-checker:last-child {
+	box-shadow:
+		inset 0 0 0 1.5px rgba(0, 0, 0, 0.4),
+		0 0 0 2.5px #e4b84c;
+}
+
+.bg-point.selected .bg-checker:last-child,
+.bg-bar.selected .bg-checker:last-child {
+	box-shadow:
+		inset 0 0 0 1.5px rgba(0, 0, 0, 0.4),
+		0 0 0 3px #e4b84c,
+		0 0 12px 2px rgba(228, 184, 76, 0.8);
+}
+
+.bg-checker.last::after {
+	content: '';
+	position: absolute;
+	inset: 30%;
+	border-radius: 999px;
+	background: rgba(228, 184, 76, 0.85);
+}
+
+.bg-bar {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	padding: 3px 2px;
+	border: none;
+	background: #6b4a33;
+	cursor: pointer;
+}
+
+.bg-bar.top {
+	justify-content: flex-end;
+}
+
+.bg-bar.bottom {
+	flex-direction: column-reverse;
+	justify-content: flex-end;
+}
+
+.bg-bar .bg-checker {
+	width: 92%;
+}
+
+.bg-middle {
+	grid-column: 1 / -1;
+	min-height: 3.3rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-block: 1px solid rgba(107, 74, 51, 0.25);
+	background: #ead7b5;
+}
+
+/* ─── dice ─── */
+
+.bg-dice {
+	display: flex;
+	gap: 0.4rem;
+}
+
+.bg-die {
+	width: 2.3rem;
+	height: 2.3rem;
+	transition: opacity 0.25s ease;
+}
+
+.bg-die-0 rect {
+	fill: #fffaf1;
+	stroke: #3d2c28;
+	stroke-width: 5;
+}
+
+.bg-die-0 circle {
+	fill: #3d2c28;
+}
+
+.bg-die-1 rect {
+	fill: #3d2c28;
+	stroke: #120a09;
+	stroke-width: 5;
+}
+
+.bg-die-1 circle {
+	fill: #f2e9da;
+}
+
+.bg-die.used {
+	opacity: 0.3;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.bg-dice .bg-die {
+		animation: bg-roll-in 0.35s var(--ease-out) both;
+	}
+}
+
+@keyframes bg-roll-in {
+	from {
+		rotate: -90deg;
+		scale: 0.6;
+	}
+	to {
+		rotate: 0deg;
+		scale: 1;
+	}
+}
+
+.bg-roll {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	min-height: 2.5rem;
+	padding: 0.3rem 1rem 0.3rem 0.45rem;
+	border: none;
+	border-radius: 999px;
+	background: var(--header-color);
+	color: var(--chapel-white);
+	font-size: 0.92rem;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.bg-roll span {
+	color: inherit;
+	font-size: 0.92rem;
+	font-weight: 800;
+}
+
+.bg-roll .bg-die {
+	width: 1.6rem;
+	height: 1.6rem;
+}
+
+.bg-roll:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.bg-roll:not(:disabled) {
+		animation: bg-ring 1s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes bg-ring {
+	from {
+		box-shadow: 0 0 0 0 rgba(228, 184, 76, 0.9);
+	}
+	to {
+		box-shadow: 0 0 0 6px rgba(228, 184, 76, 0.15);
+	}
+}
+
+/* ─── trays of borne-off checkers ─── */
+
+.bg-tray {
+	min-height: 2rem;
+	display: grid;
+	grid-template-columns: minmax(0, auto) 1fr auto;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.2rem 0.55rem;
+	border: none;
+	border-radius: 0.45rem;
+	background: rgba(0, 0, 0, 0.12);
+	color: #f1e3c8;
+	text-align: start;
+}
+
+.bg-tray:disabled {
+	cursor: default;
+}
+
+.bg-tray-name {
+	max-width: 7rem;
+	overflow: hidden;
+	color: rgba(241, 227, 200, 0.85);
+	font-size: 0.8rem;
+	font-weight: 700;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.bg-tray-stack {
+	height: 0.95rem;
+	display: flex;
+	gap: 2px;
+}
+
+.bg-off {
+	width: 0.34rem;
+	border-radius: 2px;
+}
+
+.bg-off.bg-p0 {
+	background: #f2e9da;
+	box-shadow: none;
+}
+
+.bg-off.bg-p1 {
+	background: #251917;
+	box-shadow: inset 0 0 0 1px rgba(241, 227, 200, 0.45);
+}
+
+.bg-tray-count {
+	color: #f1e3c8;
+	font-size: 0.78rem;
+	font-weight: 800;
+}
+
+.bg-tray.dest {
+	background: #e4b84c;
+	cursor: pointer;
+}
+
+.bg-tray.dest .bg-tray-name,
+.bg-tray.dest .bg-tray-count {
+	color: #3d2c28;
+}
+
+.bg-tools {
+	display: grid;
+	grid-template-columns: 1fr 1.4fr;
+	gap: 0.5rem;
+}

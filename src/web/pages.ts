@@ -16,6 +16,7 @@ export const PAGES: readonly PageEntry[] = [
 	{ path: '/', html: 'site/about/index.html' },
 	{ path: '/menu', html: 'site/menu/index.html' },
 	{ path: '/feedback', html: 'site/feedback/index.html' },
+	{ path: '/games', html: 'site/games/index.html' },
 	{ path: '/reserve', html: 'reserve/booking/index.html' },
 	{ path: '/reserve/payment', html: 'reserve/payment/index.html' },
 	{ path: '/reserve/invoice', html: 'reserve/invoice/index.html' },

@@ -6,6 +6,7 @@ import { prisma } from './lib/prisma.js';
 import { expireOldHolds } from './services/availability.service.js';
 import { sendDueReminders } from './services/reservation.service.js';
 import { cleanupStaleTempUploads } from './lib/uploads.js';
+import { cleanupOldRecords } from './lib/cleanup.js';
 import { startViteDevServer, stopViteDevServer } from './web/frontend.js';
 
 const holdCleanup = setInterval(() => {
@@ -23,6 +24,11 @@ reminderJob.unref();
 
 const uploadCleanup = setInterval(cleanupStaleTempUploads, 6 * 60 * 60 * 1000);
 uploadCleanup.unref();
+
+// کدهای پیامکی منقضی و لاگ پیامک‌های خیلی قدیمی: یک بار بعد از شروع، بعد روزی یک بار
+const recordsCleanup = setInterval(() => void cleanupOldRecords(), 24 * 60 * 60 * 1000);
+recordsCleanup.unref();
+setTimeout(() => void cleanupOldRecords(), 60 * 1000).unref();
 
 const server = http.createServer(app);
 // `npm run dev` این فایل را مستقیم از سورس TypeScript اجرا می‌کند (tsx)؛ آن وقت صفحه‌های React هم
@@ -47,6 +53,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
 	clearInterval(holdCleanup);
 	clearInterval(reminderJob);
 	clearInterval(uploadCleanup);
+	clearInterval(recordsCleanup);
 	console.log(`${signal} دریافت شد؛ در حال بستن امنِ سرور...`);
 	await stopViteDevServer().catch(() => {});
 	server.close(async () => {

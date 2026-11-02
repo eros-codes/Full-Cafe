@@ -1,0 +1,239 @@
+/* chess.css — «شطرنج» (chess/): the board (always left to right), the pieces, the captured pieces, the move
+   list and the promotion choice. Light theme. */
+
+.ch-play {
+	gap: 0.6rem;
+}
+
+.ch-board,
+.ch-taken,
+.ch-moves {
+	width: min(100%, 30rem);
+	align-self: center;
+}
+
+.ch-board {
+	display: grid;
+	grid-template-columns: repeat(8, minmax(0, 1fr));
+	direction: ltr;
+	overflow: hidden;
+	border: 3px solid #fff;
+	border-radius: 0.7rem;
+	box-shadow: 0 10px 28px rgba(66, 46, 47, 0.2);
+}
+
+.ch-sq {
+	position: relative;
+	aspect-ratio: 1;
+	display: grid;
+	place-items: center;
+	padding: 0;
+	border: none;
+	background-color: var(--sq);
+	cursor: pointer;
+}
+
+.ch-sq.light {
+	--sq: #efe1c8;
+	--sq-ink: #a87c58;
+}
+
+.ch-sq.dark {
+	--sq: #a87c58;
+	--sq-ink: #efe1c8;
+}
+
+.ch-sq.last.light {
+	--sq: #f2d88e;
+}
+
+.ch-sq.last.dark {
+	--sq: #c9a04e;
+}
+
+.ch-sq.selected.light {
+	--sq: #cfe0a0;
+}
+
+.ch-sq.selected.dark {
+	--sq: #93ad62;
+}
+
+.ch-sq.check {
+	background-image: radial-gradient(circle, rgba(214, 64, 52, 0.95) 0 30%, rgba(214, 64, 52, 0.45) 55%, transparent 72%);
+}
+
+.ch-sq:disabled {
+	cursor: default;
+}
+
+.ch-sq .ch-piece {
+	position: relative;
+	z-index: 1;
+	width: 88%;
+	height: 88%;
+	pointer-events: none;
+	filter: drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.25));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.ch-sq.last .ch-piece {
+		animation: ch-land 0.25s var(--ease-out) both;
+	}
+}
+
+@keyframes ch-land {
+	from {
+		scale: 1.15;
+	}
+	to {
+		scale: 1;
+	}
+}
+
+/* where the selected piece can go: a dot, or a ring around a piece it would take */
+.ch-sq.target::after,
+.ch-sq.capture::after {
+	content: '';
+	position: absolute;
+	z-index: 2;
+	border-radius: 999px;
+	pointer-events: none;
+}
+
+.ch-sq.target::after {
+	width: 30%;
+	height: 30%;
+	background: rgba(47, 35, 36, 0.3);
+}
+
+.ch-sq.capture::after {
+	inset: 5%;
+	border: 0.3rem solid rgba(47, 35, 36, 0.32);
+}
+
+.ch-rank,
+.ch-file {
+	position: absolute;
+	z-index: 1;
+	color: var(--sq-ink);
+	font-size: 0.62rem;
+	font-weight: 800;
+	line-height: 1;
+}
+
+.ch-rank {
+	top: 3px;
+	left: 3px;
+}
+
+.ch-file {
+	right: 3px;
+	bottom: 2px;
+}
+
+/* ─── captured pieces, moves ─── */
+
+.ch-taken,
+.ch-taken * {
+	direction: ltr;
+}
+
+.ch-taken {
+	min-height: 1.45rem;
+	display: flex;
+	align-items: center;
+}
+
+.ch-taken-piece {
+	display: inline-flex;
+	margin-right: -0.4rem;
+}
+
+.ch-taken-piece svg {
+	width: 1.35rem;
+	height: 1.35rem;
+}
+
+.ch-lead {
+	margin-left: 0.75rem;
+	color: var(--tertiary-text-color);
+	font-size: 0.82rem;
+	font-weight: 800;
+}
+
+/* the site sets every element right to left: the notation reads left to right */
+.ch-moves,
+.ch-moves * {
+	direction: ltr;
+}
+
+.ch-moves {
+	display: flex;
+	gap: 0.35rem;
+	overflow-x: auto;
+	padding-block: 0.15rem;
+	list-style: none;
+	scrollbar-width: none;
+}
+
+.ch-moves::-webkit-scrollbar {
+	display: none;
+}
+
+.ch-moves li {
+	flex: none;
+	padding: 0.2rem 0.65rem;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.6);
+	color: var(--rich-sabel);
+	font-size: 0.82rem;
+	font-weight: 700;
+	line-height: 1.8;
+	white-space: nowrap;
+}
+
+.ch-moves li.now {
+	background: var(--header-color);
+	color: var(--chapel-white);
+}
+
+.ch-move-no {
+	margin-right: 0.3rem;
+	font-size: 0.75rem;
+	opacity: 0.6;
+}
+
+.ch-tools {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.5rem;
+}
+
+/* ─── promotion ─── */
+
+.ch-promo {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.6rem;
+}
+
+.ch-promo-btn {
+	aspect-ratio: 1;
+	display: grid;
+	place-items: center;
+	padding: 0.35rem;
+	border: 1.5px solid rgba(66, 46, 47, 0.16);
+	border-radius: 1rem;
+	background: #efe1c8;
+	cursor: pointer;
+}
+
+.ch-promo-btn svg {
+	width: 100%;
+	height: 100%;
+}
+
+.ch-promo-btn:active {
+	scale: 0.95;
+}

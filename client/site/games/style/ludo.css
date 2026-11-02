@@ -1,0 +1,332 @@
+/* ludo.css — «منچ» (ludo/): the board (absolute positions on a 15 × 15 grid, always left to right), the
+   pawns, the die and the setup rows. Light theme. */
+
+.ld-play {
+	gap: 0.75rem;
+}
+
+.ld-piece-dot {
+	width: 1.4rem;
+	height: 1.4rem;
+	border: 3px solid #fff;
+	border-radius: 999px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ─── board ─── */
+
+.ld-board {
+	--cell: calc(100% / 15);
+	position: relative;
+	width: min(100%, 30rem);
+	aspect-ratio: 1;
+	align-self: center;
+	direction: ltr;
+	border: 3px solid #fff;
+	border-radius: 1rem;
+	background: #fbf8f3;
+	box-shadow: 0 10px 28px rgba(66, 46, 47, 0.18);
+}
+
+.ld-yard,
+.ld-cell,
+.ld-spot,
+.ld-entry,
+.ld-center {
+	position: absolute;
+}
+
+.ld-yard {
+	width: calc(var(--cell) * 6);
+	height: calc(var(--cell) * 6);
+	transition: opacity 0.3s ease;
+}
+
+/* the board's rounded corners are the yards' outer corners (pawns may stick out of the board, so no overflow clip) */
+.ld-yard-0 {
+	border-top-left-radius: 0.8rem;
+}
+
+.ld-yard-1 {
+	border-top-right-radius: 0.8rem;
+}
+
+.ld-yard-2 {
+	border-bottom-right-radius: 0.8rem;
+}
+
+.ld-yard-3 {
+	border-bottom-left-radius: 0.8rem;
+}
+
+.ld-yard::after {
+	content: '';
+	position: absolute;
+	inset: calc(100% / 6);
+	border-radius: 18%;
+	background: #fbf8f3;
+}
+
+.ld-yard.off,
+.ld-spot.off {
+	opacity: 0.35;
+}
+
+.ld-yard.now::after {
+	box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+.ld-spot {
+	width: var(--cell);
+	height: var(--cell);
+	border: 2px solid;
+	border-radius: 999px;
+	background: #fff;
+}
+
+.ld-cell {
+	width: var(--cell);
+	height: var(--cell);
+	display: grid;
+	place-items: center;
+	background: #fff;
+	box-shadow: inset 0 0 0 0.5px rgba(66, 46, 47, 0.28);
+}
+
+.ld-star {
+	width: 70%;
+	height: 70%;
+	fill: rgba(66, 46, 47, 0.22);
+}
+
+.ld-cell.start .ld-star {
+	fill: rgba(255, 255, 255, 0.75);
+}
+
+.ld-center {
+	width: calc(var(--cell) * 3);
+	height: calc(var(--cell) * 3);
+}
+
+.ld-entry {
+	width: var(--cell);
+	height: var(--cell);
+	pointer-events: none;
+}
+
+.ld-entry::before {
+	content: '';
+	position: absolute;
+	inset: 28%;
+	background: currentColor;
+	clip-path: polygon(0 15%, 100% 50%, 0 85%);
+	opacity: 0.85;
+}
+
+/* ─── pawns ─── */
+
+.ld-pawn {
+	position: absolute;
+	z-index: 2;
+	width: calc(var(--cell) * 0.78);
+	height: calc(var(--cell) * 0.78);
+	padding: 0;
+	border: 2.5px solid #fff;
+	border-radius: 999px;
+	background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.45) 0 18%, transparent 19%), var(--pawn);
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+	translate: -50% -50%;
+	transition:
+		top 0.12s ease,
+		left 0.12s ease,
+		width 0.2s ease,
+		height 0.2s ease;
+}
+
+.ld-pawn.small {
+	width: calc(var(--cell) * 0.58);
+	height: calc(var(--cell) * 0.58);
+	border-width: 2px;
+}
+
+.ld-pawn.home {
+	z-index: 1;
+}
+
+.ld-pawn.moving {
+	z-index: 5;
+	scale: 1.15;
+}
+
+.ld-pawn.last {
+	z-index: 3;
+}
+
+button.ld-pawn {
+	z-index: 4;
+	cursor: pointer;
+}
+
+/* a bigger target than the pawn itself */
+button.ld-pawn::before {
+	content: '';
+	position: absolute;
+	inset: -45%;
+	border-radius: 999px;
+}
+
+button.ld-pawn.movable {
+	box-shadow:
+		0 0 0 3px rgba(255, 255, 255, 0.95),
+		0 0 0 6px var(--pawn);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	button.ld-pawn.movable {
+		animation: ld-bob 0.9s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes ld-bob {
+	from {
+		scale: 1;
+	}
+	to {
+		scale: 1.18;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ld-pawn {
+		transition: none;
+	}
+}
+
+/* ─── die ─── */
+
+.ld-dice-row {
+	display: flex;
+	justify-content: center;
+}
+
+.ld-die {
+	width: 4.6rem;
+	height: 4.6rem;
+	padding: 0;
+	border: none;
+	border-radius: 1.2rem;
+	background: transparent;
+	cursor: pointer;
+	transition:
+		scale 0.2s ease,
+		opacity 0.2s ease;
+}
+
+.ld-die svg {
+	width: 100%;
+	height: 100%;
+	filter: drop-shadow(0 6px 10px rgba(66, 46, 47, 0.25));
+}
+
+.ld-die-body {
+	fill: #fff;
+	stroke: var(--seat);
+	stroke-width: 5;
+}
+
+.ld-pip {
+	fill: var(--seat);
+}
+
+.ld-die:disabled {
+	cursor: default;
+}
+
+.ld-die:disabled:not(.rolling) {
+	opacity: 0.8;
+}
+
+.ld-die.ready {
+	box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	/* waiting for a tap: a ring that breathes around the die */
+	.ld-die.ready {
+		animation: ld-ring 1s ease-in-out infinite alternate;
+	}
+
+	.ld-die.rolling svg {
+		animation: ld-roll 0.25s linear infinite;
+	}
+}
+
+@keyframes ld-ring {
+	from {
+		box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 0 5px var(--seat);
+	}
+	to {
+		box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 0 11px color-mix(in srgb, var(--seat) 25%, transparent);
+	}
+}
+
+@keyframes ld-roll {
+	from {
+		rotate: 0deg;
+	}
+	to {
+		rotate: 360deg;
+	}
+}
+
+/* ─── setup ─── */
+
+.ld-seat-row {
+	display: grid;
+	grid-template-columns: 2.1rem minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.ld-seat-row input {
+	width: 100%;
+	height: 2.95rem;
+	padding: 0 0.95rem;
+	border: 1px solid rgba(66, 46, 47, 0.16);
+	border-radius: 0.95rem;
+	background: rgba(255, 255, 255, 0.7);
+	color: var(--burnt-oak);
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.ld-seat-row input:focus {
+	border-color: var(--header-color);
+	background: #fff;
+}
+
+.ld-seat-row input::placeholder {
+	color: rgba(109, 95, 84, 0.65);
+	font-weight: 500;
+}
+
+.ld-bot-name {
+	display: flex;
+	align-items: center;
+	height: 2.95rem;
+	padding: 0 0.95rem;
+	border: 1px dashed rgba(66, 46, 47, 0.25);
+	border-radius: 0.95rem;
+	color: var(--tertiary-text-color);
+	font-size: 1rem;
+	font-weight: 700;
+}
+
+.ld-seat-row:first-child {
+	grid-template-columns: 2.1rem minmax(0, 1fr);
+}
+
+.ld-bot-toggle {
+	min-height: 2.6rem;
+	padding-inline: 0.9rem;
+}

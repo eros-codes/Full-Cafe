@@ -13,6 +13,7 @@ type View =
 	| { kind: 'invalid'; message: string }
 	| { kind: 'expired'; title: string; message: string }
 	| { kind: 'review' }
+	| { kind: 'duplicate'; reservation: Reservation }
 	| { kind: 'success'; reservation: Reservation }
 	| { kind: 'fail'; message?: string }
 	| { kind: 'summary'; reservation: Reservation };
@@ -54,10 +55,12 @@ export function PaymentPage() {
 			resultParam.current = null;
 			if (result) window.history.replaceState(null, '', `${window.location.pathname}?id=${encodeURIComponent(id)}`);
 
-			// برگشت از درگاه زرین‌پال - بک‌اند خودش در callback همه‌چیز را verify و ثبت کرده
-			if (result === 'success' || reservation.status === 'CONFIRMED') return setView({ kind: 'success', reservation });
-			if (result === 'fail') return setView({ kind: 'fail' });
+			// برگشت از درگاه زرین‌پال: بک‌اند در callback همه‌چیز را verify و ثبت کرده. صفحه از روی وضعیت واقعی رزرو
+			// تصمیم می‌گیرد، نه از روی ?result= آدرس (که هر کسی می‌تواند «success» بنویسد)؛ result فقط پیام را دقیق‌تر می‌کند.
+			if (result === 'duplicate') return setView({ kind: 'duplicate', reservation });
+			if (reservation.status === 'CONFIRMED') return setView({ kind: 'success', reservation });
 			if (reservation.status === 'PAYMENT_REVIEW') return setView({ kind: 'review' });
+			if (result === 'fail' && reservation.status === 'HOLD') return setView({ kind: 'fail' });
 			if (reservation.status === 'CANCELLED') {
 				return setView({ kind: 'expired', title: 'این رزرو لغو شده', message: 'این رزرو لغو شده؛ از صفحه‌ی رزرو می‌تونی دوباره یه میز انتخاب کنی.' });
 			}
@@ -151,6 +154,19 @@ export function PaymentPage() {
 						</button>
 					</div>
 				)}
+				{view.kind === 'duplicate' && (
+					<div className="result-state">
+						<div className="result-icon warn">{ICONS.receipt}</div>
+						<h3>این رزرو قبلاً پرداخت شده بود</h3>
+						<p>پرداخت دومت هم ثبت شد و مبلغش به حسابت برمی‌گرده؛ لازم نیست کاری بکنی. اگه سؤالی داشتی با کافه تماس بگیر.</p>
+						<div className="tracking-code">{view.reservation.trackingCode}</div>
+						{view.reservation.status === 'CONFIRMED' && (
+							<a className="primary-btn" href={`/reserve/invoice?id=${encodeURIComponent(view.reservation.id)}`} style={{ maxWidth: '200px' }}>
+								دیدن فاکتور
+							</a>
+						)}
+					</div>
+				)}
 				{view.kind === 'success' && (
 					<div className="result-state">
 						<div className="result-icon ok">{ICONS.check}</div>
@@ -186,7 +202,7 @@ export function PaymentPage() {
 
 function Summary({ reservation, paying, onPay, onExpire }: { reservation: Reservation; paying: boolean; onPay: () => void; onExpire: () => void }) {
 	const holdActive =
-		['HOLD', 'PAYMENT_PENDING'].includes(reservation.status) && reservation.holdExpiresAt !== null && new Date(reservation.holdExpiresAt) > new Date();
+		reservation.status === 'HOLD' && reservation.holdExpiresAt !== null && new Date(reservation.holdExpiresAt) > new Date();
 	// کل مهلت از ساخت رزرو تا انقضا؛ وگرنه حلقه بعد از هر رفرش دوباره از صد درصد شروع می‌کرد
 	const holdTotalSeconds =
 		holdActive && reservation.createdAt && reservation.holdExpiresAt

@@ -1,5 +1,6 @@
-import type { Prisma, ReservationSource } from '@prisma/client';
+import type { Invoice, Payment, Prisma, Reservation, ReservationSource, User } from '@prisma/client';
 import { prisma, type Db } from '../lib/prisma.js';
+import { serializable } from '../lib/transaction.js';
 import { CLOCK_TIME, addMinutes, combineDateAndTime, generateInvoiceNumber, generateTrackingCode, isValidDateString } from '../lib/time.js';
 import { getSettings, numberSetting } from './settings.service.js';
 import { assertTablesAvailable } from './availability.service.js';
@@ -26,6 +27,16 @@ async function uniqueInvoiceNumber(client: Db): Promise<string> {
 		if (!existing) return number;
 	}
 	throw new Error('ساخت شماره فاکتور ناموفق بود.');
+}
+
+/**
+ * The invoice of a paid reservation. Invoices are only issued once the reservation is paid (online payment
+ * confirmed, a payment confirmed by a manager, or a staff booking paid at the café), never for a hold that may
+ * expire unpaid. Safe to call twice: an existing invoice is kept.
+ */
+export async function ensureInvoice(client: Db, reservation: { id: string; totalAmount: number }): Promise<void> {
+	if (await client.invoice.findUnique({ where: { reservationId: reservation.id } })) return;
+	await client.invoice.create({ data: { reservationId: reservation.id, number: await uniqueInvoiceNumber(client), totalAmount: reservation.totalAmount } });
 }
 
 /** Everything a booking needs; values come from request bodies, so they are re-validated here. */
@@ -91,8 +102,7 @@ export async function createReservationHold({
 	const safeDecorationNote = decorationAmount > 0 && decorationNote ? String(decorationNote).trim().slice(0, 200) || null : null;
 
 	try {
-		return await prisma.$transaction(
-			async (tx) => {
+		return await serializable(async (tx) => {
 				await assertTablesAvailable({ tableIds, date, startTime, durationMinutes, guestCount }, tx, {
 					// رزرو دستی پرسنل (تلفنی/حضوری) می‌تونه برای همین الان یا چند دقیقه‌ی بعد ثبت بشه
 					ignoreLeadTime: source === 'ADMIN_MANUAL',
@@ -101,53 +111,44 @@ export async function createReservationHold({
 				const startAt = combineDateAndTime(date, startTime);
 				const endAt = addMinutes(startAt, durationMinutes);
 				const trackingCode = await uniqueTrackingCode(tx);
-				const invoiceNumber = await uniqueInvoiceNumber(tx);
+				const manual = source === 'ADMIN_MANUAL';
 				const holdExpiresAt = addMinutes(new Date(), holdMinutes);
 
 				return tx.reservation.create({
 					data: {
 						trackingCode,
 						userId,
-						customerName,
+						customerName: name,
 						customerPhone,
 						guestCount,
 						startAt,
 						endAt,
 						durationMinutes,
-						status: source === 'ADMIN_MANUAL' ? 'CONFIRMED' : 'HOLD',
+						status: manual ? 'CONFIRMED' : 'HOLD',
 						source,
-						holdExpiresAt: source === 'ADMIN_MANUAL' ? null : holdExpiresAt,
+						holdExpiresAt: manual ? null : holdExpiresAt,
 						pricePerGuest,
 						totalAmount,
 						decorationAmount,
 						decorationNote: safeDecorationNote,
-						paidAmount: source === 'ADMIN_MANUAL' ? totalAmount : 0,
+						paidAmount: manual ? totalAmount : 0,
 						tables: {
 							create: tableIds.map((tableId) => ({ tableId })),
 						},
-						invoice: {
-							create: { number: invoiceNumber, totalAmount },
-						},
+						// a staff booking is paid at the café, so its invoice exists at once; an online hold gets one when it is paid
+						...(manual ? { invoice: { create: { number: await uniqueInvoiceNumber(tx), totalAmount } } } : {}),
 						payments: {
 							create: {
 								amount: totalAmount,
-								status: source === 'ADMIN_MANUAL' ? 'PAID' : 'PENDING',
-								method: source === 'ADMIN_MANUAL' ? 'MANUAL' : 'ZARINPAL',
-								provider: source === 'ADMIN_MANUAL' ? 'manual' : 'zarinpal',
-								isMock: false,
+								status: manual ? 'PAID' : 'PENDING',
+								method: manual ? 'MANUAL' : 'ZARINPAL',
+								provider: manual ? 'manual' : 'zarinpal',
 							},
 						},
 					},
-					include: {
-						tables: { include: { table: true } },
-						payments: true,
-						invoice: true,
-						user: true,
-					},
+					include: fullInclude,
 				});
-			},
-			{ isolationLevel: 'Serializable' },
-		);
+		});
 	} catch (error) {
 		if (prismaCode(error) === 'P2034') throw createHttpError(409, 'این میز همین الان توسط شخص دیگری رزرو شد؛ یک گزینه‌ی دیگر انتخاب کن.');
 		if (error instanceof HttpError) throw error;
@@ -169,6 +170,27 @@ export async function getReservationFull(idOrCode: unknown): Promise<Reservation
 		where,
 		include: fullIncludeOrdered,
 	});
+}
+
+// ─── What a customer sees ────────────────────────────────────────────────────
+
+/** The account as the customer sees it (no token version or other internals). */
+export const toCustomerUser = (user: Pick<User, 'id' | 'name' | 'phone'>) => ({ id: user.id, name: user.name, phone: user.phone });
+
+type CustomerSource = Reservation & { payments?: Payment[]; user?: User | null; invoice?: Invoice | null };
+
+/**
+ * A reservation as the booking pages get it: the payments without the gateway's raw answer and authority
+ * (the authority is what the payment callback looks payments up by), the account without its internals.
+ */
+export function toCustomerReservation<R extends CustomerSource>(reservation: R) {
+	const { payments, user, invoice, ...rest } = reservation;
+	return {
+		...rest,
+		...(payments ? { payments: payments.map(({ id, status, amount, refId, createdAt, verifiedAt }) => ({ id, status, amount, refId, createdAt, verifiedAt })) } : {}),
+		...(user !== undefined ? { user: user && toCustomerUser(user) } : {}),
+		...(invoice !== undefined ? { invoice: invoice && { number: invoice.number, totalAmount: invoice.totalAmount, createdAt: invoice.createdAt } } : {}),
+	};
 }
 
 export async function createManualReservation(data: Omit<ReservationInput, 'source'>): Promise<ReservationWithRelations> {

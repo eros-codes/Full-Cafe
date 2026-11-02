@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObjec
 // Pieces shared by every public page (menu, feedback, reservation) and the admin panel: the drawer (with its
 // hamburger button, on every screen size) and the footer. Styles: header.css and footer.css in this folder.
 
-export type LinkKey = 'menu' | 'about' | 'contact' | 'feedback' | 'reserve' | 'profile' | 'track';
+export type LinkKey = 'menu' | 'about' | 'contact' | 'feedback' | 'games' | 'reserve' | 'profile' | 'track';
 
 const LINKS: Record<LinkKey, { href: string; label: string; icon: ReactNode }> = {
 	menu: {
@@ -67,6 +67,23 @@ const LINKS: Record<LinkKey, { href: string; label: string; icon: ReactNode }> =
 			</svg>
 		),
 	},
+	games: {
+		href: '/games',
+		label: 'بازی‌ها',
+		icon: (
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+				<path d="M0 0h24v24H0z" fill="none" />
+				<g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5">
+					<rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+					<circle cx="8.5" cy="8.5" r=".6" fill="currentColor" />
+					<circle cx="15.5" cy="8.5" r=".6" fill="currentColor" />
+					<circle cx="12" cy="12" r=".6" fill="currentColor" />
+					<circle cx="8.5" cy="15.5" r=".6" fill="currentColor" />
+					<circle cx="15.5" cy="15.5" r=".6" fill="currentColor" />
+				</g>
+			</svg>
+		),
+	},
 	reserve: {
 		href: '/reserve',
 		label: 'رزرو میز',
@@ -107,6 +124,45 @@ const LINKS: Record<LinkKey, { href: string; label: string; icon: ReactNode }> =
 		),
 	},
 };
+
+// The «بازی‌ها» link is only shown while the café has the games page switched on (asked once per page).
+let gamesStatus: Promise<boolean> | null = null;
+
+function fetchGamesEnabled(): Promise<boolean> {
+	gamesStatus ??= fetch('/api/games/status', { credentials: 'include' })
+		.then((res) => (res.ok ? res.json() : { enabled: false }))
+		.then((data: { enabled?: unknown }) => data.enabled === true)
+		.catch(() => false);
+	return gamesStatus;
+}
+
+/** Whether the games page is open to customers (false until known). */
+export function useGamesEnabled(): boolean {
+	const [enabled, setEnabled] = useState(false);
+	useEffect(() => {
+		let current = true;
+		fetchGamesEnabled().then((value) => current && setEnabled(value));
+		return () => {
+			current = false;
+		};
+	}, []);
+	return enabled;
+}
+
+/** The links to show: «بازی‌ها» only while the games page is on. */
+function useShownLinks(links: LinkKey[]): LinkKey[] {
+	const wantsGames = links.includes('games');
+	const [games, setGames] = useState(false);
+	useEffect(() => {
+		if (!wantsGames) return;
+		let current = true;
+		fetchGamesEnabled().then((value) => current && setGames(value));
+		return () => {
+			current = false;
+		};
+	}, [wantsGames]);
+	return links.filter((key) => key !== 'games' || games);
+}
 
 export interface Drawer {
 	open: boolean;
@@ -187,7 +243,7 @@ function isCurrentPage(href: string): boolean {
 }
 
 export function MobileDrawer({ drawer, links }: { drawer: Drawer; links: LinkKey[] }) {
-	const shown = links.filter((key) => !isCurrentPage(LINKS[key].href));
+	const shown = useShownLinks(links).filter((key) => !isCurrentPage(LINKS[key].href));
 	return (
 		<>
 			<div id="drawer-backdrop" className={`drawer-backdrop${drawer.open ? ' visible' : ''}`} onClick={drawer.closeDrawer}></div>
@@ -232,6 +288,7 @@ export function MobileDrawer({ drawer, links }: { drawer: Drawer; links: LinkKey
 const CREDIT = 'Made with love 🤍';
 
 export function SiteFooter({ links, className }: { links: LinkKey[]; className?: string }) {
+	const shown = useShownLinks(links);
 	return (
 		<footer className={className ? `menu-footer ${className}` : 'menu-footer'}>
 			<div>
@@ -241,7 +298,7 @@ export function SiteFooter({ links, className }: { links: LinkKey[]; className?:
 				</div>
 				<div>
 					<ul className="menu-footer-links">
-						{links.map((key) => (
+						{shown.map((key) => (
 							<li key={key}>
 								<a href={LINKS[key].href}>{LINKS[key].label}</a>
 							</li>

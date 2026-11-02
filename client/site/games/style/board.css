@@ -1,0 +1,410 @@
+/* board.css — «دوز», «چهار در یک ردیف» and «نقطه‌بازی» (board/): the players' bar, the three boards and the
+   result of a round. Light theme; the pieces use the team colours of kit.css. */
+
+.bd-play {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+}
+
+/* ─── players ─── */
+
+.bd-players {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.5rem;
+}
+
+.bd-players-3 {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bd-player {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	grid-template-rows: auto auto;
+	column-gap: 0.55rem;
+	align-items: center;
+	padding: 0.55rem 0.7rem;
+	border: 2px solid transparent;
+	border-radius: 1rem;
+	background: rgba(255, 255, 255, 0.55);
+	transition:
+		border-color 0.25s ease,
+		background-color 0.25s ease,
+		box-shadow 0.25s ease;
+}
+
+.bd-player.current {
+	border-color: var(--header-color);
+	background: #fff;
+	box-shadow: 0 6px 16px rgba(66, 46, 47, 0.14);
+}
+
+.bd-piece {
+	grid-row: 1 / span 2;
+	width: 2rem;
+	height: 2rem;
+	display: grid;
+	place-items: center;
+	color: var(--rich-sabel);
+}
+
+.bd-piece svg {
+	width: 1.6rem;
+	height: 1.6rem;
+}
+
+.bd-player-name {
+	min-width: 0;
+	color: var(--burnt-oak);
+	font-size: 0.95rem;
+	font-weight: 800;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.bd-bot-icon {
+	display: inline-flex;
+	vertical-align: -0.2em;
+	margin-inline-end: 0.25rem;
+	color: var(--tertiary-text-color);
+}
+
+.bd-bot-icon svg {
+	width: 1.05rem;
+	height: 1.05rem;
+}
+
+.bd-player-score {
+	color: var(--tertiary-text-color);
+	font-size: 0.78rem;
+	font-weight: 700;
+}
+
+.bd-player-score strong {
+	color: var(--burnt-oak);
+	font-size: 0.95rem;
+	font-weight: 800;
+}
+
+.bd-status {
+	min-height: 1.7em;
+	color: var(--tertiary-text-color);
+	font-size: 0.95rem;
+	font-weight: 700;
+	text-align: center;
+}
+
+/* ─── result ─── */
+
+.bd-result {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 1rem;
+	border-radius: 1.3rem;
+	background: var(--header-color);
+	color: var(--chapel-white);
+	text-align: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.bd-result {
+		animation: gm-pop 0.45s var(--ease-pop) both;
+	}
+}
+
+.bd-result-title {
+	color: var(--chapel-white);
+	font-size: 1.35rem;
+	font-weight: 800;
+	line-height: 1.6;
+}
+
+.bd-result-sub {
+	color: rgba(239, 234, 228, 0.78);
+	font-size: 0.88rem;
+	line-height: 1.8;
+}
+
+.bd-result-actions {
+	width: 100%;
+	display: grid;
+	grid-template-columns: 1.4fr 1fr;
+	gap: 0.5rem;
+	margin-top: 0.4rem;
+}
+
+.bd-result .gm-btn-primary {
+	background: var(--chapel-white);
+	color: var(--header-color);
+	box-shadow: none;
+}
+
+.bd-result .gm-btn-ghost {
+	color: rgba(239, 234, 228, 0.8);
+}
+
+/* ─── دوز ─── */
+
+.ttt-board {
+	width: min(100%, 22rem);
+	aspect-ratio: 1;
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-rows: repeat(3, minmax(0, 1fr));
+	gap: 6px;
+	padding: 6px;
+	border-radius: 1.3rem;
+	background: var(--header-color);
+	box-shadow: 0 14px 34px rgba(31, 21, 22, 0.22);
+}
+
+.ttt-cell {
+	display: grid;
+	place-items: center;
+	border-radius: 0.85rem;
+	background: var(--card-color);
+	transition:
+		background-color 0.2s ease,
+		scale 0.12s ease;
+}
+
+.ttt-cell:not(:disabled):active {
+	scale: 0.95;
+}
+
+.ttt-cell:disabled {
+	cursor: default;
+}
+
+.ttt-cell svg {
+	width: 72%;
+	height: 72%;
+}
+
+.ttt-cell.win {
+	background: #f3e2bd;
+}
+
+.ttt-board.done .ttt-cell:not(.win) svg {
+	opacity: 0.45;
+}
+
+.ttt-x path,
+.ttt-o circle {
+	fill: none;
+	stroke-width: 5;
+	stroke-linecap: round;
+}
+
+.ttt-x path {
+	stroke: #9a5b43;
+	stroke-dasharray: 30;
+}
+
+.ttt-o circle {
+	stroke: #4c6f80;
+	stroke-dasharray: 70;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.ttt-x path,
+	.ttt-o circle {
+		animation: ttt-draw 0.32s var(--ease-out) both;
+	}
+
+	.ttt-cell.win svg {
+		animation: gm-pulse 0.9s ease-in-out 2;
+	}
+}
+
+@keyframes ttt-draw {
+	from {
+		stroke-dashoffset: 70;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+/* ─── چهار در یک ردیف ─── */
+
+.c4-board {
+	width: min(100%, 26rem);
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 2px;
+	padding: 6px;
+	border-radius: 1.2rem;
+	background: var(--header-color);
+	box-shadow: 0 14px 34px rgba(31, 21, 22, 0.22);
+}
+
+.c4-col {
+	display: grid;
+	grid-template-rows: repeat(6, auto);
+	gap: 4px;
+	padding: 3px 2px;
+	border-radius: 0.8rem;
+	transition: background-color 0.2s ease;
+}
+
+.c4-col:not(:disabled):hover,
+.c4-col:focus-visible {
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.c4-col:disabled {
+	cursor: default;
+}
+
+.c4-cell {
+	position: relative;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: var(--background-color);
+	box-shadow: inset 0 2px 4px rgba(31, 21, 22, 0.35);
+}
+
+.c4-disc {
+	position: absolute;
+	inset: 6%;
+	border-radius: 50%;
+	box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+
+.c4-p0 {
+	background: #b8553f;
+}
+
+.c4-p1 {
+	background: #d9a441;
+}
+
+.c4-disc.falling {
+	z-index: 2;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.c4-disc.falling {
+		animation: c4-fall calc(0.12s + var(--fall) * 0.06s) cubic-bezier(0.55, 0, 1, 0.45) both;
+	}
+
+	.c4-cell.win .c4-disc {
+		animation: c4-win 0.8s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes c4-fall {
+	from {
+		translate: 0 calc(var(--fall) * -122%);
+	}
+	to {
+		translate: 0 0;
+	}
+}
+
+@keyframes c4-win {
+	to {
+		scale: 0.82;
+	}
+}
+
+.c4-cell.win .c4-disc {
+	box-shadow:
+		0 0 0 3px var(--chapel-white),
+		inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+
+.bd-piece .c4-disc {
+	position: static;
+	display: block;
+	width: 1.45rem;
+	height: 1.45rem;
+}
+
+/* ─── نقطه‌بازی ─── */
+
+.dots-board {
+	width: min(100%, 25rem);
+	height: auto;
+	margin: 0 auto;
+	display: block;
+	border-radius: 1.2rem;
+	background: rgba(255, 255, 255, 0.55);
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.dots-line {
+	stroke: rgba(66, 46, 47, 0.16);
+	stroke-width: 4;
+	stroke-linecap: round;
+	stroke-dasharray: 1 9;
+	transition:
+		stroke 0.2s ease,
+		stroke-width 0.2s ease;
+}
+
+.dots-line.drawn {
+	stroke: var(--rich-sabel);
+	stroke-width: 6;
+	stroke-dasharray: none;
+}
+
+.dots-hit {
+	fill: transparent;
+	cursor: pointer;
+	outline: none;
+	transition: fill 0.15s ease;
+}
+
+.dots-hit:hover {
+	fill: rgba(66, 46, 47, 0.08);
+}
+
+.dots-hit:focus-visible {
+	fill: rgba(78, 128, 238, 0.25);
+}
+
+.dots-dot-svg {
+	fill: var(--burnt-oak);
+}
+
+.dots-box rect {
+	opacity: 0.9;
+}
+
+.dots-box text {
+	fill: #fff;
+	font-family: inherit;
+	font-size: 24px;
+	font-weight: 800;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.dots-box {
+		transform-box: fill-box;
+		transform-origin: center;
+		animation: gm-pop 0.35s var(--ease-pop) both;
+	}
+}
+
+.dots-dot {
+	display: grid;
+	place-items: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 50%;
+	color: #fff;
+	font-size: 0.8rem;
+	font-weight: 800;
+	line-height: 1;
+}

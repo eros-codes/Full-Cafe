@@ -10,6 +10,7 @@ import { randomInt } from 'crypto';
 import { optionalUser, requireUser } from '../middleware/auth.js';
 import { normalizeUsername } from '../lib/roles.js';
 import { currentUser } from '../lib/request.js';
+import { toCustomerUser } from '../services/reservation.service.js';
 
 // هش bcrypt معتبر (۶۰ کاراکتر) از یک رشته‌ی تصادفی؛ فقط برای یکسان نگه داشتن زمان پاسخ
 const DUMMY_PASSWORD_HASH = '$2b$10$aSeBTOggmRzaYYKHqHDz2eQPrC5Eacr6fNxBub.SHZAKJ3gq1ahba';
@@ -17,20 +18,23 @@ const DUMMY_PASSWORD_HASH = '$2b$10$aSeBTOggmRzaYYKHqHDz2eQPrC5Eacr6fNxBub.SHZAK
 export const authRouter = express.Router();
 
 const OTP_PURPOSES = ['LOGIN', 'GUEST_ACCESS'];
+/** Wrong guesses allowed on one code. */
+const OTP_MAX_ATTEMPTS = 5;
 
 function makeOtpCode() {
 	return String(randomInt(100000, 1000000));
 }
 
-// برای ارسال، کلید فقط شماره است؛ وگرنه با تعویض IP می‌شود یک شماره را بمباران کرد
-const otpSendKey = (req: Request): string => normalizePhone(req.body?.phone) || req.ip || '';
+// ارسال کد: هر IP حداکثر ۱۰ پیامک در ۱۰ دقیقه، و هر شماره حداکثر یکی در دقیقه (OTP_COOLDOWN_MS، پایین‌تر).
+// قبلاً سقف ۵ ارسال روی خود شماره بود: هر کسی می‌توانست با ۵ درخواست ورود یک شماره‌ی دیگر را ۱۰ دقیقه ببندد.
+// حالا مهاجم حداکثر یک دقیقه معطلش می‌کند، و بمباران پیامکی هم به یکی در دقیقه محدود است.
 const otpKey = (req: Request): string => `${req.ip}:${normalizePhone(req.body?.phone)}`;
+const OTP_COOLDOWN_MS = 60 * 1000;
 const otpSendLimiter = rateLimit({
 	// در تست‌های خودکار همه‌ی درخواست‌ها از یک IP می‌آیند
 	skip: () => config.isTest,
 	windowMs: 10 * 60 * 1000,
-	max: 5,
-	keyGenerator: otpSendKey,
+	max: 10,
 	message: {
 		message: 'تعداد درخواست بیش از حد مجاز است؛ کمی بعد دوباره تلاش کن.',
 	},
@@ -54,6 +58,18 @@ const adminLoginLimiter = rateLimit({
 		message: 'تعداد تلاش بیش از حد مجاز است؛ کمی بعد دوباره تلاش کن.',
 	},
 });
+// هر نام کاربری هم سقف خودش را دارد، تا حدس زدن رمز یک ادمین با عوض کردن IP ممکن نباشد
+const adminUserLimiter = rateLimit({
+	skip: () => config.isTest,
+	windowMs: 15 * 60 * 1000,
+	max: 10,
+	keyGenerator: (req) => `admin:${normalizeUsername(req.body?.username)}`,
+	// only wrong passwords count: the admin's own logins never lock the account
+	skipSuccessfulRequests: true,
+	message: {
+		message: 'برای این حساب تلاش‌های ناموفق زیادی ثبت شده؛ ۱۵ دقیقه‌ی دیگر دوباره تلاش کن.',
+	},
+});
 
 authRouter.post('/otp/send', otpSendLimiter, async (req, res, next) => {
 	try {
@@ -62,6 +78,13 @@ authRouter.post('/otp/send', otpSendLimiter, async (req, res, next) => {
 		if (!phone) return res.status(400).json({ message: 'شماره موبایل نامعتبر است.' });
 		// قبلاً مقدار نامعتبر مستقیم به دیتابیس می‌رفت و خطای خام Prisma با کد ۵۰۰ برمی‌گشت
 		if (!OTP_PURPOSES.includes(purpose)) return res.status(400).json({ message: 'نوع درخواست نامعتبر است.' });
+		const last = await prisma.otpCode.findFirst({ where: { phone, purpose }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+		const wait = last ? OTP_COOLDOWN_MS - (Date.now() - last.createdAt.getTime()) : 0;
+		if (wait > 0) {
+			const seconds = Math.ceil(wait / 1000);
+			res.setHeader('Retry-After', String(seconds));
+			return res.status(429).json({ message: `برای ارسال دوباره‌ی کد ${seconds.toLocaleString('fa-IR')} ثانیه صبر کن.` });
+		}
 		const code = makeOtpCode();
 		const codeHash = await bcrypt.hash(code, 10);
 		const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
@@ -110,20 +133,20 @@ authRouter.post('/otp/verify', otpVerifyLimiter, async (req, res, next) => {
 			},
 			orderBy: { createdAt: 'desc' },
 		});
-		if (!otp || otp.attempts >= 5) return res.status(400).json({ message: 'کد تایید اشتباه یا منقضی است.' });
+		if (!otp) return res.status(400).json({ message: 'کد تایید اشتباه یا منقضی است.' });
+		// هر تلاش اول شمرده می‌شود، با شرط در خود update: قبلاً «کمتر از ۵ بار» جدا خوانده می‌شد و درخواست‌های
+		// هم‌زمان (از IPهای مختلف) همه از همان شمارنده‌ی قدیمی رد می‌شدند و بیش از ۵ حدس روی یک کد ممکن بود
+		const counted = await prisma.otpCode.updateMany({
+			where: { id: otp.id, consumedAt: null, attempts: { lt: OTP_MAX_ATTEMPTS } },
+			data: { attempts: { increment: 1 } },
+		});
+		if (counted.count === 0) return res.status(400).json({ message: 'کد تایید اشتباه یا منقضی است.' });
 
 		const match = await bcrypt.compare(latinDigits(String(code || '')).trim(), otp.codeHash);
-		if (!match) {
-			await prisma.otpCode.update({
-				where: { id: otp.id },
-				data: { attempts: { increment: 1 } },
-			});
-			return res.status(400).json({ message: 'کد تایید اشتباه یا منقضی است.' });
-		}
-		await prisma.otpCode.update({
-			where: { id: otp.id },
-			data: { consumedAt: new Date() },
-		});
+		if (!match) return res.status(400).json({ message: 'کد تایید اشتباه یا منقضی است.' });
+		// a code works once, also when two correct answers arrive at the same moment
+		const consumed = await prisma.otpCode.updateMany({ where: { id: otp.id, consumedAt: null }, data: { consumedAt: new Date() } });
+		if (consumed.count === 0) return res.status(400).json({ message: 'کد تایید اشتباه یا منقضی است.' });
 
 		if (purpose === 'GUEST_ACCESS') {
 			const cleanTrackingCode = latinDigits(String(trackingCode || ''))
@@ -175,14 +198,14 @@ authRouter.post('/otp/verify', otpVerifyLimiter, async (req, res, next) => {
 			.catch((error) => console.error('اتصال رزروهای قبلی به حساب ناموفق بود:', error));
 
 		setCookie(res, 'userToken', signUserToken(user));
-		res.json({ message: 'ورود انجام شد.', user });
+		res.json({ message: 'ورود انجام شد.', user: toCustomerUser(user) });
 	} catch (error) {
 		next(error);
 	}
 });
 
 authRouter.get('/me', optionalUser, (req, res) => {
-	res.json({ user: req.user || null });
+	res.json({ user: req.user ? toCustomerUser(req.user) : null });
 });
 
 authRouter.patch('/me', requireUser, async (req, res, next) => {
@@ -194,7 +217,7 @@ authRouter.patch('/me', requireUser, async (req, res, next) => {
 			where: { id: currentUser(req).id },
 			data: { name: safeName },
 		});
-		res.json({ user });
+		res.json({ user: toCustomerUser(user) });
 	} catch (error) {
 		next(error);
 	}
@@ -212,7 +235,7 @@ authRouter.post('/logout', optionalUser, async (req, res) => {
 	res.json({ message: 'خروج انجام شد.' });
 });
 
-authRouter.post('/admin/login', adminLoginLimiter, async (req, res, next) => {
+authRouter.post('/admin/login', adminLoginLimiter, adminUserLimiter, async (req, res, next) => {
 	try {
 		// باید با normalizeUsername موقع ساخت ادمین هماهنگ باشه، وگرنه ورود شکست می‌خوره
 		const username = normalizeUsername(req.body?.username);

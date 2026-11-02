@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { config } from './config.js';
@@ -12,19 +13,21 @@ import { paymentRouter } from './routes/payment.routes.js';
 import { adminRouter } from './routes/admin.routes.js';
 import { menuRouter } from './routes/menu.routes.js';
 import { recommenderRouter } from './routes/recommender.routes.js';
+import { gamesRouter } from './routes/games.routes.js';
 import { trackSiteVisit } from './middleware/site-visit.js';
 import { PRODUCTS_DIR, PRODUCTS_URL } from './lib/uploads.js';
 import { clientFiles, legacyRedirects, servePage } from './web/frontend.js';
 
 // Pages (React, see client/ and src/web/pages.ts):
-//   /, /menu, /feedback                     → café site
+//   /, /menu, /feedback, /games             → café site
 //   /reserve, /reserve/{payment,invoice,…}  → reservation
 //   /admin, /admin/login                    → the single admin panel
 const isDev = !config.isProd && !config.isTest;
 
 export const app = express();
-// پشت nginx/Cloudflare بدون این خط، req.ip برای همه یکسان می‌شه
-if (config.isProd) app.set('trust proxy', 1);
+// پشت nginx/Cloudflare بدون این خط، req.ip برای همه یکسان می‌شه. تعداد پراکسی‌ها از TRUST_PROXY در .env
+// (پیش‌فرض ۱: فقط nginx؛ پشت Cloudflare و nginx: ۲)
+if (config.isProd) app.set('trust proxy', config.trustProxyHops);
 app.disable('x-powered-by');
 
 app.use(
@@ -55,6 +58,9 @@ app.use(
 		crossOriginEmbedderPolicy: false,
 	}),
 );
+// gzip برای JSON، HTML، JS و CSS (عکس‌ها خودشان فشرده‌اند و دست نمی‌خورند). مثلاً /api/games با همه‌ی کارت‌های
+// بازی‌ها چند برابر کوچک‌تر می‌شود. اگر nginx خودش gzip کند، این لایه دوباره فشرده نمی‌کند (پاسخ از قبل Content-Encoding دارد).
+app.use(compression());
 // در تست‌ها لاگ هر درخواست فقط خروجی را شلوغ می‌کند
 if (!config.isTest) app.use(morgan(config.isProd ? 'combined' : 'dev'));
 app.use(express.json({ limit: '1mb' }));
@@ -93,6 +99,7 @@ app.use('/api', authRouter);
 app.use('/api', publicRouter);
 app.use('/api', menuRouter);
 app.use('/api', recommenderRouter);
+app.use('/api', gamesRouter);
 app.use('/api/reservations', reservationRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/admin', adminRouter);

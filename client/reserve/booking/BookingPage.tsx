@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { api, errorText } from '../../shared/api';
-import { faNumber, toman } from '../../shared/format';
+import { ApiError, api, errorText } from '../../shared/api';
+import { faNumber, latinDigits, toman } from '../../shared/format';
 import { useLatest } from '../../shared/useLatest';
 import { DurationChips } from '../common/DurationChips';
 import { Topbar } from '../../shared/chrome/Topbar';
 import { ReserveFooter } from '../common/ReserveFooter';
+import { OtpWidget } from '../common/OtpWidget';
 import type { CurrentUser, PublicConfig } from '../common/types';
 import { FloorMap } from '../map/FloorMap';
 import type { MapTable } from '../map/types';
@@ -12,6 +13,8 @@ import { card, DetailContent, type Detail } from './DetailContent';
 import { useSheet } from './useSheet';
 
 const ZONE_FA: Record<string, string> = { WINDOW: 'سالن پنجره', CENTER: 'سالن وسط', ROOF: 'روف گاردن' };
+/** Most guests one online booking takes (the +/− buttons and typing alike); bigger groups book by phone. */
+const GUESTS_MAX = 20;
 
 interface Combo {
 	comboId: string;
@@ -96,14 +99,15 @@ export function BookingPage() {
 				const cfg = await api<PublicConfig>('/api/config');
 				if (cancelled) return;
 				setConfig(cfg);
-				setSelectedDate(cfg.dates[0] ?? null);
+				const closed = new Set(cfg.closedDates ?? []);
+				setSelectedDate(cfg.dates.find((d) => !closed.has(d)) ?? cfg.dates[0] ?? null);
 				const me = await api<{ user: CurrentUser | null }>('/api/me').catch(() => ({ user: null }));
 				if (cancelled) return;
 				setUser(me.user);
-				const first = new URLSearchParams({ date: cfg.dates[0] ?? '', guests: '2', durationMinutes: '60', startTime: '15:00' });
+				// just the layout of the tables (before, a whole availability search was made for it)
 				try {
-					const initial = await api<AvailabilityResult>(`/api/availability?${first}`);
-					if (!cancelled) setKnownTables(initial.tables || []);
+					const { tables } = await api<{ tables: MapTable[] }>('/api/tables');
+					if (!cancelled) setKnownTables(tables || []);
 				} catch (error) {
 					if (!cancelled) setNotice({ className: 'notice warn', text: `بارگذاری چیدمان میزها انجام نشد (${errorText(error)}).` });
 				}
@@ -183,7 +187,7 @@ export function BookingPage() {
 
 	const stepGuests = (step: number) => {
 		const input = guestInputRef.current;
-		const next = Math.min(20, Math.max(1, Number(guestCount || 1) + step));
+		const next = Math.min(GUESTS_MAX, Math.max(1, Number(guestCount || 1) + step));
 		if (Number(guestCount) !== next) {
 			setGuestCount(String(next));
 			// تپش کوچک عدد (استایل در css/motion.css)
@@ -306,7 +310,8 @@ export function BookingPage() {
 					durationMinutes: duration,
 					guestCount: guests,
 					customerName: customerName.trim(),
-					customerPhone: customerPhone.trim(),
+					// the server books with the verified number of the account in any case
+					customerPhone: user?.phone ?? customerPhone.trim(),
 					decoration,
 					decorationNote: decorationNote.trim() || null,
 				},
@@ -314,6 +319,12 @@ export function BookingPage() {
 			window.location.href = `/reserve/payment?id=${encodeURIComponent(reservation.id)}`;
 		} catch (error) {
 			setSubmitting(false);
+			if (error instanceof ApiError && error.status === 401) {
+				// the sign-in ran out meanwhile: verify the number again, the choices stay
+				setUser(null);
+				setModalError({ id: Date.now(), text: 'برای ثبت رزرو، شماره‌ات رو دوباره با کد پیامکی تایید کن.' });
+				return;
+			}
 			// خلاصه‌ی رزرو می‌ماند؛ خطا زیر آن نشان داده می‌شود
 			setModalError({ id: Date.now(), text: errorText(error) });
 		}
@@ -356,18 +367,21 @@ export function BookingPage() {
 									{config?.dates.map((date, index) => {
 										const value = new Date(`${date}T12:00:00`);
 										const label = index === 0 ? 'امروز' : index === 1 ? 'فردا' : value.toLocaleDateString('fa-IR', { weekday: 'short' });
+										const closed = config.closedDates?.includes(date) ?? false;
 										return (
 											<button
 												key={date}
 												type="button"
 												className={`date-chip${date === selectedDate ? ' active' : ''}`}
+												disabled={closed}
+												title={closed ? 'کافه این روز تعطیله' : undefined}
 												onClick={() => {
 													setSelectedDate(date);
 													conditionsChanged();
 												}}
 											>
 												<strong>{label}</strong>
-												<small>{value.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' })}</small>
+												<small>{closed ? 'تعطیل' : value.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' })}</small>
 											</button>
 										);
 									})}
@@ -382,14 +396,28 @@ export function BookingPage() {
 										</button>
 										<input
 											id="guestCount"
-											type="number"
+											// text, not number: a number field drops Persian digits (۷) typed on a Persian keyboard
+											type="text"
 											inputMode="numeric"
-											min="1"
-											max="20"
+											autoComplete="off"
+											maxLength={3}
 											ref={guestInputRef}
 											value={guestCount}
 											onChange={(event) => {
-												setGuestCount(event.target.value);
+												// Persian digits work too; typing past the limit stops at it (it used to accept 30, and an
+												// empty field sent a search the server refused)
+												const raw = latinDigits(event.target.value).replace(/\D/g, '');
+												if (!raw) {
+													setGuestCount('');
+													clearSelection();
+													return;
+												}
+												setGuestCount(String(Math.min(GUESTS_MAX, Math.max(1, Number(raw)))));
+												conditionsChanged();
+											}}
+											onBlur={() => {
+												if (guestCount) return;
+												setGuestCount('1');
 												conditionsChanged();
 											}}
 										/>
@@ -584,6 +612,31 @@ export function BookingPage() {
 							{modalError.text}
 						</div>
 					)}
+					{!user ? (
+						<div style={{ marginTop: '14px' }}>
+							<p className="dialog-hint">
+								برای ثبت رزرو، شماره موبایلت رو با کد پیامکی تایید کن. با همین تایید وارد حسابت هم می‌شی و رزروهات رو توی پروفایل می‌بینی.
+							</p>
+							<OtpWidget
+								purpose="LOGIN"
+								extraFields={[{ key: 'name', label: 'نام', placeholder: 'نام و نام خانوادگی', required: true }]}
+								submitLabel="تایید شماره و ادامه"
+								onVerified={(data) => {
+									const verified = data.user as CurrentUser | undefined;
+									if (!verified) return;
+									setUser(verified);
+									setCustomerName(verified.name || '');
+									setCustomerPhone(verified.phone);
+									setModalError(null);
+								}}
+							/>
+							<div className="actions">
+								<button className="secondary-btn" type="button" onClick={() => setModalOpen(false)}>
+									برگشت
+								</button>
+							</div>
+						</div>
+					) : (
 					<form id="reserveForm" className="form-grid" style={{ marginTop: '14px' }} onSubmit={submitReservation}>
 						<div className="row">
 							<div className="field">
@@ -599,16 +652,11 @@ export function BookingPage() {
 								/>
 							</div>
 							<div className="field">
-								<label htmlFor="customerPhone">موبایل</label>
-								<input
-									id="customerPhone"
-									required
-									inputMode="tel"
-									autoComplete="tel"
-									placeholder="09..."
-									value={customerPhone}
-									onChange={(event) => setCustomerPhone(event.target.value)}
-								/>
+								<label htmlFor="customerPhone">موبایل (تاییدشده)</label>
+								<input id="customerPhone" readOnly dir="ltr" value={user.phone} aria-describedby="phoneHint" />
+								<small id="phoneHint" className="dialog-hint">
+									رزرو با همین شماره ثبت می‌شه. برای شماره‌ی دیگه، از پروفایل خارج شو و با اون شماره وارد شو.
+								</small>
 							</div>
 						</div>
 						<div className="field" id="decorationField" hidden={decorationPrice <= 0}>
@@ -647,6 +695,7 @@ export function BookingPage() {
 							</button>
 						</div>
 					</form>
+					)}
 				</div>
 			</div>
 

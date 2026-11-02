@@ -47,4 +47,13 @@ export const config = {
 	zarinpalMerchantId: process.env.ZARINPAL_MERCHANT_ID || '',
 	isProd,
 	isTest: process.env.NODE_ENV === 'test',
+	/**
+	 * How many proxies stand in front of the app (nginx = 1, Cloudflare + nginx = 2). req.ip, and with it every
+	 * rate limit, depends on it: one too few and all visitors share the proxy's IP (one visitor's limit blocks
+	 * everyone); one too many and a visitor can fake their IP. Only used in production.
+	 */
+	trustProxyHops: (() => {
+		const hops = Number(process.env.TRUST_PROXY ?? 1);
+		return Number.isInteger(hops) && hops >= 0 ? hops : 1;
+	})(),
 } as const;

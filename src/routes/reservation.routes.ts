@@ -2,10 +2,9 @@ import { config } from '../config.js';
 import express, { type Request } from 'express';
 import { currentUser } from '../lib/request.js';
 import { prisma } from '../lib/prisma.js';
-import { normalizePhone } from '../lib/time.js';
 import { optionalUser, requireUser } from '../middleware/auth.js';
-import { cancelReservation, createReservationHold, getReservationFull } from '../services/reservation.service.js';
-import { setCookie, signGuestToken, verifyGuestToken } from '../lib/auth.js';
+import { cancelReservation, createReservationHold, getReservationFull, toCustomerReservation } from '../services/reservation.service.js';
+import { verifyGuestToken } from '../lib/auth.js';
 import rateLimit from 'express-rate-limit';
 
 // هر HOLD میزها را تا چند دقیقه قفل می‌کند، پس باید محدود باشد
@@ -18,9 +17,15 @@ const holdLimiter = rateLimit({
 });
 export const reservationRouter = express.Router();
 
-reservationRouter.post('/hold', holdLimiter, optionalUser, async (req, res, next) => {
+/**
+ * A hold needs a verified phone number: the customer signs in with an SMS code first (the booking page does it in
+ * the same dialog), and the reservation is made with the number of that account, whatever number the request
+ * names. Before, anyone could hold tables with any number, without proving it was theirs.
+ */
+reservationRouter.post('/hold', holdLimiter, requireUser, async (req, res, next) => {
 	try {
 		const payload = req.body;
+		const user = currentUser(req);
 		const reservation = await createReservationHold({
 			tableIds: payload.tableIds,
 			date: payload.date,
@@ -28,24 +33,14 @@ reservationRouter.post('/hold', holdLimiter, optionalUser, async (req, res, next
 			durationMinutes: Number(payload.durationMinutes),
 			guestCount: Number(payload.guestCount),
 			customerName: payload.customerName,
-			customerPhone: normalizePhone(payload.customerPhone),
-			userId: req.user?.id || null,
-			source: req.user ? 'ONLINE' : 'GUEST',
+			customerPhone: user.phone,
+			userId: user.id,
+			source: 'ONLINE',
 			decoration: payload.decoration === true,
 			decorationNote: payload.decorationNote,
 		});
-		// کوکی دسترسی همان لحظه صادر می‌شود تا صفحه‌ی پرداخت/فاکتور
-		// بدون نیاز به تایید پیامکی بتواند همین رزرو را ببیند
-		setCookie(
-			res,
-			'guestToken',
-			signGuestToken({
-				phone: reservation.customerPhone,
-				reservationId: reservation.id,
-				trackingCode: reservation.trackingCode,
-			}),
-		);
-		res.status(201).json({ reservation });
+		// the payment and invoice pages see it as the account's own reservation (no guest cookie needed)
+		res.status(201).json({ reservation: toCustomerReservation(reservation) });
 	} catch (error) {
 		next(error);
 	}
@@ -70,7 +65,7 @@ reservationRouter.get('/:id', optionalUser, async (req, res, next) => {
 			return res.status(403).json({
 				message: 'برای دیدن این رزرو باید وارد حساب شوی یا با کد پیگیری تایید کنی.',
 			});
-		res.json({ reservation });
+		res.json({ reservation: toCustomerReservation(reservation) });
 	} catch (error) {
 		next(error);
 	}
@@ -88,7 +83,7 @@ reservationRouter.post('/:id/cancel', optionalUser, async (req, res, next) => {
 			typeof req.body?.note === 'string' && req.body.note.trim() ? req.body.note : 'لغو توسط مشتری',
 		);
 
-		res.json({ reservation: updated });
+		res.json({ reservation: updated && toCustomerReservation(updated) });
 	} catch (error) {
 		next(error);
 	}
@@ -112,7 +107,7 @@ reservationRouter.get('/profile/list', requireUser, async (req, res, next) => {
 				payments: true,
 			},
 		});
-		res.json({ reservations });
+		res.json({ reservations: reservations.map(toCustomerReservation) });
 	} catch (error) {
 		next(error);
 	}

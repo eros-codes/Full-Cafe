@@ -3,9 +3,7 @@ import { faNumber } from '../../shared/format';
 export { faNumber, toman } from '../../shared/format';
 
 const STATUS_FA: Record<string, string> = {
-	DRAFT: 'پیش‌نویس',
 	HOLD: 'رزرو موقت',
-	PAYMENT_PENDING: 'در انتظار پرداخت',
 	PAYMENT_REVIEW: 'بررسی پرداخت',
 	CONFIRMED: 'تایید شده',
 	CANCELLED: 'لغو شده',

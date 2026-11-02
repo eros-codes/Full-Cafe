@@ -10,6 +10,7 @@ import { Admins } from '../sections/Admins';
 import { Categories } from '../sections/Categories';
 import { Closures } from '../sections/Closures';
 import { Dashboard } from '../sections/Dashboard';
+import { Games } from '../sections/Games';
 import { Hours } from '../sections/Hours';
 import { ManualBooking } from '../sections/ManualBooking';
 import { MenuTypes } from '../sections/MenuTypes';
@@ -32,6 +33,7 @@ type SectionKey =
 	| 'categories'
 	| 'menuTypes'
 	| 'tags'
+	| 'games'
 	| 'reviews'
 	| 'hours'
 	| 'closures'
@@ -49,6 +51,7 @@ const SECTIONS: { key: SectionKey; label: string; icon: IconName }[] = [
 	{ key: 'categories', label: 'دسته‌بندی منو', icon: 'tag' },
 	{ key: 'menuTypes', label: 'دسته‌های اصلی منو', icon: 'layers' },
 	{ key: 'tags', label: 'انتخاب برای من', icon: 'spark' },
+	{ key: 'games', label: 'بازی‌ها', icon: 'dice' },
 	{ key: 'reviews', label: 'نظرات', icon: 'chat' },
 	{ key: 'hours', label: 'ساعت کاری', icon: 'clock' },
 	{ key: 'closures', label: 'تعطیلی‌ها', icon: 'ban' },
@@ -158,7 +161,7 @@ export function AdminApp() {
 					href="/"
 					sub={admin ? `${admin.name} · ${ROLE_FA[admin.role] || admin.role}` : 'در حال بارگذاری...'}
 					subId="adminInfo"
-					drawerLinks={['about', 'menu', 'feedback', 'reserve']}
+					drawerLinks={['about', 'menu', 'feedback', 'games', 'reserve']}
 				>
 					{/* who is logged in: several admins with different roles share one panel */}
 					{admin && (
@@ -242,6 +245,16 @@ export function AdminApp() {
 										hint="سوال‌هایی که از مشتری پرسیده می‌شود و گزینه‌هایشان. هر محصول برچسب‌هایش را از دسته‌اش می‌گیرد و می‌تواند برچسب‌های خودش را هم داشته باشد."
 									>
 										{shown('tags') && <Tags visit={visit('tags')} />}
+									</Section>
+								)}
+								{isMain && (
+									<Section
+										id="games"
+										active={active === 'games'}
+										title="بازی‌ها"
+										hint="صفحه‌ی بازی‌های دورهمی سایت (/games): بازی‌هایی که نمایش داده می‌شوند و کارت‌های بازی‌های کلمه‌ای."
+									>
+										{shown('games') && <Games visit={visit('games')} />}
 									</Section>
 								)}
 								<Section id="reviews" active={active === 'reviews'} title="نظرات مشتریان" hint="نظرها بعد از تایید شما در صفحه‌ی «ثبت نظر» سایت نمایش داده می‌شوند.">

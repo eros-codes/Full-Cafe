@@ -61,4 +61,6 @@ export interface PublicConfig {
 		currencyLabel: string;
 	};
 	dates: string[];
+	/** Days of `dates` the whole café is closed. */
+	closedDates?: string[];
 }

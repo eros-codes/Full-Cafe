@@ -103,6 +103,21 @@ function lastOtp(phone: string): string | undefined {
 	return line?.match(/:\s*(\d{6})\s*$/)?.[1];
 }
 
+const customers = new Map<string, Client>();
+
+/** A customer signed in with an SMS code: a hold needs a verified phone. One sign-in per number (codes are one a minute). */
+async function customer(phone: string, name = 'مشتری'): Promise<Client> {
+	const known = customers.get(phone);
+	if (known) return known;
+	const c = client();
+	const sent = await c.post('/api/otp/send', { phone, purpose: 'LOGIN' });
+	assert.equal(sent.status, 200, `otp ${phone}: ${sent.text}`);
+	const verified = await c.post('/api/otp/verify', { phone, code: lastOtp(phone), purpose: 'LOGIN', name });
+	assert.equal(verified.status, 200, `verify ${phone}: ${verified.text}`);
+	customers.set(phone, c);
+	return c;
+}
+
 describe('Roof API (integration)', { skip }, () => {
 	let dev: Client;
 	const tables: Record<'a' | 'b' | 'c', CafeTable> = {} as Record<'a' | 'b' | 'c', CafeTable>;
@@ -177,7 +192,7 @@ describe('Roof API (integration)', { skip }, () => {
 	describe('pages', () => {
 		test('every page has one clean URL; a trailing slash is the same page', async () => {
 			const c = client();
-			for (const path of ['/', '/menu', '/feedback', '/reserve', '/reserve/payment', '/reserve/invoice', '/reserve/profile', '/reserve/track', '/admin', '/admin/login']) {
+			for (const path of ['/', '/menu', '/feedback', '/games', '/reserve', '/reserve/payment', '/reserve/invoice', '/reserve/profile', '/reserve/track', '/admin', '/admin/login']) {
 				const res = await c.get(path);
 				assert.equal(res.status, 200, path);
 				assert.match(res.headers.get('content-type') ?? '', /text\/html/, path);
@@ -786,6 +801,135 @@ describe('Roof API (integration)', { skip }, () => {
 		});
 	});
 
+	// ─── games page (/games): switch, games, decks of the word games ────────────
+	describe('games', () => {
+		let main: Client;
+		let staff: Client;
+		const places = Array.from({ length: 12 }, (_, i) => `مکان ${i + 1}`);
+
+		test('setup: off until switched on; manager only', async () => {
+			for (const [username, role] of [
+				['games-main', 'MAIN'],
+				['games-staff', 'SECONDARY'],
+			]) {
+				assert.equal((await dev.post('/api/admin/admins', { name: username, username, password: 'GamePass12345', role })).status, 201);
+			}
+			main = await login('games-main', 'GamePass12345');
+			staff = await login('games-staff', 'GamePass12345');
+			assert.deepEqual((await client().get('/api/games')).json, { enabled: false });
+			assert.deepEqual((await client().get('/api/games/status')).json, { enabled: false });
+			assert.equal((await staff.get('/api/admin/games')).status, 403);
+			assert.equal((await staff.post('/api/admin/game-decks', { name: 'x', games: [], cards: '' })).status, 403);
+			assert.equal((await staff.patch('/api/admin/settings', { gamesEnabled: true })).status, 403);
+			const overview = (await main.get('/api/admin/games')).json;
+			assert.equal(overview.enabled, false);
+			assert.deepEqual(
+				overview.games.map((g: any) => [g.key, g.isActive, g.playable]),
+				[
+					['spy', true, false],
+					['heads_up', true, false],
+					['charades', true, false],
+					['taboo', true, false],
+					['tic_tac_toe', true, true],
+					['connect_four', true, true],
+					['dots', true, true],
+					['mafia', true, true],
+					['ludo', true, true],
+					['chess', true, true],
+					['backgammon', false, false],
+				],
+				'every game but تخته نرد on by default; the word games need cards, the board games none',
+			);
+		});
+
+		test('decks: validation, card lines with their line numbers', async () => {
+			assert.equal((await main.post('/api/admin/game-decks', { name: ' ', games: ['spy'], cards: '' })).status, 400);
+			assert.equal((await main.post('/api/admin/game-decks', { name: 'الف', games: ['poker'], cards: '' })).status, 400);
+			assert.equal((await main.post('/api/admin/game-decks', { name: 'الف', games: ['dots'], cards: '' })).status, 400, 'board games draw no cards');
+			assert.equal((await main.post('/api/admin/game-decks', { name: 'الف', games: [], cards: '' })).status, 400, 'a deck serves at least one game');
+			assert.equal((await main.post('/api/admin/game-decks', { name: 'الف', games: ['spy'], cards: 42 })).status, 400);
+			const bad = await main.post('/api/admin/game-decks', { name: 'الف', games: ['taboo'], cards: 'قهوه: فنجان\n: بی‌کلمه\nنان: نان' });
+			assert.equal(bad.status, 400);
+			assert.match(bad.json.message, /خط ۲/);
+			assert.match(bad.json.message, /خط ۳/);
+			assert.equal(await prisma.gameDeck.count(), 0, 'nothing saved');
+		});
+
+		test('a places deck makes «جاسوس» playable once the page is switched on', async () => {
+			const created = await main.post('/api/admin/game-decks', { name: 'مکان‌ها', games: ['spy'], cards: [...places, 'مکان 1', 'مكان 1'].join('\n') });
+			assert.equal(created.status, 201, created.text);
+			assert.equal(created.json.duplicates, 2, 'the repeated lines (also typed with Arabic letters) are left out');
+			assert.equal(created.json.decks[0].cardCount, 12);
+			assert.equal((await main.post('/api/admin/game-decks', { name: 'مکان‌ها', games: ['spy'], cards: '' })).status, 409, 'deck names are unique');
+			assert.equal(created.json.games.find((g: any) => g.key === 'spy').playable, true);
+			assert.deepEqual((await client().get('/api/games')).json, { enabled: false }, 'still off');
+			assert.equal((await main.patch('/api/admin/settings', { gamesEnabled: true })).status, 200);
+			const data = (await client().get('/api/games')).json;
+			assert.equal(data.enabled, true);
+			assert.deepEqual(data.games, ['spy', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess']);
+			assert.equal(data.decks.length, 1);
+			assert.equal(data.decks[0].cards.length, 12);
+			assert.equal(data.decks[0].cards[0].forbidden, undefined, 'no empty forbidden lists on the wire');
+			assert.deepEqual((await client().get('/api/games/status')).json, { enabled: true });
+		});
+
+		test('taboo: only cards with forbidden words count; editing keeps the ids of unchanged cards', async () => {
+			const lines = Array.from({ length: 20 }, (_, i) => `کلمه ${i}: الف، ب`);
+			const created = await main.post('/api/admin/game-decks', { name: 'ممنوعه', games: ['taboo', 'heads_up'], cards: [...lines, 'بی‌ممنوع'].join('\n') });
+			assert.equal(created.status, 201, created.text);
+			const deckId = created.json.deck.id;
+			const taboo = created.json.games.find((g: any) => g.key === 'taboo');
+			assert.equal(taboo.available, 20);
+			assert.equal(taboo.playable, true);
+			assert.equal(created.json.games.find((g: any) => g.key === 'heads_up').playable, false, '21 words < 30');
+			const before = await prisma.gameCard.findMany({ where: { deckId }, orderBy: { sortOrder: 'asc' } });
+			const edited = await main.patch(`/api/admin/game-decks/${deckId}`, { cards: ['کلمه 0: الف، ج', ...lines.slice(1), 'تازه: د'].join('\n') });
+			assert.equal(edited.status, 200, edited.text);
+			const after = await prisma.gameCard.findMany({ where: { deckId }, orderBy: { sortOrder: 'asc' } });
+			assert.equal(after[0].id, before[0].id, 'same text, same id');
+			assert.deepEqual(after[0].forbidden, ['الف', 'ج']);
+			assert.ok(!after.some((c) => c.text === 'بی‌ممنوع'), 'removed');
+			assert.equal(after[after.length - 1].text, 'تازه');
+			const text = (await main.get(`/api/admin/game-decks/${deckId}`)).json.cards;
+			assert.equal(text.split('\n')[0], 'کلمه 0: الف، ج', 'the editor gets the same line format back');
+			const data = (await client().get('/api/games')).json;
+			assert.deepEqual(data.games, ['spy', 'taboo', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess']);
+			assert.deepEqual(data.decks.find((d: any) => d.name === 'ممنوعه').games, ['taboo'], 'only the games the site shows');
+		});
+
+		test('games: on/off and order; an inactive deck stops counting', async () => {
+			assert.equal((await main.patch('/api/admin/games/poker', { isActive: false })).status, 404);
+			assert.equal((await main.patch('/api/admin/games/spy', { isActive: 'no' })).status, 400);
+			const off = await main.patch('/api/admin/games/spy', { isActive: false });
+			assert.equal(off.status, 200);
+			assert.deepEqual((await client().get('/api/games')).json.games, ['taboo', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess']);
+			await main.patch('/api/admin/games/spy', { isActive: true });
+			for (const key of ['tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess']) await main.patch(`/api/admin/games/${key}`, { isActive: false });
+			assert.equal((await main.put('/api/admin/games/order', { keys: ['spy', 'taboo'] })).status, 400, 'every game, once');
+			const order = ['taboo', 'charades', 'heads_up', 'spy', 'backgammon', 'chess', 'ludo', 'mafia', 'dots', 'connect_four', 'tic_tac_toe'];
+			const ordered = await main.put('/api/admin/games/order', { keys: order });
+			assert.equal(ordered.status, 200);
+			assert.deepEqual(
+				ordered.json.games.map((g: any) => g.key),
+				order,
+			);
+			assert.deepEqual((await client().get('/api/games')).json.games, ['taboo', 'spy']);
+			const spyDeck = (await prisma.gameDeck.findUnique({ where: { name: 'مکان‌ها' } }))!;
+			await main.patch(`/api/admin/game-decks/${spyDeck.id}`, { isActive: false });
+			assert.deepEqual((await client().get('/api/games')).json.games, ['taboo']);
+		});
+
+		test('deleting a deck removes its cards; switched off, the site gets nothing', async () => {
+			const spyDeck = (await prisma.gameDeck.findUnique({ where: { name: 'مکان‌ها' } }))!;
+			assert.equal((await main.del(`/api/admin/game-decks/${spyDeck.id}`)).status, 200);
+			assert.equal((await main.del(`/api/admin/game-decks/${spyDeck.id}`)).status, 404);
+			assert.equal(await prisma.gameCard.count({ where: { deckId: spyDeck.id } }), 0);
+			assert.equal((await main.patch('/api/admin/settings', { gamesEnabled: false })).status, 200);
+			assert.deepEqual((await client().get('/api/games')).json, { enabled: false });
+			assert.deepEqual((await client().get('/api/games/status')).json, { enabled: false });
+		});
+	});
+
 	describe('input validation regressions', () => {
 		test('settings: unknown keys, negative cleaning buffer and min > max are refused', async () => {
 			assert.equal((await dev.patch('/api/admin/settings', { cleaningBufferMinutes: -500 })).status, 400);
@@ -819,8 +963,8 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.equal((await q('date=2026-02-30&startTime=12:00')).status, 400);
 			assert.equal((await q(`date=${tehranDate(3)}&startTime=24:00`)).status, 400);
 			assert.equal((await q(`date=${tehranDate(3)}&rangeStart=24:00&rangeEnd=24:00`)).status, 400);
-			const hold = (body: object) =>
-				client().post('/api/reservations/hold', {
+			const hold = async (body: object) =>
+				(await customer('09120000004')).post('/api/reservations/hold', {
 					tableIds: [tables.b.id],
 					durationMinutes: 60,
 					guestCount: 2,
@@ -839,7 +983,7 @@ describe('Roof API (integration)', { skip }, () => {
 		});
 
 		test('customer name is limited', async () => {
-			const res = await client().post('/api/reservations/hold', {
+			const res = await (await customer('09120000003')).post('/api/reservations/hold', {
 				tableIds: [tables.b.id],
 				date: tehranDate(6),
 				startTime: '12:00',
@@ -883,7 +1027,7 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.equal(range.status, 200, range.text);
 			assert.equal(range.json.tables.find((t: { id: string }) => t.id === tables.a.id).availability.startTime, '22:00');
 
-			const booked = await client().post('/api/reservations/hold', {
+			const booked = await (await customer('09120000020')).post('/api/reservations/hold', {
 				tableIds: [tables.a.id],
 				date: day,
 				startTime: '23:00',
@@ -925,7 +1069,13 @@ describe('Roof API (integration)', { skip }, () => {
 		});
 
 		test('a guest hold locks the table and only its owner can see or pay it', async () => {
-			guest = client();
+			// a hold needs a verified number: the customer signs in with an SMS code first
+			assert.equal(
+				(await client().post('/api/reservations/hold', { tableIds: [tables.a.id], date, startTime: '15:00', durationMinutes: 60, guestCount: 2, customerName: 'علی', customerPhone: phone })).status,
+				401,
+				'no hold without a verified phone',
+			);
+			guest = await customer(phone, 'علی');
 			const res = await guest.post('/api/reservations/hold', {
 				tableIds: [tables.a.id],
 				date,
@@ -942,7 +1092,7 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.equal(hold.customerPhone, phone);
 			assert.equal(hold.totalAmount, 2 * 100000 + 50000);
 
-			const again = await client().post('/api/reservations/hold', {
+			const again = await (await customer('09120000000')).post('/api/reservations/hold', {
 				tableIds: [tables.a.id],
 				date,
 				startTime: '15:30',
@@ -988,7 +1138,7 @@ describe('Roof API (integration)', { skip }, () => {
 					pricePerGuest: 100000,
 					totalAmount: 200000,
 					tables: { create: [{ tableId: tables.b.id }] },
-					payments: { create: { amount: 200000, status: 'REVIEW', method: 'ZARINPAL', provider: 'zarinpal', isMock: false } },
+					payments: { create: { amount: 200000, status: 'REVIEW', method: 'ZARINPAL', provider: 'zarinpal' } },
 				},
 			});
 			const res = await dev.patch(`/api/admin/reservations/${r.id}/status`, { status: 'CONFIRMED' });
@@ -1075,14 +1225,14 @@ describe('Roof API (integration)', { skip }, () => {
 				customerName: 'حضوری',
 				customerPhone: '09120000002',
 			};
-			assert.equal((await client().post('/api/reservations/hold', body)).status, 400, 'online booking keeps the lead time');
+			assert.equal((await (await customer('09120000002')).post('/api/reservations/hold', body)).status, 400, 'online booking keeps the lead time');
 			assert.equal((await dev.post('/api/admin/reservations/manual', body)).status, 201);
 			const past = { ...body, tableIds: [tables.c.id], startTime: '09:00' };
 			if (hour >= 10) assert.equal((await dev.post('/api/admin/reservations/manual', past)).status, 400, 'never in the past');
 		});
 
 		test('paying on time confirms the hold', async () => {
-			const c = client();
+			const c = await customer('09120000010');
 			const res = await c.post('/api/reservations/hold', {
 				tableIds: [tables.a.id],
 				date: tehranDate(7),
@@ -1107,7 +1257,7 @@ describe('Roof API (integration)', { skip }, () => {
 
 		test('a payment that arrives after the hold expired never double-books the table', async () => {
 			const date = tehranDate(8);
-			const first = client();
+			const first = await customer('09120000011');
 			const h1 = await first.post('/api/reservations/hold', {
 				tableIds: [tables.a.id],
 				date,
@@ -1122,7 +1272,7 @@ describe('Roof API (integration)', { skip }, () => {
 			const authority = pay.json.paymentUrl.split('/').pop();
 			// the customer stays on the gateway too long: the hold expires and someone else books the table
 			await prisma.reservation.update({ where: { id: h1.json.reservation.id }, data: { status: 'EXPIRED' } });
-			const h2 = await client().post('/api/reservations/hold', {
+			const h2 = await (await customer('09120000012')).post('/api/reservations/hold', {
 				tableIds: [tables.a.id],
 				date,
 				startTime: '14:00',
@@ -1139,6 +1289,10 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.ok(late);
 			assert.equal(late.status, 'PAYMENT_REVIEW');
 			assert.equal(late.payments[0].status, 'REVIEW');
+			// the gateway's answer repeated (refresh, history): the table is still taken, so it is never confirmed
+			const again = await first.get(`/api/payments/callback?Authority=${authority}&Status=OK`);
+			assert.match(again.headers.get('location') ?? '', /result=review/);
+			assert.equal((await prisma.reservation.findUnique({ where: { id: late.id } }))?.status, 'PAYMENT_REVIEW');
 
 			// the manager cannot confirm it (table taken) but can cancel it, which records the refund
 			assert.equal((await dev.patch(`/api/admin/reservations/${late.id}/status`, { status: 'CONFIRMED' })).status, 409);
@@ -1148,7 +1302,7 @@ describe('Roof API (integration)', { skip }, () => {
 		});
 
 		test('a late payment is still confirmed when the table is free', async () => {
-			const c = client();
+			const c = await customer('09120000013');
 			const res = await c.post('/api/reservations/hold', {
 				tableIds: [tables.c.id],
 				date: tehranDate(8),
@@ -1164,6 +1318,143 @@ describe('Roof API (integration)', { skip }, () => {
 			const back = await c.get(`/api/payments/callback?Authority=${authority}&Status=OK`);
 			assert.match(back.headers.get('location') ?? '', /result=success/);
 			assert.equal((await prisma.reservation.findUnique({ where: { id: res.json.reservation.id } }))?.status, 'CONFIRMED');
+		});
+
+		test('paying on an older gateway page is found; a second payment is owed back; the invoice comes with the payment', async () => {
+			const c = await customer('09120000020');
+			const res = await c.post('/api/reservations/hold', {
+				tableIds: [tables.a.id],
+				date: tehranDate(10),
+				startTime: '13:00',
+				durationMinutes: 60,
+				guestCount: 2,
+				customerName: '  دو صفحه  ',
+				customerPhone: '09129999999', // someone else's number: ignored
+			});
+			assert.equal(res.status, 201, res.text);
+			const id = res.json.reservation.id;
+			assert.equal(res.json.reservation.customerName, 'دو صفحه', 'the name is saved trimmed');
+			assert.equal(res.json.reservation.customerPhone, '09120000020', 'booked with the verified number, not the one in the request');
+			assert.equal(res.json.reservation.invoice, null, 'no invoice for an unpaid hold');
+			// the customer's view of it carries no gateway internals
+			const seen = await c.get(`/api/reservations/${id}`);
+			assert.equal(seen.status, 200);
+			for (const key of ['rawResponse', 'authority', 'isMock']) assert.ok(!(key in seen.json.reservation.payments[0]), key);
+
+			// two trips to the gateway: each gets its own payment
+			const first = (await c.post(`/api/payments/${id}/request`)).json.paymentUrl.split('/').pop();
+			const second = (await c.post(`/api/payments/${id}/request`)).json.paymentUrl.split('/').pop();
+			assert.notEqual(first, second);
+			assert.equal(await prisma.payment.count({ where: { reservationId: id } }), 2);
+
+			// paid on the FIRST page: before, the second trip had overwritten its authority and this was lost
+			const back = await c.get(`/api/payments/callback?Authority=${first}&Status=OK`);
+			assert.match(back.headers.get('location') ?? '', /result=success/);
+			const paid = await prisma.reservation.findUnique({ where: { id }, include: { payments: true, invoice: true } });
+			assert.equal(paid?.status, 'CONFIRMED');
+			assert.ok(paid?.invoice?.number, 'the invoice is issued with the payment');
+			assert.deepEqual(paid?.payments.map((p) => p.status).sort(), ['FAILED', 'PAID']);
+
+			// then also paid on the second page: confirmed stays confirmed, the second payment is owed back
+			const dup = await c.get(`/api/payments/callback?Authority=${second}&Status=OK`);
+			assert.match(dup.headers.get('location') ?? '', /result=duplicate/);
+			const after = await prisma.reservation.findUnique({ where: { id }, include: { payments: true } });
+			assert.equal(after?.status, 'CONFIRMED');
+			assert.equal(after?.refundStatus, 'PENDING');
+			assert.deepEqual(after?.payments.map((p) => p.status).sort(), ['PAID', 'REFUND_PENDING']);
+			// and repeating the first answer changes nothing
+			const repeat = await c.get(`/api/payments/callback?Authority=${first}&Status=OK`);
+			assert.match(repeat.headers.get('location') ?? '', /result=success/);
+		});
+
+		test('a repeated «NOK» answer never fails a payment that is under review', async () => {
+			const r = await prisma.reservation.create({
+				data: {
+					trackingCode: 'RSV-000000003',
+					customerName: 'بررسی',
+					customerPhone: '09120000021',
+					guestCount: 2,
+					startAt: new Date(`${tehranDate(11)}T12:00:00+03:30`),
+					endAt: new Date(`${tehranDate(11)}T13:00:00+03:30`),
+					durationMinutes: 60,
+					status: 'PAYMENT_REVIEW',
+					pricePerGuest: 100000,
+					totalAmount: 200000,
+					tables: { create: [{ tableId: tables.b.id }] },
+					payments: { create: { amount: 200000, status: 'REVIEW', method: 'ZARINPAL', provider: 'zarinpal', authority: 'AREVIEW1' } },
+				},
+			});
+			const back = await client().get('/api/payments/callback?Authority=AREVIEW1&Status=NOK');
+			assert.equal(back.status, 302);
+			assert.equal((await prisma.payment.findFirst({ where: { reservationId: r.id } }))?.status, 'REVIEW');
+			assert.equal((await prisma.reservation.findUnique({ where: { id: r.id } }))?.status, 'PAYMENT_REVIEW');
+		});
+
+		test('only a manager records that a refund was paid back', async () => {
+			assert.equal(
+				(await dev.post('/api/admin/admins', { username: 'refund-main', name: 'مدیر', role: 'MAIN', password: 'RefundPass123' })).status,
+				201,
+			);
+			const main = await login('refund-main', 'RefundPass123');
+			const staff = await login('staff', 'StaffPass123');
+			const r = await prisma.reservation.create({
+				data: {
+					trackingCode: 'RSV-000000004',
+					customerName: 'بازگشت',
+					customerPhone: '09120000022',
+					guestCount: 2,
+					startAt: new Date(`${tehranDate(12)}T12:00:00+03:30`),
+					endAt: new Date(`${tehranDate(12)}T13:00:00+03:30`),
+					durationMinutes: 60,
+					status: 'CONFIRMED',
+					pricePerGuest: 100000,
+					totalAmount: 200000,
+					paidAmount: 200000,
+					tables: { create: [{ tableId: tables.b.id }] },
+					payments: { create: { amount: 200000, status: 'PAID', method: 'ZARINPAL', provider: 'zarinpal' } },
+				},
+			});
+			assert.equal((await dev.patch(`/api/admin/reservations/${r.id}/status`, { status: 'CANCELLED' })).json.reservation.refundStatus, 'PENDING');
+			assert.equal((await staff.post(`/api/admin/reservations/${r.id}/refund-done`, {})).status, 403);
+			const done = await main.post(`/api/admin/reservations/${r.id}/refund-done`, {});
+			assert.equal(done.status, 200, done.text);
+			assert.equal(done.json.reservation.refundStatus, 'DONE');
+			assert.equal((await prisma.payment.findFirst({ where: { reservationId: r.id } }))?.status, 'REFUNDED');
+			assert.equal((await main.post(`/api/admin/reservations/${r.id}/refund-done`, {})).status, 409, 'recorded once');
+			const action = await dev.get('/api/admin/reservations?filter=action');
+			assert.ok(!action.json.reservations.some((x: { id: string }) => x.id === r.id), 'no longer waiting for action');
+		});
+
+		test('SMS codes: one per minute per number, and five guesses per code', async () => {
+			const phone = '09129990000';
+			const visitor = client();
+			assert.equal((await visitor.post('/api/otp/send', { phone, purpose: 'LOGIN' })).status, 200);
+			assert.equal((await visitor.post('/api/otp/send', { phone, purpose: 'LOGIN' })).status, 429, 'a second code within a minute');
+			const code = lastOtp(phone);
+			assert.ok(code);
+			const wrong = code === '000000' ? '111111' : '000000';
+			for (let i = 0; i < 5; i++) {
+				assert.equal((await visitor.post('/api/otp/verify', { phone, code: wrong, purpose: 'LOGIN', name: 'حدس' })).status, 400);
+			}
+			assert.equal((await visitor.post('/api/otp/verify', { phone, code, purpose: 'LOGIN', name: 'حدس' })).status, 400, 'the code is spent after five wrong guesses');
+		});
+
+		test('the account comes back without its internals', async () => {
+			const phone = '09129990001';
+			const visitor = client();
+			assert.equal((await visitor.post('/api/otp/send', { phone, purpose: 'LOGIN' })).status, 200);
+			const verified = await visitor.post('/api/otp/verify', { phone, code: lastOtp(phone), purpose: 'LOGIN', name: 'حساب' });
+			assert.equal(verified.status, 200, verified.text);
+			assert.deepEqual(Object.keys(verified.json.user).sort(), ['id', 'name', 'phone']);
+			assert.deepEqual(Object.keys((await visitor.get('/api/me')).json.user).sort(), ['id', 'name', 'phone']);
+		});
+
+		test('closed days are marked in the booking config', async () => {
+			const day = tehranDate(13);
+			const closure = await dev.post('/api/admin/closures', { title: 'تعمیرات', date: day });
+			assert.equal(closure.status, 201, closure.text);
+			const cfg = await client().get('/api/config');
+			assert.ok(cfg.json.closedDates.includes(day));
 		});
 
 		test('the old "change reservation" API is gone', async () => {
@@ -1186,7 +1477,7 @@ describe('Roof API (integration)', { skip }, () => {
 					totalAmount: 200000,
 					paidAmount: 200000,
 					tables: { create: [{ tableId: tables.b.id }] },
-					payments: { create: { amount: 200000, status: 'PAID', method: 'MANUAL', provider: 'zarinpal', isMock: true } },
+					payments: { create: { amount: 200000, status: 'PAID', method: 'MANUAL', provider: 'manual' } },
 				},
 			});
 			const res = await dev.patch(`/api/admin/reservations/${r.id}/status`, { status: 'CANCELLED' });

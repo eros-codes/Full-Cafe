@@ -12,8 +12,11 @@ const STATUS_ACTIONS: { to: string; label: string; from: string[]; managerOnly?:
 	{ to: 'CONFIRMED', label: 'تایید پرداخت و رزرو', from: ['PAYMENT_REVIEW'], managerOnly: true },
 	{ to: 'COMPLETED', label: 'تکمیل‌شده', from: ['CONFIRMED'], afterStart: true },
 	{ to: 'NO_SHOW', label: 'عدم حضور مشتری', from: ['CONFIRMED'], afterStart: true },
-	{ to: 'CANCELLED', label: 'لغو رزرو', from: ['HOLD', 'PAYMENT_PENDING', 'PAYMENT_REVIEW', 'CONFIRMED'] },
+	{ to: 'CANCELLED', label: 'لغو رزرو', from: ['HOLD', 'PAYMENT_REVIEW', 'CONFIRMED'] },
 ];
+
+/** Not a status: records that a pending refund was paid back (its own endpoint). */
+const REFUND_DONE = 'REFUND_DONE';
 
 // ترتیب: کلید سرور، برچسب، آیکون (آیکون اول میاد تا در RTL سمت راست بشینه)
 const TABS: [string, string, IconName][] = [
@@ -105,11 +108,28 @@ export function Reservations({ isMain, reloadKey, onChanged }: Props) {
 		}
 	};
 
+	/** The café paid the money back: the refund leaves «نیاز به بررسی». Manager only (server checks too). */
+	const markRefunded = async (reservation: Reservation) => {
+		if (!window.confirm(`بازگشت وجه رزرو ${reservation.trackingCode} به مشتری انجام شده است؟ بعد از ثبت، دیگر در «نیاز به بررسی» نمی‌آید.`)) return;
+		setBusyId(reservation.id);
+		try {
+			await adminApi(`/api/admin/reservations/${reservation.id}/refund-done`, { method: 'POST' });
+			await load(filter);
+			onChanged();
+		} catch (error) {
+			setNotice(errorText(error));
+		} finally {
+			setBusyId(null);
+		}
+	};
+
 	const actionsFor = (reservation: Reservation) => {
 		const started = new Date(reservation.startAt) <= new Date();
-		return STATUS_ACTIONS.filter(
+		const actions: { to: string; label: string }[] = STATUS_ACTIONS.filter(
 			(action) => action.from.includes(reservation.status) && (!action.managerOnly || isMain) && (!action.afterStart || started),
 		);
+		if (isMain && reservation.refundStatus === 'PENDING') actions.push({ to: REFUND_DONE, label: 'بازگشت وجه انجام شد' });
+		return actions;
 	};
 
 	return (
@@ -181,6 +201,12 @@ export function Reservations({ isMain, reloadKey, onChanged }: Props) {
 															<span className="chip">بازگشت وجه</span>
 														</>
 													)}
+													{r.refundStatus === 'DONE' && (
+														<>
+															{' '}
+															<span className="chip">وجه برگشت داده شد</span>
+														</>
+													)}
 												</td>
 												<td>
 													{actions.length ? (
@@ -190,7 +216,9 @@ export function Reservations({ isMain, reloadKey, onChanged }: Props) {
 															aria-label={`تغییر وضعیت رزرو ${r.trackingCode}`}
 															onChange={(event) => {
 																const action = actions.find((a) => a.to === event.target.value);
-																if (action) changeStatus(r, action.to, action.label);
+																if (!action) return;
+																if (action.to === REFUND_DONE) markRefunded(r);
+																else changeStatus(r, action.to, action.label);
 															}}
 														>
 															<option value="">انتخاب</option>

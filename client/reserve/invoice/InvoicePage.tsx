@@ -5,13 +5,13 @@ import { DetailRow } from '../common/DetailRow';
 import { Topbar } from '../../shared/chrome/Topbar';
 import { ReserveFooter } from '../common/ReserveFooter';
 import { PAYMENT_STATUS_FA, REFUND_STATUS_FA, faDateTime, faHours, faNumber, statusFa, tablesText, toman } from '../common/format';
-import type { Reservation } from '../common/types';
+import type { PublicConfig, Reservation } from '../common/types';
 
-// باید با CANCEL_WINDOW_MINUTES سرور (src/lib/constants.ts) یکی باشد؛ سرور دوباره چک می‌کند
-const CANCEL_WINDOW_MINUTES = 120;
+/** Used only until /api/config answers; the server decides (and checks again) in any case. */
+const DEFAULT_CANCEL_MINUTES = 120;
 
-function canCancel(reservation: Reservation): boolean {
-	return reservation.status === 'CONFIRMED' && new Date(reservation.startAt).getTime() - Date.now() > CANCEL_WINDOW_MINUTES * 60 * 1000;
+function canCancel(reservation: Reservation, cancelMinutes: number): boolean {
+	return reservation.status === 'CONFIRMED' && new Date(reservation.startAt).getTime() - Date.now() > cancelMinutes * 60 * 1000;
 }
 
 const icsDate = (value: string | Date) =>
@@ -59,7 +59,7 @@ function downloadCalendarFile(reservation: Reservation) {
 	URL.revokeObjectURL(url);
 }
 
-type View = { kind: 'skeleton' } | { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'invoice'; reservation: Reservation };
+type View = { kind: 'skeleton' } | { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'invoice'; reservation: Reservation; cancelMinutes: number };
 
 export function InvoicePage() {
 	const [view, setView] = useState<View>({ kind: 'skeleton' });
@@ -72,8 +72,12 @@ export function InvoicePage() {
 			try {
 				if (!id) throw new Error('شناسه فاکتور در آدرس پیدا نشد.');
 				setView({ kind: 'loading' });
-				const { reservation } = await api<{ reservation: Reservation }>(`/api/reservations/${encodeURIComponent(id)}`);
-				if (isCurrent()) setView({ kind: 'invoice', reservation });
+				// the cancellation window comes from the server (it was a second, hard-coded copy here)
+				const [{ reservation }, config] = await Promise.all([
+					api<{ reservation: Reservation }>(`/api/reservations/${encodeURIComponent(id)}`),
+					api<PublicConfig>('/api/config').catch(() => null),
+				]);
+				if (isCurrent()) setView({ kind: 'invoice', reservation, cancelMinutes: config?.settings.minCancelMinutes ?? DEFAULT_CANCEL_MINUTES });
 			} catch (error) {
 				if (isCurrent()) setView({ kind: 'error', message: errorText(error) });
 			}
@@ -134,9 +138,18 @@ export function InvoicePage() {
 						</div>
 					</>
 				)}
-				{view.kind === 'invoice' && (
-					<Invoice reservation={view.reservation} cancelling={cancelling} cancelError={cancelError} onCancel={() => cancel(view.reservation)} />
-				)}
+				{view.kind === 'invoice' &&
+					(view.reservation.invoice ? (
+						<Invoice
+							reservation={view.reservation}
+							cancelMinutes={view.cancelMinutes}
+							cancelling={cancelling}
+							cancelError={cancelError}
+							onCancel={() => cancel(view.reservation)}
+						/>
+					) : (
+						<NoInvoice reservation={view.reservation} />
+					))}
 			</section>
 		</main>
 		<ReserveFooter />
@@ -144,8 +157,57 @@ export function InvoicePage() {
 	);
 }
 
-function Invoice({ reservation, cancelling, cancelError, onCancel }: { reservation: Reservation; cancelling: boolean; cancelError: string | null; onCancel: () => void }) {
-	const payment = reservation.payments?.[0];
+/** An invoice is only issued once the reservation is paid: until then, say why there is none and what to do. */
+function NoInvoice({ reservation }: { reservation: Reservation }) {
+	const text =
+		reservation.status === 'HOLD'
+			? 'فاکتور بعد از پرداخت صادر می‌شه. تا پایان زمان نگه‌داری می‌تونی پرداخت کنی.'
+			: reservation.status === 'PAYMENT_REVIEW'
+				? 'پرداختت در حال بررسیه؛ فاکتور بعد از تایید صادر می‌شه.'
+				: 'این رزرو پرداخت نشده و فاکتوری نداره.';
+	return (
+		<>
+			<div className="invoice-head">
+				<div>
+					<h3 style={{ marginBottom: '6px' }}>فاکتور هنوز صادر نشده</h3>
+					<span className="invoice-num">کد پیگیری {reservation.trackingCode}</span>
+				</div>
+				<span className={`status ${reservation.status}`}>{statusFa(reservation.status)}</span>
+			</div>
+			<p className="notice">{text}</p>
+			<DetailRow label="تاریخ و ساعت" value={faDateTime(reservation.startAt)} />
+			<DetailRow label="میز" value={tablesText(reservation)} />
+			<DetailRow label="مبلغ" value={toman(reservation.totalAmount)} />
+			<div className="actions">
+				{reservation.status === 'HOLD' && (
+					<a className="primary-btn" href={`/reserve/payment?id=${encodeURIComponent(reservation.id)}`}>
+						{ICONS.check}
+						<span>پرداخت</span>
+					</a>
+				)}
+				<a className="secondary-btn" href="/reserve">
+					رزرو جدید
+				</a>
+			</div>
+		</>
+	);
+}
+
+function Invoice({
+	reservation,
+	cancelMinutes,
+	cancelling,
+	cancelError,
+	onCancel,
+}: {
+	reservation: Reservation;
+	cancelMinutes: number;
+	cancelling: boolean;
+	cancelError: string | null;
+	onCancel: () => void;
+}) {
+	// a reservation can have several gateway trips: the one that paid is the one to show
+	const payment = reservation.payments?.find((p) => p.status === 'PAID') ?? reservation.payments?.[0];
 	return (
 		<>
 			<div className="invoice-head">
@@ -200,7 +262,7 @@ function Invoice({ reservation, cancelling, cancelError, onCancel }: { reservati
 					پروفایل من
 				</a>
 			</div>
-			{canCancel(reservation) && (
+			{canCancel(reservation, cancelMinutes) && (
 				<>
 					<div className="actions invoice-cancel">
 						<button className="secondary-btn" id="cancelBtn" disabled={cancelling} onClick={onCancel}>

@@ -6,7 +6,7 @@ import { createHttpError } from '../lib/http-error.js';
 import { CANCEL_WINDOW_MINUTES } from '../lib/constants.js';
 
 // رزروهایی که میز را اشغال می‌کنند
-export const BLOCKING_STATUSES: ReservationStatus[] = ['HOLD', 'PAYMENT_PENDING', 'PAYMENT_REVIEW', 'CONFIRMED'];
+export const BLOCKING_STATUSES: ReservationStatus[] = ['HOLD', 'PAYMENT_REVIEW', 'CONFIRMED'];
 
 export type TableWithConnections = CafeTable & { connectableTableIds: string[] };
 
@@ -65,11 +65,14 @@ export interface AvailabilityOptions {
 
 export async function expireOldHolds(client: Db = prisma): Promise<void> {
 	await client.reservation.updateMany({
-		where: {
-			status: { in: ['HOLD', 'PAYMENT_PENDING'] },
-			holdExpiresAt: { lt: new Date() },
-		},
+		where: { status: 'HOLD', holdExpiresAt: { lt: new Date() } },
 		data: { status: 'EXPIRED' },
+	});
+	// their payments were never made: closed too, so nothing stays «در انتظار» forever. A customer who still pays
+	// on an old gateway page is handled by the payment callback (FAILED is one of the states it confirms from).
+	await client.payment.updateMany({
+		where: { status: 'PENDING', reservation: { status: 'EXPIRED' } },
+		data: { status: 'FAILED' },
 	});
 }
 
@@ -85,6 +88,21 @@ export async function getPublicConfig() {
 		const day = String(d.getDate()).padStart(2, '0');
 		dates.push(`${y}-${m}-${day}`);
 	}
+	// Days the whole café is closed (closed weekday, or a closure of the whole day for the whole café), so the
+	// booking page can mark them instead of letting the customer search and only then read «بسته است».
+	const [workingHours, dayClosures] = await Promise.all([
+		prisma.workingHour.findMany(),
+		prisma.closure.findMany({
+			where: { date: { in: dates.map((d) => combineDateAndTime(d, '00:00')) }, startTime: null, zone: null, tableId: null },
+			select: { date: true },
+		}),
+	]);
+	const openDays = new Set(workingHours.filter((w) => !w.isClosed).map((w) => w.dayOfWeek));
+	const closedByClosure = new Set(dayClosures.map((c) => c.date.getTime()));
+	const closedDates = dates.filter((d) => {
+		const start = combineDateAndTime(d, '00:00');
+		return !openDays.has(start.getDay()) || closedByClosure.has(start.getTime());
+	});
 	return {
 		settings: {
 			reservationWindowDays: windowDays,
@@ -100,6 +118,7 @@ export async function getPublicConfig() {
 			currencyLabel: settings.currencyLabel || 'تومان',
 		},
 		dates,
+		closedDates,
 	};
 }
 
@@ -121,7 +140,7 @@ export async function getTablesWithConnections(client: Db = prisma): Promise<{ t
 }
 
 function reservationBlocksTable(reservation: BlockingReservation, tableId: string, startAt: Date, endAt: Date, bufferMinutes: number): boolean {
-	const isActiveHold = reservation.status === 'HOLD' || reservation.status === 'PAYMENT_PENDING';
+	const isActiveHold = reservation.status === 'HOLD';
 	if (isActiveHold && reservation.holdExpiresAt && reservation.holdExpiresAt < new Date()) return false;
 	const hasTable = reservation.tables.some((rt) => rt.tableId === tableId);
 	if (!hasTable) return false;
@@ -462,7 +481,7 @@ export async function findConflictingReservations(reservationId: string, client:
 	});
 	const now = new Date();
 	// نگه‌داری‌های منقضی‌شده (که هنوز پاک‌سازی نشده‌اند) دیگر میز را اشغال نمی‌کنند
-	return candidates.filter((r) => !((r.status === 'HOLD' || r.status === 'PAYMENT_PENDING') && r.holdExpiresAt && r.holdExpiresAt < now));
+	return candidates.filter((r) => !(r.status === 'HOLD' && r.holdExpiresAt && r.holdExpiresAt < now));
 }
 
 export async function assertTablesAvailable(
@@ -470,7 +489,12 @@ export async function assertTablesAvailable(
 	client: Db = prisma,
 	{ ignoreLeadTime = false }: { ignoreLeadTime?: boolean } = {},
 ): Promise<void> {
-	const availability = await getAvailability({ date, startTime, durationMinutes, guestCount }, { ignoreLeadTime, skipSuggestions: true }, client);
+	// one table: the combinations of tables are not needed (and are the slow part, inside the booking transaction)
+	const availability = await getAvailability(
+		{ date, startTime, durationMinutes, guestCount },
+		{ ignoreLeadTime, skipSuggestions: true, skipCombos: tableIds.length === 1 },
+		client,
+	);
 	if (tableIds.length === 1) {
 		const table = availability.tables.find((t) => t.id === tableIds[0]);
 		if (!table?.availability?.available) {
