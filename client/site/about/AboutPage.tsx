@@ -1,7 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
+import { api } from '../../shared/api';
 import { faDigits } from '../../shared/format';
 import { useGamesEnabled } from '../../shared/chrome/SiteChrome';
 import { headerOnScroll, heroParallax, revealOnScroll } from './effects';
+import { invitationLine, persianYear, weekLines, type WorkingDay } from './hours';
+
+/** The café's working hours from the panel (null while loading, [] when they could not be read). */
+function useWorkingHours(): WorkingDay[] | null {
+	const [days, setDays] = useState<WorkingDay[] | null>(null);
+	useEffect(() => {
+		let current = true;
+		api<{ days: WorkingDay[] }>('/api/working-hours')
+			.then((res) => current && setDays(Array.isArray(res.days) ? res.days : []))
+			.catch(() => current && setDays([]));
+		return () => {
+			current = false;
+		};
+	}, []);
+	return days;
+}
 
 /** Counts up from ۰ to `target` (ease-out, 1.5 s) the first time it is half visible. */
 function Counter({ target }: { target: number }) {
@@ -41,12 +58,12 @@ function Counter({ target }: { target: number }) {
 }
 
 const POPULAR = [
-	{ image: 'popular-1.jpg', alt: 'محبوب‌ترین ۱', name: 'دوبل برگر' },
-	{ image: 'popular-2.jpg', alt: 'محبوب‌ترین ۲', name: 'کیک کاراملی' },
-	{ image: 'popular-3.jpg', alt: 'محبوب‌ترین ۳', name: 'هات نارگیل' },
-	{ image: 'popular-4.jpg', alt: 'محبوب‌ترین ۴', name: 'بشقاب انگلیسی' },
-	{ image: 'popular-5.jpg', alt: 'محبوب‌ترین ۵', name: 'رد نایت' },
-	{ image: 'popular-6.jpg', alt: 'محبوب‌ترین ۶', name: 'پاستا آلفردو' },
+	{ image: 'popular-1.jpg', name: 'دوبل برگر' },
+	{ image: 'popular-2.jpg', name: 'کیک کاراملی' },
+	{ image: 'popular-3.jpg', name: 'هات نارگیل' },
+	{ image: 'popular-4.jpg', name: 'بشقاب انگلیسی' },
+	{ image: 'popular-5.jpg', name: 'رد نایت' },
+	{ image: 'popular-6.jpg', name: 'پاستا آلفردو' },
 ];
 
 const FEATURES = [
@@ -64,6 +81,9 @@ export function AboutPage() {
 	const headerRef = useRef<HTMLElement>(null);
 	const heroBgRef = useRef<HTMLDivElement>(null);
 	const games = useGamesEnabled();
+	const hours = useWorkingHours();
+	const hourLines = hours?.length ? weekLines(hours) : [];
+	const invitation = hours?.length ? invitationLine(hours) : null;
 
 	useEffect(() => {
 		const cleanups = [revealOnScroll(document.body)];
@@ -178,7 +198,8 @@ export function AboutPage() {
 				<div className="s-popular__bento" data-stagger>
 					{POPULAR.map((item) => (
 						<div className="s-pop" data-reveal key={item.image}>
-							<img src={`/images/${item.image}`} alt={item.alt} loading="lazy" />
+							{/* the name is written on the photo; a screen reader reads it once, from the label */}
+							<img src={`/images/${item.image}`} alt="" loading="lazy" />
 							<div className="s-pop__overlay"></div>
 							<span className="s-pop__name">{item.name}</span>
 						</div>
@@ -203,14 +224,29 @@ export function AboutPage() {
 			<section className="s-hours" id="s-hours">
 				<div className="s-hours__inner" data-stagger>
 					<div className="s-hours__card" data-reveal>
-						<div className="s-hours__row">
-							<span className="s-hours__label">ساعات کاری</span>
-							<span className="s-hours__value">
-								هر روز هفته
-								<br />۹ صبح تا ۲۴
-							</span>
-						</div>
-						<div className="s-hours__divider"></div>
+						{hours === null || hourLines.length > 0 ? (
+							<>
+								<div className="s-hours__row">
+									<span className="s-hours__label">ساعات کاری</span>
+									<span className="s-hours__value" aria-busy={hours === null || undefined}>
+										{hours === null
+											? '…'
+											: hourLines.map((line, i) =>
+													hourLines.length === 1 ? (
+														<span className="s-hours__line" key={i}>
+															{line.days}
+															<br />
+															{line.hours}
+														</span>
+													) : (
+														<span className="s-hours__line" key={i}>{`${line.days}: ${line.hours}`}</span>
+													),
+												)}
+									</span>
+								</div>
+								<div className="s-hours__divider"></div>
+							</>
+						) : null}
 						<div className="s-hours__row">
 							<span className="s-hours__label">آدرس</span>
 							<span className="s-hours__value">
@@ -247,7 +283,7 @@ export function AboutPage() {
 			<section className="s-cta" id="s-cta">
 				<div className="s-cta__text" data-reveal>
 					<h2 className="s-cta__title">یه فنجون قهوه منتظرته</h2>
-					<p className="s-cta__sub">از صبح تا نیمه‌شب، هر روز هفته</p>
+					{invitation && <p className="s-cta__sub">{invitation}</p>}
 				</div>
 				<a href="/menu" className="s-cta__btn" data-reveal>
 					بیا روف
@@ -259,9 +295,13 @@ export function AboutPage() {
 					<div className="s-footer__col s-footer__col--brand">
 						<span className="s-footer__brand">روف</span>
 						<p>
-							Fresh coffee, delicious food,
-							<br />
-							and unforgettable moments.
+							{/* English inside the RTL page: without its own direction the commas and the dot ran to the wrong end
+								(a class, not only dir="ltr": the site's reset gives every element direction: rtl) */}
+							<span dir="ltr" className="s-footer__en">
+								Fresh coffee, delicious food,
+								<br />
+								and unforgettable moments.
+							</span>
 						</p>
 					</div>
 					<div className="s-footer__col s-footer__col--social">
@@ -277,7 +317,7 @@ export function AboutPage() {
 					</div>
 				</div>
 				<div className="s-footer__bottom">
-					<p>© 1405 کافه روف · تمام حقوق محفوظ است</p>
+					<p>{`© ${persianYear()} کافه روف · تمام حقوق محفوظ است`}</p>
 				</div>
 			</footer>
 		</>

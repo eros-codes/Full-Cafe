@@ -27,7 +27,7 @@ export function ProductCard({ product, index, quantity, onOpen, onIncrease, onDe
 		>
 			<div className="food-pic">
 				{src ? (
-					<img src={src} alt={product.name} />
+					<img src={src} alt={product.name} loading="lazy" decoding="async" />
 				) : (
 					<div className="food-pic--empty">
 						<ImageIcon />

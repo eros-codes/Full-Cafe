@@ -1,6 +1,5 @@
 import express from 'express';
 import multer from 'multer';
-import fs from 'fs/promises';
 import type { CategoryKind, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { createHttpError, prismaCode } from '../../lib/http-error.js';
@@ -17,15 +16,15 @@ import {
 	type ProductTagsInput,
 } from '../../services/recommender.service.js';
 import {
+	MAX_UPLOAD_BYTES,
 	PLACEHOLDER_IMAGE,
-	PRODUCTS_DIR,
 	cleanupStaleTempUploads,
-	fileMatchesExtension,
 	imageExists,
 	isSafeImageName,
 	isTempUpload,
 	promoteTempImage,
 	removeImage,
+	saveUploadedImage,
 } from '../../lib/uploads.js';
 
 // Menu types, categories, add-ons, products, reviews and image upload for the admin panel.
@@ -68,55 +67,39 @@ function readPrice(value: unknown): number | null {
 
 // ─── Upload ───────────────────────────────────────────────────────────────────
 
-// Map, not a plain object: a mimetype such as "constructor" must not match an Object.prototype key
-const EXT_BY_MIME = new Map([
-	['image/jpeg', '.jpg'],
-	['image/png', '.png'],
-	['image/webp', '.webp'],
-	['image/gif', '.gif'],
-]);
+// A first, cheap filter on what the browser says the file is; the real check is the file's content (sniffImage)
+// and decoding it. A Set, not a plain object: a mimetype such as "constructor" must not match an Object.prototype key.
+const IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+const UPLOAD_MB_FA = String(MAX_UPLOAD_BYTES / 1024 / 1024).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
 const upload = multer({
-	storage: multer.diskStorage({
-		destination: async (_req, _file, cb) => {
-			try {
-				await fs.mkdir(PRODUCTS_DIR, { recursive: true });
-				cb(null, PRODUCTS_DIR);
-			} catch (error) {
-				cb(error as Error, PRODUCTS_DIR);
-			}
-		},
-		filename: (_req, file, cb) => {
-			cb(null, `temp-${Date.now()}-${Math.round(Math.random() * 1e9)}${EXT_BY_MIME.get(file.mimetype) ?? '.jpg'}`);
-		},
-	}),
+	// kept in memory only while it is converted: the original file is never written to disk
+	storage: multer.memoryStorage(),
 	fileFilter: (_req, file, cb) => {
-		if (EXT_BY_MIME.has(file.mimetype)) return cb(null, true);
+		if (IMAGE_MIMES.has(file.mimetype)) return cb(null, true);
 		cb(createHttpError(400, 'فقط فایل‌های تصویری مجاز است (jpg, png, webp, gif)'));
 	},
-	limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+	limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
 });
 
+// Every photo is converted to WebP here (at most 1200 px a side, metadata removed); see saveUploadedImage.
 adminMenuRouter.post('/upload', (req, res, next) => {
 	upload.single('image')(req, res, async (error: unknown) => {
 		if (error) {
 			if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-				return res.status(413).json({ message: 'حجم فایل بیشتر از ۵ مگابایت است.' });
+				return res.status(413).json({ message: `حجم فایل بیشتر از ${UPLOAD_MB_FA} مگابایت است.` });
 			}
 			if (error instanceof multer.MulterError) return res.status(400).json({ message: 'آپلود فایل نامعتبر بود.' });
 			return next(error);
 		}
 		try {
 			if (!req.file) return res.status(400).json({ message: 'فایلی ارسال نشد' });
-			// نوع فایل از روی محتوای واقعی‌اش چک می‌شود، نه فقط چیزی که مرورگر ادعا می‌کند
-			if (!(await fileMatchesExtension(req.file.path))) {
-				await fs.unlink(req.file.path).catch(() => {});
-				return res.status(400).json({ message: 'محتوای فایل یک تصویر معتبر نیست.' });
-			}
-			cleanupStaleTempUploads();
-			res.json({ filename: req.file.filename });
+			// a file that is not really a jpg / png / webp / gif, or does not decode, is answered with 400 (ImageError)
+			const filename = await saveUploadedImage(req.file.buffer);
+			void cleanupStaleTempUploads();
+			res.json({ filename });
 		} catch (err) {
-			if (req.file?.path) await fs.unlink(req.file.path).catch(() => {});
 			next(err);
 		}
 	});
@@ -547,11 +530,12 @@ adminMenuRouter.get('/products', async (_req, res, next) => {
 });
 
 adminMenuRouter.post('/products', async (req, res, next) => {
+	let promoted: string | undefined;
 	try {
 		const input = await readProductInput(req.body, false);
 		if (!input.ok) return res.status(input.status ?? 400).json({ message: input.error });
 		const { addOnIds = [], tags, ...fields } = input.data;
-		if (fields.image) fields.image = await promoteTempImage(fields.image);
+		if (fields.image) fields.image = promoted = await promoteTempImage(fields.image);
 		const adminId = currentAdmin(req).id;
 		const product = await prisma.$transaction(async (tx) => {
 			const created = await tx.product.create({
@@ -560,13 +544,17 @@ adminMenuRouter.post('/products', async (req, res, next) => {
 			if (tags?.length) await replaceProductTags(tx, created.id, tags);
 			return tx.product.findUniqueOrThrow({ where: { id: created.id }, include: productInclude });
 		});
+		promoted = undefined; // saved: the photo is the product's now
 		res.status(201).json({ product: toAdminProduct(product) });
 	} catch (error) {
+		// the photo was already taken out of temp-…: without this it would stay on disk with no product
+		await removeImage(promoted);
 		next(error);
 	}
 });
 
 adminMenuRouter.patch('/products/:id', async (req, res, next) => {
+	let promoted: string | undefined;
 	try {
 		const id = parseId(req.params.id);
 		if (!id) return res.status(400).json({ message: 'شناسه نامعتبر است' });
@@ -577,7 +565,7 @@ adminMenuRouter.patch('/products/:id', async (req, res, next) => {
 		if (!input.ok) return res.status(input.status ?? 400).json({ message: input.error });
 		const { addOnIds, tags, ...fields } = input.data;
 		const imageChanged = fields.image !== undefined && fields.image !== existing.image;
-		if (fields.image !== undefined && imageChanged) fields.image = await promoteTempImage(fields.image);
+		if (fields.image !== undefined && imageChanged) fields.image = promoted = await promoteTempImage(fields.image);
 		else delete fields.image;
 
 		const product = await prisma.$transaction(async (tx) => {
@@ -593,10 +581,13 @@ adminMenuRouter.patch('/products/:id', async (req, res, next) => {
 			if (tags) await replaceProductTags(tx, id, tags);
 			return tx.product.findUniqueOrThrow({ where: { id }, include: productInclude });
 		});
+		promoted = undefined; // saved: the photo is the product's now
 		// فایل قبلی فقط بعد از ذخیره‌ی موفق پاک می‌شود
 		if (imageChanged) await removeImage(existing.image);
 		res.json({ product: toAdminProduct(product) });
 	} catch (error) {
+		// the new photo was already taken out of temp-… (the old one is still the product's): remove the new one
+		await removeImage(promoted);
 		next(error);
 	}
 });

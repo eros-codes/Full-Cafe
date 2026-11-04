@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import { errorText } from '../../shared/api';
-import { DurationChips } from '../../reserve/common/DurationChips';
+import { useEffect, useState } from 'react';
+import { api, errorText } from '../../shared/api';
+import { toman } from '../../shared/format';
+import { DurationChips, fitDuration } from '../../reserve/common/DurationChips';
+import type { PublicConfig } from '../../reserve/common/types';
 import type { MapTable } from '../../reserve/map/types';
 import { adminApi } from '../common/adminApi';
 import { Notice, ZONE_FA, type NoticeState } from '../common/ui';
@@ -23,6 +25,23 @@ export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCre
 	const [decorationNote, setDecorationNote] = useState('');
 	const [notice, setNotice] = useState<NoticeState>(null);
 	const [busy, setBusy] = useState(false);
+	// the booking rules (durations, decoration price) are the café's settings, as on the booking page
+	const [rules, setRules] = useState<PublicConfig['settings'] | null>(null);
+
+	useEffect(() => {
+		let current = true;
+		api<PublicConfig>('/api/config')
+			.then(({ settings }) => {
+				if (!current) return;
+				setRules(settings);
+				setDuration((d) => fitDuration(d, settings.minDurationMinutes, settings.maxDurationMinutes));
+			})
+			.catch(() => undefined);
+		return () => {
+			current = false;
+		};
+	}, []);
+	const decorationPrice = rules?.decorationPrice ?? 0;
 
 	const activeTables = tables.filter((t) => t.isActive);
 	// a table that was deactivated in the meantime is dropped from the selection
@@ -46,7 +65,7 @@ export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCre
 					guestCount: Number(guests),
 					customerName: name.trim(),
 					customerPhone: phone.trim(),
-					decoration,
+					decoration: decoration && decorationPrice > 0,
 					decorationNote: decorationNote.trim() || null,
 				},
 			});
@@ -97,7 +116,7 @@ export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCre
 				</div>
 				<div className="field">
 					<label>مدت رزرو</label>
-					<DurationChips id="mDurationRow" value={duration} onChange={setDuration} />
+					<DurationChips id="mDurationRow" min={rules?.minDurationMinutes} max={rules?.maxDurationMinutes} value={duration} onChange={setDuration} />
 				</div>
 			</div>
 			<div className="field">
@@ -110,7 +129,8 @@ export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCre
 					))}
 				</div>
 			</div>
-			<div className="field">
+			{/* a decoration price of zero means decoration is switched off (the server would ignore the box) */}
+			<div className="field" hidden={decorationPrice <= 0}>
 				<label className="checkbox-row">
 					<input
 						type="checkbox"
@@ -121,10 +141,10 @@ export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCre
 							if (!e.target.checked) setDecorationNote('');
 						}}
 					/>{' '}
-					<span>تزئین میز</span>
+					<span>{`تزئین میز (+${toman(decorationPrice)})`}</span>
 				</label>
 			</div>
-			<div className="field" id="mDecorationNoteField" hidden={!decoration}>
+			<div className="field" id="mDecorationNoteField" hidden={!decoration || decorationPrice <= 0}>
 				<label htmlFor="mDecorationNote">چه تزئینی؟ (اختیاری)</label>
 				<input id="mDecorationNote" maxLength={200} value={decorationNote} onChange={(e) => setDecorationNote(e.target.value)} />
 			</div>

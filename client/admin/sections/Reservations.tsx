@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorText } from '../../shared/api';
 import { toman } from '../../shared/format';
 import { ICONS, type IconName } from '../../shared/icons';
-import { faDateTime, statusFa } from '../../reserve/common/format';
+import { PAYMENT_STATUS_FA, faDateTime, statusFa } from '../../reserve/common/format';
 import type { Reservation } from '../../reserve/common/types';
 import { adminApi } from '../common/adminApi';
 import { EmptyState, ErrorNotice, Skeleton, fa } from '../common/ui';
@@ -10,8 +10,9 @@ import { EmptyState, ErrorNotice, Skeleton, fa } from '../common/ui';
 // باید با STATUS_TRANSITIONS در admin.routes.ts یکی باشد: فقط تغییرهای مجاز نمایش داده می‌شوند
 const STATUS_ACTIONS: { to: string; label: string; from: string[]; managerOnly?: boolean; afterStart?: boolean }[] = [
 	{ to: 'CONFIRMED', label: 'تایید پرداخت و رزرو', from: ['PAYMENT_REVIEW'], managerOnly: true },
-	{ to: 'COMPLETED', label: 'تکمیل‌شده', from: ['CONFIRMED'], afterStart: true },
-	{ to: 'NO_SHOW', label: 'عدم حضور مشتری', from: ['CONFIRMED'], afterStart: true },
+	// the two attendance results can be corrected into each other (a wrong tap)
+	{ to: 'COMPLETED', label: 'تکمیل‌شده', from: ['CONFIRMED', 'NO_SHOW'], afterStart: true },
+	{ to: 'NO_SHOW', label: 'عدم حضور مشتری', from: ['CONFIRMED', 'COMPLETED'], afterStart: true },
 	{ to: 'CANCELLED', label: 'لغو رزرو', from: ['HOLD', 'PAYMENT_REVIEW', 'CONFIRMED'] },
 ];
 
@@ -94,8 +95,9 @@ export function Reservations({ isMain, reloadKey, onChanged }: Props) {
 	};
 
 	const changeStatus = async (reservation: Reservation, status: string, label: string) => {
-		// تغییر وضعیت (به‌خصوص لغو) برگشت‌پذیر نیست و برای مشتری پیامک می‌فرستد
-		if (!window.confirm(`وضعیت این رزرو به «${label}» تغییر کند؟ این کار قابل برگشت نیست.`)) return;
+		// لغو و تایید برگشت‌پذیر نیستند و برای مشتری پیامک می‌فرستند؛ تکمیل/عدم حضور بعداً قابل اصلاح است
+		const final = status === 'CANCELLED' || status === 'CONFIRMED';
+		if (!window.confirm(`وضعیت این رزرو به «${label}» تغییر کند؟${final ? ' این کار قابل برگشت نیست.' : ''}`)) return;
 		setBusyId(reservation.id);
 		try {
 			await adminApi(`/api/admin/reservations/${reservation.id}/status`, { method: 'PATCH', body: { status } });
@@ -192,6 +194,12 @@ export function Reservations({ isMain, reloadKey, onChanged }: Props) {
 												<td>
 													{`${toman(r.totalAmount)}${r.decorationAmount > 0 ? ' ' : ''}`}
 													{r.decorationAmount > 0 && <span className="chip">{`🎀 ${r.decorationNote || 'تزئین'}`}</span>}
+													{/* the gateway's code of each payment: what the manager looks up in Zarinpal to check or refund */}
+													{(r.payments || [])
+														.filter((p) => p.refId)
+														.map((p) => (
+															<small className="res-meta" key={p.id}>{`${PAYMENT_STATUS_FA[p.status] || p.status} · کد ${p.refId}`}</small>
+														))}
 												</td>
 												<td>
 													<span className={`status ${r.status}`}>{statusFa(r.status)}</span>
@@ -207,6 +215,8 @@ export function Reservations({ isMain, reloadKey, onChanged }: Props) {
 															<span className="chip">وجه برگشت داده شد</span>
 														</>
 													)}
+													{/* why it needs attention: a late or second payment, an unanswered gateway, the customer's reason */}
+													{r.notes && <small className="res-notes">{r.notes}</small>}
 												</td>
 												<td>
 													{actions.length ? (

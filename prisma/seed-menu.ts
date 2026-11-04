@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Prisma, type CategoryKind, type PrismaClient, type TagStrictness } from '@prisma/client';
 import { PROJECT_ROOT } from '../src/lib/paths.js';
-import { PRODUCTS_DIR } from '../src/lib/uploads.js';
+import { PRODUCTS_DIR, isFinalWebp, isSafeImageName, newImageName, toWebp } from '../src/lib/uploads.js';
 
 const SEED_DIR = path.join(PROJECT_ROOT, 'prisma', 'seed-data');
 const PLACEHOLDER = 'placeholder.png';
@@ -94,17 +94,31 @@ async function tagMaps(prisma: PrismaClient, data: MenuExport) {
 	return { groupIds, optionIds };
 }
 
-/** Copies a product image into uploads/products (if it is not there yet); placeholder when the file is missing. */
-function placeImage(image: string): string {
+/**
+ * Puts a product image into uploads/products as WebP, the same file an upload from the admin panel becomes (at most
+ * 1200 px a side, no metadata). The seed data may hold jpg / png from an older export; they are converted on the way.
+ * Placeholder when the file is missing or unreadable.
+ */
+async function placeImage(image: string): Promise<string> {
 	if (!image || image === PLACEHOLDER) return PLACEHOLDER;
 	const name = path.basename(image);
+	// the same name with .webp; a name the server would not have made (e.g. «latte.jpg») gets a new one, since the
+	// panel only accepts its own names and the product could not be edited otherwise
+	const webpName = name.replace(/\.(jpe?g|png|gif|webp)$/i, '.webp');
+	const target = isSafeImageName(webpName) ? webpName : newImageName({ temp: false });
+	if (fs.existsSync(path.join(PRODUCTS_DIR, target))) return target;
 	const source = path.join(SEED_DIR, 'images', name);
-	const target = path.join(PRODUCTS_DIR, name);
-	if (fs.existsSync(target)) return name;
 	if (!fs.existsSync(source)) return PLACEHOLDER;
-	fs.mkdirSync(PRODUCTS_DIR, { recursive: true });
-	fs.copyFileSync(source, target);
-	return name;
+	try {
+		const input = fs.readFileSync(source);
+		const webp = (await isFinalWebp(input)) ? input : await toWebp(input);
+		fs.mkdirSync(PRODUCTS_DIR, { recursive: true });
+		fs.writeFileSync(path.join(PRODUCTS_DIR, target), webp);
+		return target;
+	} catch (error) {
+		console.warn(`عکس ${name} خوانده نشد (${error instanceof Error ? error.message : error})؛ محصول بدون عکس ساخته شد.`);
+		return PLACEHOLDER;
+	}
 }
 
 async function seedMenu(prisma: PrismaClient, data: MenuExport): Promise<void> {
@@ -114,7 +128,8 @@ async function seedMenu(prisma: PrismaClient, data: MenuExport): Promise<void> {
 	}
 	const { groupIds, optionIds } = await tagMaps(prisma, data);
 	const mapIds = (refs: number[], map: Map<number, number>) => refs.map((ref) => map.get(ref)).filter((id): id is number => id !== undefined);
-	const images = new Map(data.products.map((p) => [p.ref, placeImage(p.image)]));
+	const images = new Map<number, string>();
+	for (const product of data.products) images.set(product.ref, await placeImage(product.image));
 
 	await prisma.$transaction(
 		async (tx) => {

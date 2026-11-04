@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { faNumber } from '../../shared/format';
 import { fetchReviews, type PublicReview } from './api';
 
-const DURATION = 4000; // ms between auto-advances
+const DURATION = 4000; // shortest time a review stays before the next one
+const MS_PER_CHAR = 50; // a long review or reply stays longer (a 500-character reply: about half a minute)
 const ANIM_MS = 450; // must match the CSS animation duration
+
+/** How long a review is shown: enough time to read it and the café's reply. */
+const readingTime = (review: PublicReview) => Math.max(DURATION, (review.text.length + (review.reply?.length ?? 0)) * MS_PER_CHAR);
 
 interface Review extends PublicReview {
 	date: string | null;
@@ -39,26 +44,31 @@ interface Slot {
 /** Approved reviews played one after another like a chat, with next / previous / pause and dots. */
 export function ChatPlayer() {
 	const [reviews, setReviews] = useState<Review[] | null>(null);
+	const [failed, setFailed] = useState(false);
 	const [slots, setSlots] = useState<Slot[]>([]);
 	const [current, setCurrent] = useState(0);
 	const [paused, setPaused] = useState(false);
+	/** Bumped to start the current review's time again (after a tap on the controls, or scrolling a long one). */
+	const [timerKey, setTimerKey] = useState(0);
 
 	const state = useRef({ current: 0, animating: false, count: 0, nextKey: 1 });
-	const timers = useRef<{ interval: number | null; pending: number[] }>({ interval: null, pending: [] });
+	const pending = useRef<number[]>([]);
 
 	useEffect(() => {
 		let cancelled = false;
 		fetchReviews()
-			.catch((error) => {
-				console.error('Failed to load reviews:', error);
-				return [] as PublicReview[];
-			})
 			.then((list) => {
 				if (cancelled) return;
 				const withDates = list.map((r) => ({ ...r, date: r.createdAt ? new Date(r.createdAt).toLocaleDateString('fa-IR') : null }));
 				state.current.count = withDates.length;
 				setReviews(withDates);
 				if (withDates.length) setSlots([{ key: 0, index: 0, motion: '' }]);
+			})
+			.catch((error) => {
+				if (cancelled) return;
+				console.error('Failed to load reviews:', error);
+				// before, a failed request showed «هنوز نظری ثبت نشده، اولین نفر باشید» as if there were no reviews
+				setFailed(true);
 			});
 		return () => {
 			cancelled = true;
@@ -80,7 +90,7 @@ export function ChatPlayer() {
 			setCurrent(nextIndex);
 			s.animating = false;
 		}, ANIM_MS);
-		timers.current.pending.push(id);
+		pending.current.push(id);
 	}, []);
 
 	const goNext = useCallback(() => {
@@ -93,31 +103,19 @@ export function ChatPlayer() {
 		if (count > 1) transition((cur - 1 + count) % count, 'prev');
 	}, [transition]);
 
-	const stopTimer = useCallback(() => {
-		if (timers.current.interval !== null) window.clearInterval(timers.current.interval);
-		timers.current.interval = null;
-	}, []);
-
-	const startTimer = useCallback(() => {
-		stopTimer();
-		if (state.current.count > 1) timers.current.interval = window.setInterval(goNext, DURATION);
-	}, [goNext, stopTimer]);
-
-	// auto-play once the reviews are in, and whenever "pause" is released
+	// auto-play: each review stays for its own reading time, then the next one comes (not while paused)
 	useEffect(() => {
-		if (!reviews || paused) return;
-		startTimer();
-		return stopTimer;
-	}, [reviews, paused, startTimer, stopTimer]);
+		if (!reviews || reviews.length < 2 || paused) return;
+		const id = window.setTimeout(goNext, readingTime(reviews[current]));
+		return () => window.clearTimeout(id);
+	}, [reviews, current, paused, timerKey, goNext]);
 
 	useEffect(() => {
-		const t = timers.current;
-		return () => t.pending.forEach((id) => window.clearTimeout(id));
+		const ids = pending.current;
+		return () => ids.forEach((id) => window.clearTimeout(id));
 	}, []);
 
-	const resetTimer = () => {
-		if (!paused) startTimer();
-	};
+	const resetTimer = () => setTimerKey((k) => k + 1);
 
 	const goTo = (index: number) => {
 		if (index === state.current.current || state.current.animating) return;
@@ -125,7 +123,7 @@ export function ChatPlayer() {
 		resetTimer();
 	};
 
-	const empty = reviews !== null && reviews.length === 0;
+	const empty = failed || (reviews !== null && reviews.length === 0);
 
 	return (
 		<div className={`chat-container${empty ? ' chat-container--empty' : ''}`}>
@@ -139,9 +137,15 @@ export function ChatPlayer() {
 					</span>
 				</div>
 			</div>
-			<div className={`chat-window${empty ? ' chat-window--empty' : ''}`}>
+			{/* scrolling a long reply, or touching it, gives the reader its full time again */}
+			<div className={`chat-window${empty ? ' chat-window--empty' : ''}`} onScrollCapture={resetTimer} onPointerDown={resetTimer}>
 				<div className="chat-messages" id="chat-messages">
-					{empty ? (
+					{failed ? (
+						<div className="chat-placeholder" role="status">
+							<p className="chat-placeholder-title">نظرها الان بارگذاری نشد</p>
+							<p className="chat-placeholder-body">اتصال اینترنت را بررسی کنید و صفحه را دوباره باز کنید</p>
+						</div>
+					) : empty ? (
 						<div className="chat-placeholder">
 							<p className="chat-placeholder-title">هنوز نظری ثبت نشده</p>
 							<p className="chat-placeholder-body">اولین نفر باشید و تجربه‌تان را با ما به اشتراک بگذارید</p>
@@ -190,7 +194,7 @@ export function ChatPlayer() {
 			</div>
 			<div className="chat-dots" id="chat-dots" style={empty ? { display: 'none' } : undefined}>
 				{reviews?.map((_, i) => (
-					<button key={i} className={`chat-dot${i === current ? ' chat-dot--active' : ''}`} aria-label={`نظر ${i + 1}`} onClick={() => goTo(i)}></button>
+					<button key={i} className={`chat-dot${i === current ? ' chat-dot--active' : ''}`} aria-label={`نظر ${faNumber(i + 1)}`} onClick={() => goTo(i)}></button>
 				))}
 			</div>
 		</div>

@@ -2,8 +2,24 @@ import express from 'express';
 import { queryString } from '../lib/request.js';
 import { CLOCK_TIME, CLOSING_TIME, isValidDateString } from '../lib/time.js';
 import { getAvailability, getPublicConfig, getTablesWithConnections } from '../services/availability.service.js';
+import { optionalUser } from '../middleware/auth.js';
+import { prisma } from '../lib/prisma.js';
 
 export const publicRouter = express.Router();
+
+// The café's hours for the About page: the same hours the bookings follow (set in the panel's «ساعت کاری»).
+// Before, the page had «هر روز هفته، ۹ صبح تا ۲۴» written into it, whatever the panel said.
+publicRouter.get('/working-hours', async (_req, res, next) => {
+	try {
+		const days = await prisma.workingHour.findMany({
+			select: { dayOfWeek: true, opensAt: true, closesAt: true, isClosed: true },
+			orderBy: { dayOfWeek: 'asc' },
+		});
+		res.json({ days });
+	} catch (error) {
+		next(error);
+	}
+});
 
 publicRouter.get('/config', async (_req, res, next) => {
 	try {
@@ -22,7 +38,7 @@ publicRouter.get('/tables', async (_req, res, next) => {
 	}
 });
 
-publicRouter.get('/availability', async (req, res, next) => {
+publicRouter.get('/availability', optionalUser, async (req, res, next) => {
 	try {
 		const guestCount = Number(req.query.guests);
 		const durationMinutes = Number(req.query.durationMinutes);
@@ -50,14 +66,17 @@ publicRouter.get('/availability', async (req, res, next) => {
 		if (rangeStart && rangeEnd && rangeStart >= rangeEnd) {
 			return res.status(400).json({ message: 'ساعت پایان بازه باید بعد از ساعت شروع باشد.' });
 		}
-		const data = await getAvailability({
-			date,
-			guestCount,
-			durationMinutes,
-			startTime: startTime || undefined,
-			rangeStart: rangeStart || undefined,
-			rangeEnd: rangeEnd || undefined,
-		});
+		const data = await getAvailability(
+			{
+				date,
+				guestCount,
+				durationMinutes,
+				startTime: startTime || undefined,
+				rangeStart: rangeStart || undefined,
+				rangeEnd: rangeEnd || undefined,
+			},
+			{ ownerUserId: req.user?.id },
+		);
 		res.json(data);
 	} catch (error) {
 		next(error);

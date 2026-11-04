@@ -584,6 +584,23 @@ div.clock-range div.field {
 	border-bottom: none;
 }
 
+/* a reservation's notes and payment codes, under its status and amount */
+.table-list .res-notes,
+.table-list .res-meta {
+	display: block;
+	max-width: 280px;
+	margin-top: 6px;
+	color: var(--deep-taupe);
+	font-size: 12px;
+	line-height: 1.8;
+	white-space: pre-line;
+}
+
+.table-list .res-meta {
+	direction: rtl;
+	unicode-bidi: plaintext;
+}
+
 .empty-state {
 	display: flex;
 	flex-direction: column;

@@ -9,8 +9,8 @@ export function todayKey(date: Date = new Date()): string {
 	return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 }
 
-// Public pages only (café site + reservation), not the admin panel or API.
-const TRACKED_PAGE = /^\/(menu|feedback|reserve(\/(payment|invoice|profile|track))?)?\/?$/;
+// Public pages only (café site + reservation), not the admin panel or API. (The games page was left out before.)
+export const TRACKED_PAGE = /^\/(menu|feedback|games|reserve(\/(payment|invoice|profile|track))?)?\/?$/;
 
 function visitorHash(req: Request): string {
 	// req.ip already respects `trust proxy`. The old code read X-Forwarded-For directly,

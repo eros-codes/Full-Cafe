@@ -475,9 +475,9 @@ model CategoryTagOption {
 
 // ─── Games page (/games) ──────────────────────────────────────────────────────
 // The games themselves are code (client/site/games); the database only keeps which ones the café shows
-// and the cards of the word games. Game keys: GAMES in src/services/games.service.ts.
+// and the cards of the word games. Game keys: GAMES in src/services/game-catalog.ts.
 
-/// A game's place on the games page. A game without a row uses its defaults (GAMES in games.service.ts).
+/// A game's place on the games page. A game without a row uses its defaults (GAMES in game-catalog.ts).
 model GameSetting {
   key       String   @id
   isActive  Boolean  @default(true)

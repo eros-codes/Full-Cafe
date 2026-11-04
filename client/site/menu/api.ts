@@ -32,8 +32,8 @@ export interface Product {
 
 export const fetchMenuTypes = () => api<MenuType[]>('/api/menu-types', { fallbackMessage: 'خطا در دریافت منو' });
 export const fetchCategories = () => api<Category[]>('/api/categories', { fallbackMessage: 'خطا در دریافت دسته‌بندی‌ها' });
-export const fetchProducts = (categoryId: number, signal?: AbortSignal) =>
-	api<Product[]>(`/api/products?categoryId=${encodeURIComponent(categoryId)}`, { signal, fallbackMessage: 'خطا در دریافت محصولات' });
+/** Every product of the visible tabs (the menu page filters them by category itself). */
+export const fetchProducts = () => api<Product[]>('/api/products', { fallbackMessage: 'خطا در دریافت محصولات' });
 
 /** Product images are served from the server's uploads folder; the placeholder means "no image". */
 export function productImageUrl(image: string | null | undefined): string {

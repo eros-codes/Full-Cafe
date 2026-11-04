@@ -15,6 +15,7 @@ import { fileURLToPath } from 'url';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 import type { CafeTable, PrismaClient } from '@prisma/client';
+import sharp from 'sharp';
 
 const TEST_DB = process.env.TEST_DATABASE_URL;
 const skip = !TEST_DB
@@ -92,10 +93,21 @@ function tehranDate(offsetDays: number): string {
 	return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
 
-function jpegFile() {
-	// smallest valid JPEG header is enough for the magic-number check
-	const bytes = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 1)]);
-	return new Blob([bytes], { type: 'image/jpeg' });
+/** Uploads a photo from the panel and returns its temp-….webp name. */
+async function uploadPhoto(admin: Client): Promise<string> {
+	const form = new FormData();
+	form.append('image', await jpegFile(), 'photo.jpg');
+	const res = await admin.post('/api/admin/upload', undefined, { form });
+	assert.equal(res.status, 200, res.text);
+	return res.json.filename;
+}
+
+const uploadedFiles = () => (fs.existsSync(UPLOADS) ? fs.readdirSync(UPLOADS) : []);
+
+/** A real photo: uploads are decoded and re-encoded as WebP, so a bare JPEG header is no longer enough. */
+async function jpegFile(width = 1600, height = 1200) {
+	const bytes = await sharp({ create: { width, height, channels: 3, background: '#a65' } }).jpeg().toBuffer();
+	return new Blob([new Uint8Array(bytes)], { type: 'image/jpeg' });
 }
 
 function lastOtp(phone: string): string | undefined {
@@ -223,6 +235,16 @@ describe('Roof API (integration)', { skip }, () => {
 			}
 			// an unknown page goes home instead of showing a blank 404
 			assert.equal((await c.get('/no-such-page')).headers.get('location'), '/');
+		});
+
+		test('the About page reads the working hours of the panel; the games page counts as a visit', async () => {
+			const res = await client().get('/api/working-hours');
+			assert.equal(res.status, 200);
+			assert.equal(res.json.days.length, 7);
+			assert.deepEqual(res.json.days[0], { dayOfWeek: 0, opensAt: '09:00', closesAt: '21:00', isClosed: false });
+			const { TRACKED_PAGE } = await import('../src/middleware/site-visit.js');
+			for (const page of ['/', '/menu', '/feedback', '/games', '/reserve', '/reserve/track']) assert.ok(TRACKED_PAGE.test(page), page);
+			for (const page of ['/admin', '/api/menu-types', '/uploads/products/x.webp']) assert.ok(!TRACKED_PAGE.test(page), page);
 		});
 
 		test('admin pages are not indexed and CSP allows the Google map iframe only', async () => {
@@ -421,6 +443,7 @@ describe('Roof API (integration)', { skip }, () => {
 		});
 
 		test('upload checks the real file content, not just the mimetype', async () => {
+			const filesBefore = uploadedFiles().length;
 			const fake = new FormData();
 			fake.append('image', new Blob(['<?php echo 1; ?>'], { type: 'image/jpeg' }), 'x.jpg');
 			assert.equal((await dev.post('/api/admin/upload', undefined, { form: fake })).status, 400);
@@ -428,11 +451,54 @@ describe('Roof API (integration)', { skip }, () => {
 			text.append('image', new Blob(['hello'], { type: 'text/plain' }), 'x.txt');
 			assert.equal((await dev.post('/api/admin/upload', undefined, { form: text })).status, 400);
 			assert.equal((await client().post('/api/admin/upload', undefined, { form: new FormData() })).status, 401);
+			// an SVG sent as a PNG never reaches the image decoder
+			const svg = new FormData();
+			svg.append('image', new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9"/>'], { type: 'image/png' }), 'x.png');
+			assert.equal((await dev.post('/api/admin/upload', undefined, { form: svg })).status, 400);
+			// a real JPEG header on a cut-off file
+			const cut = new FormData();
+			const whole = new Uint8Array(await (await jpegFile()).arrayBuffer());
+			cut.append('image', new Blob([whole.subarray(0, whole.length >> 1)], { type: 'image/jpeg' }), 'x.jpg');
+			const broken = await dev.post('/api/admin/upload', undefined, { form: cut });
+			assert.equal(broken.status, 400);
+			assert.match(broken.json.message, /خراب/);
+			assert.equal(uploadedFiles().length, filesBefore, 'nothing is left on disk by refused files');
+		});
+
+		test('an upload is stored as WebP: upright, at most 1200 px, without the photo metadata', async () => {
+			const before = new Set(uploadedFiles());
+			// a sideways phone photo (EXIF orientation 6) with a GPS position
+			const photo = await sharp({ create: { width: 3000, height: 2000, channels: 3, background: '#357' } })
+				.jpeg()
+				.withMetadata({ orientation: 6, exif: { IFD3: { GPSLatitudeRef: 'N', GPSLatitude: '35/1 41/1 0/1' } } })
+				.toBuffer();
+			const form = new FormData();
+			form.append('image', new Blob([new Uint8Array(photo)], { type: 'image/jpeg' }), 'IMG_1234.JPG');
+			const res = await dev.post('/api/admin/upload', undefined, { form });
+			assert.equal(res.status, 200, res.text);
+			assert.match(res.json.filename, /^temp-\d+-\d+\.webp$/);
+			const added = uploadedFiles().filter((f) => !before.has(f));
+			assert.deepEqual(added, [res.json.filename], 'only the WebP is written, never the original file');
+			const meta = await sharp(path.join(UPLOADS, res.json.filename)).metadata();
+			assert.deepEqual([meta.format, meta.width, meta.height, meta.exif], ['webp', 800, 1200, undefined]);
+			const served = await client().get(`/uploads/products/${res.json.filename}`);
+			assert.equal(served.status, 200);
+			assert.equal(served.headers.get('content-type'), 'image/webp');
+			fs.unlinkSync(path.join(UPLOADS, res.json.filename));
+
+			// over 10 MB: refused before it is processed (random bytes do not compress)
+			const big = new FormData();
+			const bytes = new Uint8Array(10 * 1024 * 1024 + 1);
+			bytes.set([0xff, 0xd8, 0xff]);
+			big.append('image', new Blob([bytes], { type: 'image/jpeg' }), 'big.jpg');
+			const tooBig = await dev.post('/api/admin/upload', undefined, { form: big });
+			assert.equal(tooBig.status, 413);
+			assert.match(tooBig.json.message, /۱۰ مگابایت/);
 		});
 
 		test('products: uploaded image is kept, bad input rejected', async () => {
 			const form = new FormData();
-			form.append('image', jpegFile(), 'latte.jpg');
+			form.append('image', await jpegFile(), 'latte.jpg');
 			const upload = await dev.post('/api/admin/upload', undefined, { form });
 			assert.equal(upload.status, 200, upload.text);
 			assert.match(upload.json.filename, /^temp-/);
@@ -459,6 +525,7 @@ describe('Roof API (integration)', { skip }, () => {
 			product = res.json.product;
 			// temp file is promoted so the stale-upload cleanup never deletes it
 			assert.doesNotMatch(product.image, /^temp-/);
+			assert.match(product.image, /\.webp$/);
 			assert.ok(fs.existsSync(path.join(UPLOADS, product.image)));
 			assert.equal((await client().get(`/uploads/products/${product.image}`)).status, 200);
 
@@ -479,13 +546,51 @@ describe('Roof API (integration)', { skip }, () => {
 
 		test('replacing a product image deletes the old file', async () => {
 			const form = new FormData();
-			form.append('image', jpegFile(), 'new.jpg');
+			form.append('image', await jpegFile(), 'new.jpg');
 			const upload = await dev.post('/api/admin/upload', undefined, { form });
 			const res = await dev.patch(`/api/admin/products/${product.id}`, { image: upload.json.filename, price: 99000 });
 			assert.equal(res.status, 200, res.text);
 			assert.equal(res.json.product.price, 99000);
 			assert.ok(!fs.existsSync(path.join(UPLOADS, product.image)));
 			product = res.json.product;
+		});
+
+		test('a product that fails to save leaves no photo behind', async () => {
+			const original = prisma.$transaction;
+			const quiet = console.error;
+			for (const save of [
+				(image: string) => dev.post('/api/admin/products', { name: 'ناموفق', price: 1000, categoryId: category.id, image }),
+				(image: string) => dev.patch(`/api/admin/products/${product.id}`, { image }),
+			]) {
+				const temp = await uploadPhoto(dev);
+				// the database fails after the photo was taken out of temp-…
+				(prisma as unknown as { $transaction: () => Promise<never> }).$transaction = async () => {
+					throw new Error('database down');
+				};
+				console.error = () => {};
+				try {
+					assert.equal((await save(temp)).status, 500);
+				} finally {
+					prisma.$transaction = original;
+					console.error = quiet;
+				}
+				assert.ok(!fs.existsSync(path.join(UPLOADS, temp)), 'temp file renamed');
+				assert.ok(!fs.existsSync(path.join(UPLOADS, temp.slice('temp-'.length))), 'and the renamed file removed again');
+			}
+			assert.ok(fs.existsSync(path.join(UPLOADS, product.image)), "the product's own photo is untouched");
+			assert.equal((await dev.get('/api/admin/products')).json.products.length, 1);
+		});
+
+		test('one upload saved twice at once: one product gets it, the other is asked to upload again', async () => {
+			const temp = await uploadPhoto(dev);
+			const saves = await Promise.all(
+				['اول', 'دوم'].map((name) => dev.post('/api/admin/products', { name, price: 1000, categoryId: category.id, image: temp })),
+			);
+			assert.deepEqual(saves.map((r) => r.status).sort(), [201, 400], saves.map((r) => r.text).join(' | '));
+			const created = saves.find((r) => r.status === 201)!.json.product;
+			assert.ok(fs.existsSync(path.join(UPLOADS, created.image)));
+			assert.equal((await dev.del(`/api/admin/products/${created.id}`)).status, 200);
+			assert.ok(!fs.existsSync(path.join(UPLOADS, created.image)));
 		});
 
 		test('add-ons: one shared library, attached to any number of products', async () => {
@@ -787,6 +892,38 @@ describe('Roof API (integration)', { skip }, () => {
 			for (const p of [latte, decaf, unknownTemp, soldOut, hookah, hidden]) assert.equal((await staff.del(`/api/admin/products/${p.id}`)).status, 200);
 			for (const c of [coffee.id, noKind.json.category.id, hiddenCat.json.category.id]) assert.equal((await staff.del(`/api/admin/categories/${c}`)).status, 200);
 			assert.equal((await main.del(`/api/admin/menu-types/${hiddenType.json.menuType.id}`)).status, 200);
+		});
+
+		test('deleting an option does not quietly turn its products into «هیچ‌کدام»', async () => {
+			const flavor = (
+				await main.post('/api/admin/tag-groups', { name: 'طعم', question: 'چه طعمی؟', kinds: ['DRINK'], importance: 3, options: ['شکلاتی', 'کاراملی'] })
+			).json.group;
+			const drinks = (await staff.post('/api/admin/categories', { name: 'نوشیدنی‌ها', menuTypeId: cafeTypeId, kind: 'DRINK', tagOptionIds: [opt(temp, 'گرم')] })).json
+				.category;
+			const mk = async (name: string, tags: { groupId: number; optionIds: number[] }[]) => {
+				const res = await staff.post('/api/admin/products', { name, price: 1000, categoryId: drinks.id, tags });
+				assert.equal(res.status, 201, res.text);
+				return res.json.product;
+			};
+			const mocha = await mk('موکا', [{ groupId: flavor.id, optionIds: [opt(flavor, 'شکلاتی')] }]);
+			const both = await mk('دوطعم', [{ groupId: flavor.id, optionIds: [opt(flavor, 'شکلاتی'), opt(flavor, 'کاراملی')] }]);
+			const plain = await mk('ساده', [{ groupId: flavor.id, optionIds: [] }]);
+			const iced = await mk('آیس', [{ groupId: temp.id, optionIds: [opt(temp, 'سرد')] }]);
+
+			assert.equal((await main.del(`/api/admin/tag-options/${opt(flavor, 'شکلاتی')}?force=1`)).status, 200);
+			assert.equal((await main.del(`/api/admin/tag-options/${opt(temp, 'سرد')}?force=1`)).status, 200);
+			const data = (await client().get('/api/recommender')).json;
+			assert.deepEqual(productIn(data, mocha.id).noneGroupIds, [], 'its only flavour deleted: untagged, not «هیچ‌کدام»');
+			const coverage = (await staff.get('/api/admin/tags/coverage')).json;
+			assert.deepEqual(coverage.incomplete.find((i: any) => i.productId === mocha.id)?.missingGroupIds, [flavor.id], 'and listed as missing');
+			assert.deepEqual(productIn(data, both.id).optionIds, [opt(temp, 'گرم'), opt(flavor, 'کاراملی')].sort((a, b) => a - b), 'keeps its other flavour');
+			assert.deepEqual(productIn(data, plain.id).noneGroupIds, [flavor.id], 'a real «هیچ‌کدام» stays');
+			assert.deepEqual(productIn(data, iced.id).optionIds, [], 'does not inherit «گرم» from its category');
+			assert.deepEqual(productIn(data, iced.id).noneGroupIds, [temp.id], 'it stays apart from its category: «هیچ‌کدام»');
+
+			for (const p of [mocha, both, plain, iced]) assert.equal((await staff.del(`/api/admin/products/${p.id}`)).status, 200);
+			assert.equal((await staff.del(`/api/admin/categories/${drinks.id}`)).status, 200);
+			assert.equal((await main.del(`/api/admin/tag-groups/${flavor.id}?force=1`)).status, 200);
 		});
 
 		test('group order is the manager\'s; the switch turns everything off again', async () => {
@@ -1214,7 +1351,8 @@ describe('Roof API (integration)', { skip }, () => {
 		test('staff can book a walk-in for the next hour, online customers cannot', async () => {
 			const today = tehranDate(0);
 			const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tehran', hour: '2-digit', hour12: false }).format(new Date()));
-			if (hour + 1 >= 20) return; // too late in the day for this check (café closes at 21:00)
+			// only while the next hour is a working hour (the test café is open 09:00–21:00)
+			if (hour + 1 < 9 || hour + 1 >= 20) return;
 			const startTime = `${String(hour + 1).padStart(2, '0')}:00`;
 			const body = {
 				tableIds: [tables.b.id],
@@ -1491,6 +1629,143 @@ describe('Roof API (integration)', { skip }, () => {
 				assert.equal(typeof res.json[key], 'number', key);
 			}
 			assert.ok(res.json.actionNeeded >= 1, 'the pending refund needs attention');
+		});
+	});
+
+	describe('reservation fixes', () => {
+		const date = tehranDate(5);
+		const hold = (c: Client, body: Record<string, unknown>) =>
+			c.post('/api/reservations/hold', { date, durationMinutes: 60, guestCount: 2, customerName: 'مشتری', ...body });
+
+		test('signing in without a name keeps the account name (it is not replaced by a booking name)', async () => {
+			const phone = '09125550001';
+			const owner = await customer(phone, 'آروین');
+			// booked for someone else
+			assert.equal((await hold(owner, { tableIds: [tables.a.id], startTime: '10:00', customerName: 'مریم' })).status, 201);
+			// a new code is one a minute: the first one is made a few minutes old
+			await prisma.otpCode.updateMany({ where: { phone }, data: { createdAt: new Date(Date.now() - 5 * 60 * 1000) } });
+			const again = client();
+			assert.equal((await again.post('/api/otp/send', { phone, purpose: 'LOGIN' })).status, 200);
+			const verified = await again.post('/api/otp/verify', { phone, code: lastOtp(phone), purpose: 'LOGIN' });
+			assert.equal(verified.status, 200, verified.text);
+			assert.equal(verified.json.user.name, 'آروین');
+			// a new number without a name still takes the name of its phone booking
+			const fresh = '09125550002';
+			assert.equal((await dev.post('/api/admin/reservations/manual', { tableIds: [tables.b.id], date, startTime: '10:00', durationMinutes: 60, guestCount: 2, customerName: 'رزرو تلفنی', customerPhone: fresh })).status, 201);
+			const visitor = client();
+			assert.equal((await visitor.post('/api/otp/send', { phone: fresh, purpose: 'LOGIN' })).status, 200);
+			const created = await visitor.post('/api/otp/verify', { phone: fresh, code: lastOtp(fresh), purpose: 'LOGIN' });
+			assert.equal(created.status, 200, created.text);
+			assert.equal(created.json.user.name, 'رزرو تلفنی');
+		});
+
+		test('going back and picking the same table again works: the earlier unpaid hold lets go', async () => {
+			const c = await customer('09125550003');
+			const first = await hold(c, { tableIds: [tables.c.id], startTime: '12:00' });
+			assert.equal(first.status, 201, first.text);
+			// the map shows the table free again to its holder (so it can be picked again), busy to everyone else
+			const look = async (who: Client) =>
+				(await who.get(`/api/availability?date=${date}&guests=2&durationMinutes=60&startTime=12:00`)).json.tables.find((t: { id: string }) => t.id === tables.c.id).availability.available;
+			assert.equal(await look(c), true);
+			assert.equal(await look(client()), false);
+			const second = await hold(c, { tableIds: [tables.c.id], startTime: '12:00' });
+			assert.equal(second.status, 201, second.text);
+			assert.equal((await prisma.reservation.findUnique({ where: { id: first.json.reservation.id } }))?.status, 'EXPIRED');
+			assert.equal((await prisma.payment.findFirst({ where: { reservationId: first.json.reservation.id } }))?.status, 'FAILED');
+			// someone else's hold is not touched, and still blocks the table
+			const other = await hold(await customer('09125550004'), { tableIds: [tables.c.id], startTime: '12:00' });
+			assert.equal(other.status, 400);
+			assert.equal((await prisma.reservation.findUnique({ where: { id: second.json.reservation.id } }))?.status, 'HOLD');
+		});
+
+		test('two «پرداخت» taps at once: both gateway pages are found', async () => {
+			const c = await customer('09125550005');
+			const res = await hold(c, { tableIds: [tables.a.id], startTime: '13:00' });
+			assert.equal(res.status, 201, res.text);
+			const id = res.json.reservation.id;
+			const [one, two] = await Promise.all([c.post(`/api/payments/${id}/request`), c.post(`/api/payments/${id}/request`)]);
+			const authorities = [one, two].map((r) => r.json.paymentUrl.split('/').pop());
+			assert.notEqual(authorities[0], authorities[1]);
+			assert.equal(await prisma.payment.count({ where: { reservationId: id, authority: { in: authorities } } }), 2, 'each page has its own payment');
+			const back = await c.get(`/api/payments/callback?Authority=${authorities[0]}&Status=OK`);
+			assert.match(back.headers.get('location') ?? '', /result=success/);
+		});
+
+		test('tables booked together: any connected set, checked as asked; unconnected tables are refused', async () => {
+			const c = await customer('09125550006');
+			const together = await hold(c, { tableIds: [tables.b.id, tables.c.id], startTime: '16:00', guestCount: 7 });
+			assert.equal(together.status, 201, together.text);
+			const apart = await dev.post('/api/admin/reservations/manual', { tableIds: [tables.a.id, tables.b.id], date, startTime: '18:00', durationMinutes: 60, guestCount: 5, customerName: 'دو میز', customerPhone: '09125550007' });
+			assert.equal(apart.status, 400);
+			assert.match(apart.json.message, /وصل نیستند/);
+			const tooMany = await dev.post('/api/admin/reservations/manual', { tableIds: [tables.b.id, tables.c.id], date, startTime: '18:00', durationMinutes: 60, guestCount: 9, customerName: 'زیاد', customerPhone: '09125550007' });
+			assert.equal(tooMany.status, 400);
+			assert.match(tooMany.json.message, /ظرفیت/);
+			const staff = await dev.post('/api/admin/reservations/manual', { tableIds: [tables.c.id, tables.b.id], date, startTime: '18:00', durationMinutes: 60, guestCount: 6, customerName: 'گروه', customerPhone: '09125550007' });
+			assert.equal(staff.status, 201, staff.text);
+		});
+
+		test('bookings stop at the last day the booking page offers; messages use Persian numbers', async () => {
+			const cfg = (await client().get('/api/config')).json;
+			const lastDay = cfg.dates[cfg.dates.length - 1];
+			assert.equal(lastDay, tehranDate(cfg.settings.reservationWindowDays - 1));
+			const beyond = await client().get(`/api/availability?date=${tehranDate(cfg.settings.reservationWindowDays)}&guests=2&durationMinutes=60&startTime=15:00`);
+			assert.equal(beyond.status, 200);
+			assert.match(beyond.json.tables[0].availability.reason, /روز پیش رو/);
+			const soon = await client().get(`/api/availability?date=${tehranDate(0)}&guests=2&durationMinutes=600&startTime=12:00`);
+			assert.match(soon.json.tables[0].availability.reason, /مدت رزرو باید بین ۱ ساعت تا ۴ ساعت باشد/);
+		});
+
+		test('the café\'s notes add up, are not shown to the customer, and a repeated answer is noted once', async () => {
+			const c = await customer('09125550008');
+			const res = await hold(c, { tableIds: [tables.a.id], startTime: '19:00' });
+			const id = res.json.reservation.id;
+			const authority = (await c.post(`/api/payments/${id}/request`)).json.paymentUrl.split('/').pop();
+			await prisma.reservation.update({ where: { id }, data: { status: 'EXPIRED' } });
+			await hold(await customer('09125550009'), { tableIds: [tables.a.id], startTime: '19:00' });
+			await c.get(`/api/payments/callback?Authority=${authority}&Status=OK`);
+			await c.get(`/api/payments/callback?Authority=${authority}&Status=OK`);
+			const review = await prisma.reservation.findUnique({ where: { id } });
+			assert.equal(review?.status, 'PAYMENT_REVIEW');
+			assert.equal(review?.notes?.split('\n').length, 1, 'noted once');
+			assert.ok(!('notes' in (await c.get(`/api/reservations/${id}`)).json.reservation), 'the customer does not get the notes');
+			await dev.patch(`/api/admin/reservations/${id}/status`, { status: 'CANCELLED', notes: 'تماس گرفته شد' });
+			const notes = (await prisma.reservation.findUnique({ where: { id } }))?.notes ?? '';
+			assert.equal(notes.split('\n').length, 2, notes);
+			assert.ok((await dev.get('/api/admin/reservations?filter=action')).json.reservations.some((r: { id: string; notes: string }) => r.id === id && r.notes.includes('تماس')));
+		});
+
+		test('«تکمیل‌شده» and «عدم حضور» can be corrected into each other, nothing else', async () => {
+			const yesterday = tehranDate(-1);
+			const r = await prisma.reservation.create({
+				data: {
+					trackingCode: 'RSV-000000005',
+					customerName: 'حضور',
+					customerPhone: '09125550010',
+					guestCount: 2,
+					startAt: new Date(`${yesterday}T12:00:00+03:30`),
+					endAt: new Date(`${yesterday}T13:00:00+03:30`),
+					durationMinutes: 60,
+					status: 'CONFIRMED',
+					pricePerGuest: 100000,
+					totalAmount: 200000,
+					paidAmount: 200000,
+					tables: { create: [{ tableId: tables.a.id }] },
+				},
+			});
+			const staff = await login('staff', 'StaffPass123');
+			const set = (status: string) => staff.patch(`/api/admin/reservations/${r.id}/status`, { status });
+			assert.equal((await set('NO_SHOW')).status, 200);
+			assert.equal((await set('COMPLETED')).status, 200, 'a wrong «عدم حضور» is corrected');
+			assert.equal((await set('NO_SHOW')).status, 200);
+			assert.equal((await set('CANCELLED')).status, 409);
+		});
+
+		test('reports: «پیش‌رو» is what is still to come; the busiest tables count real bookings only', async () => {
+			const report = (await dev.get('/api/admin/reports/revenue')).json;
+			assert.equal(report.upcoming, await prisma.reservation.count({ where: { status: 'CONFIRMED', startAt: { gte: new Date() } } }));
+			const held = await prisma.reservationTable.count({ where: { reservation: { status: { in: ['CONFIRMED', 'COMPLETED', 'NO_SHOW'] } } } });
+			assert.ok(report.topTables.reduce((sum: number, t: { count: number }) => sum + t.count, 0) <= held);
 		});
 	});
 });

@@ -467,7 +467,7 @@ export function skip(state: RecState, catalog: Catalog): RecState {
 	);
 }
 
-/** «یه سوال دیگه» after two "doesn't matter" in a row. */
+/** «یه سوال دیگه» on the prompt that comes after MAX_SKIPS_IN_ROW "doesn't matter" in a row. */
 export function keepAsking(state: RecState, catalog: Catalog): RecState {
 	return advance({ ...state, skipsInRow: 0 }, catalog);
 }

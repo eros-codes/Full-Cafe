@@ -32,7 +32,8 @@ export interface Reservation {
 	refundStatus: string;
 	decorationAmount: number;
 	decorationNote: string | null;
-	notes: string | null;
+	/** Only in the admin lists (the customer's view leaves the café's notes out). */
+	notes?: string | null;
 	createdAt: string;
 	tables?: ReservationTableLink[];
 	payments?: Payment[];

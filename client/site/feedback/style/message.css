@@ -23,9 +23,23 @@ position: absolute;
 	inset: 0;
 	display: flex;
 	flex-direction: column;
-	justify-content: center;
 	gap: 0.6rem;
 	padding: 0.75rem 1.1rem;
+	/* a long reply (up to 500 characters) scrolls inside the window instead of being cut at the top and bottom */
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* centred while it fits; when it is taller than the window it starts at the top (justify-content: center
+   would push its start out of reach above the window) */
+.msg-exchange > :first-child {
+	margin-top: auto;
+}
+
+.msg-exchange > :last-child {
+	margin-bottom: auto;
 }
 
 .msg--enter-bottom {
@@ -73,6 +87,12 @@ background-color: var(--chapel-white);
 .msg-bubble--admin {
 background-color: rgba(9, 15, 21, 0.5);
 	border-bottom-right-radius: 4px;
+}
+
+.msg-sender,
+.msg-text {
+	/* a long word or link wraps inside the bubble instead of running out of it */
+	overflow-wrap: anywhere;
 }
 
 .msg-sender {

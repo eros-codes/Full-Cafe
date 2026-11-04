@@ -87,6 +87,8 @@
 	color: var(--secondary-text-color);
 	font-size: 12px;
 	text-align: right;
+	/* «Made with love 🤍» is English: in rtl the heart jumped in front of the words */
+	direction: ltr;
 }
 
 @media (max-width: 767px) {

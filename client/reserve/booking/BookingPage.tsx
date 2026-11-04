@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { ApiError, api, errorText } from '../../shared/api';
 import { faNumber, latinDigits, toman } from '../../shared/format';
 import { useLatest } from '../../shared/useLatest';
-import { DurationChips } from '../common/DurationChips';
+import { DurationChips, fitDuration } from '../common/DurationChips';
 import { Topbar } from '../../shared/chrome/Topbar';
 import { ReserveFooter } from '../common/ReserveFooter';
 import { OtpWidget } from '../common/OtpWidget';
@@ -99,6 +99,8 @@ export function BookingPage() {
 				const cfg = await api<PublicConfig>('/api/config');
 				if (cancelled) return;
 				setConfig(cfg);
+				// one hour when the café allows it, otherwise the nearest allowed length
+				setDuration(fitDuration(60, cfg.settings.minDurationMinutes, cfg.settings.maxDurationMinutes));
 				const closed = new Set(cfg.closedDates ?? []);
 				setSelectedDate(cfg.dates.find((d) => !closed.has(d)) ?? cfg.dates[0] ?? null);
 				const me = await api<{ user: CurrentUser | null }>('/api/me').catch(() => ({ user: null }));
@@ -431,6 +433,8 @@ export function BookingPage() {
 									{config && (
 										<DurationChips
 											id="durationRow"
+											min={config.settings.minDurationMinutes}
+											max={config.settings.maxDurationMinutes}
 											value={duration}
 											onChange={(minutes) => {
 												setDuration(minutes);

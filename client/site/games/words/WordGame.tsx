@@ -3,7 +3,7 @@ import type { Card, Deck } from '../data';
 import { decksFor } from '../data';
 import { clockLeft, isPaused, pauseClock, resumeClock } from '../kit/clock';
 import { useNow } from '../kit/useNow';
-import { cardPool, pickCards, readSeen, rememberSeen } from '../kit/deck';
+import { cardPool, drawCard, readSeen, rememberSeen } from '../kit/deck';
 import { GAME_ICONS, UI_ICONS } from '../kit/icons';
 import { rememberDecks, rememberNames, rememberedDecks, rememberedNames } from '../kit/memory';
 import { useSavedGame } from '../kit/persist';
@@ -145,9 +145,7 @@ export default function WordGame({ mode, decks, onExit }: { mode: WordMode; deck
 
 	/** The next card: not used in this game, preferably not seen lately on this phone. */
 	const draw = (used: readonly number[]): Card | null => {
-		const fresh = pickCards(pool, 1, new Set([...used, ...readSeen(mode)]));
-		const notUsed = fresh.filter((card) => !used.includes(card.id));
-		const card = notUsed[0] ?? pickCards(pool, 1, new Set())[0] ?? null;
+		const card = drawCard(pool, used, readSeen(mode));
 		if (card) rememberSeen(mode, [card.id], pool.length);
 		return card;
 	};

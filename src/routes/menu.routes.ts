@@ -12,7 +12,10 @@ const reviewLimiter = rateLimit({
 	// در تست‌های خودکار همه‌ی درخواست‌ها از یک IP می‌آیند
 	skip: () => config.isTest,
 	windowMs: 60 * 60 * 1000,
-	max: 5,
+	// Everyone on the café's Wi-Fi (and many phones behind one mobile-operator address) shares one IP: with 5 an
+	// hour, the sixth guest of the evening could not leave a review. Every review waits for approval in the panel
+	// anyway, so a flood only fills the «در انتظار تایید» list, never the site.
+	max: 30,
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: { message: 'تعداد مجاز نظرات در این ساعت تجاوز شد. بعداً دوباره امتحان کنید.' },

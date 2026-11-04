@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api, errorText } from '../../shared/api';
+import { latinDigits } from '../../shared/format';
 import { ICONS } from '../../shared/icons';
 import { DetailRow } from '../common/DetailRow';
 import { OtpWidget } from '../common/OtpWidget';
@@ -46,7 +47,7 @@ export function TrackPage() {
 							<OtpWidget
 								key={flow.key}
 								purpose="GUEST_ACCESS"
-								extraFields={[{ key: 'trackingCode', label: 'کد پیگیری', placeholder: 'RSV-123456' }]}
+								extraFields={[{ key: 'trackingCode', label: 'کد پیگیری', placeholder: 'RSV-123456789' }]}
 								submitLabel="نمایش رزرو"
 								initialNotice={flow.notice ? { message: flow.notice, type: 'warn' } : null}
 								onVerified={async (data) => {
@@ -96,7 +97,8 @@ function QuickLookup({ onShow, onNotOwner }: { onShow: (code: string) => Promise
 	const [notice, setNotice] = useState<string | null>(null);
 
 	const show = async () => {
-		const value = code.trim().toUpperCase();
+		// a code typed on a Persian keyboard (RSV-۱۲۳…) is the same code
+		const value = latinDigits(code).trim().toUpperCase();
 		if (!value) {
 			setNotice('کد پیگیری رو وارد کن.');
 			return;
@@ -120,7 +122,7 @@ function QuickLookup({ onShow, onNotOwner }: { onShow: (code: string) => Promise
 		<div className="form-grid">
 			<div className="field">
 				<label>کد پیگیری</label>
-				<input id="quickCode" placeholder="RSV-123456" value={code} onChange={(event) => setCode(event.target.value)} />
+				<input id="quickCode" placeholder="RSV-123456789" dir="ltr" value={code} onChange={(event) => setCode(event.target.value)} />
 			</div>
 			<button type="button" className="primary-btn" id="quickShow" disabled={busy} onClick={show}>
 				نمایش رزرو

@@ -39,6 +39,21 @@ export async function ensureInvoice(client: Db, reservation: { id: string; total
 	await client.invoice.create({ data: { reservationId: reservation.id, number: await uniqueInvoiceNumber(client), totalAmount: reservation.totalAmount } });
 }
 
+const NOTES_MAX = 500;
+
+/**
+ * The reservation's notes with one more line. Notes keep what happened (a late or second payment, the customer's
+ * reason for cancelling, …) for the admin; before, each new note replaced the last one. A line already there is not
+ * added twice (a repeated gateway answer), and the oldest lines give way when it gets long.
+ */
+export function appendNote(existing: string | null | undefined, note: string): string {
+	const line = note.trim().slice(0, NOTES_MAX);
+	const current = (existing ?? '').trim();
+	if (!line || current.split('\n').includes(line)) return current;
+	const combined = current ? `${current}\n${line}` : line;
+	return combined.length > NOTES_MAX ? combined.slice(combined.length - NOTES_MAX) : combined;
+}
+
 /** Everything a booking needs; values come from request bodies, so they are re-validated here. */
 export interface ReservationInput {
 	tableIds: unknown;
@@ -103,6 +118,16 @@ export async function createReservationHold({
 
 	try {
 		return await serializable(async (tx) => {
+				// A customer's new hold lets go of their earlier unpaid ones. Before, going back from the payment page
+				// and picking the same table again failed («رزرو شده است») because their own hold still had it, and
+				// every try kept another table locked until it ran out. A payment still made on an old gateway page is
+				// handled by the callback like any late payment (confirmed if the table is free, otherwise refunded).
+				if (source === 'ONLINE' && userId) {
+					const released = await tx.reservation.updateMany({ where: { userId, status: 'HOLD' }, data: { status: 'EXPIRED' } });
+					if (released.count) {
+						await tx.payment.updateMany({ where: { status: 'PENDING', reservation: { userId, status: 'EXPIRED' } }, data: { status: 'FAILED' } });
+					}
+				}
 				await assertTablesAvailable({ tableIds, date, startTime, durationMinutes, guestCount }, tx, {
 					// رزرو دستی پرسنل (تلفنی/حضوری) می‌تونه برای همین الان یا چند دقیقه‌ی بعد ثبت بشه
 					ignoreLeadTime: source === 'ADMIN_MANUAL',
@@ -184,7 +209,8 @@ type CustomerSource = Reservation & { payments?: Payment[]; user?: User | null; 
  * (the authority is what the payment callback looks payments up by), the account without its internals.
  */
 export function toCustomerReservation<R extends CustomerSource>(reservation: R) {
-	const { payments, user, invoice, ...rest } = reservation;
+	// notes are for the café (why a payment is under review, what is owed back): not part of the customer's view
+	const { payments, user, invoice, notes: _notes, ...rest } = reservation;
 	return {
 		...rest,
 		...(payments ? { payments: payments.map(({ id, status, amount, refId, createdAt, verifiedAt }) => ({ id, status, amount, refId, createdAt, verifiedAt })) } : {}),
@@ -218,7 +244,7 @@ export async function cancelReservation(reservationId: string, note: string | nu
 			where: { id: reservation.id, status: 'CONFIRMED' },
 			data: {
 				status: 'CANCELLED',
-				notes: String(note || reservation.notes || '').slice(0, 500) || null,
+				notes: note ? appendNote(reservation.notes, note) : reservation.notes,
 				...(paidReal ? { refundStatus: 'PENDING' } : {}),
 			},
 		});

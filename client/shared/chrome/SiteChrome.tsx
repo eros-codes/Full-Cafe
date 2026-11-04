@@ -306,7 +306,7 @@ export function SiteFooter({ links, className }: { links: LinkKey[]; className?:
 					</ul>
 				</div>
 			</div>
-			<h6 className="menu-footer-copyright">تمامی حقوق این سایت متعلق به کافه روف می باشد.</h6>
+			<h6 className="menu-footer-copyright">تمامی حقوق این سایت متعلق به کافه روف می‌باشد.</h6>
 			<h6 className="menu-footer-credit">{CREDIT}</h6>
 		</footer>
 	);

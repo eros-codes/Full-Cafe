@@ -24,7 +24,17 @@ function readPending(): PendingReview[] {
 	}
 }
 
+/** Takes one review off the waiting list (read again, so a review saved meanwhile is not lost). */
+function removePending(id: number) {
+	const rest = readPending().filter((entry) => entry.id !== id);
+	if (rest.length) safeStorage.set(PENDING_KEY, JSON.stringify(rest));
+	else safeStorage.remove(PENDING_KEY);
+}
+
 const isClientError = (error: unknown) => error instanceof ApiError && error.status >= 400 && error.status < 500;
+
+/** One sending of the waiting list at a time: the page load and an «online» event can come together. */
+let syncing = false;
 
 function FeedbackForm() {
 	const [name, setName] = useState('');
@@ -42,25 +52,28 @@ function FeedbackForm() {
 
 	// نظرهایی که موقع قطعی اینترنت ذخیره شده‌اند، الان یا وقتی اینترنت برگشت فرستاده می‌شوند
 	useEffect(() => {
+		// Each review leaves the list as soon as it is sent. Before, the whole list was written back at the end: a
+		// review saved meanwhile was overwritten, and closing the page halfway sent the first ones again next time.
 		const sync = async () => {
-			const pending = readPending();
-			if (!pending.length) return;
-			const remaining: PendingReview[] = [];
-			for (const entry of pending) {
-				try {
-					await postReview({ name: entry.name, text: entry.text });
-				} catch (error) {
-					// invalid entries are dropped; everything else (offline, 429, 5xx) is kept for later
-					if (isClientError(error) && (error as ApiError).status !== 429) continue;
-					remaining.push(entry);
+			if (syncing || !readPending().length) return;
+			syncing = true;
+			let sent = 0;
+			try {
+				for (const entry of readPending()) {
+					try {
+						await postReview({ name: entry.name, text: entry.text });
+						removePending(entry.id);
+						sent++;
+					} catch (error) {
+						// an invalid entry is dropped; offline, too many reviews (429) or a server error: the rest waits too
+						if (isClientError(error) && (error as ApiError).status !== 429) removePending(entry.id);
+						else break;
+					}
 				}
+			} finally {
+				syncing = false;
 			}
-			if (remaining.length === 0) {
-				safeStorage.remove(PENDING_KEY);
-				showFeedback('نظرات آفلاین با موفقیت همگام‌سازی شدند.', 'success');
-			} else {
-				safeStorage.set(PENDING_KEY, JSON.stringify(remaining));
-			}
+			if (sent && !readPending().length) showFeedback('نظرات آفلاین با موفقیت همگام‌سازی شدند.', 'success');
 		};
 		sync();
 		window.addEventListener('online', sync);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Card, Deck } from '../client/site/games/data.js';
 import { clockLeft, pauseClock, resumeClock, startClock } from '../client/site/games/kit/clock.js';
-import { cardPool, nextSeen, pickCards } from '../client/site/games/kit/deck.js';
+import { cardPool, drawCard, nextSeen, pickCards } from '../client/site/games/kit/deck.js';
 import { finalNames, joinNames } from '../client/site/games/kit/names.js';
 import type { Rng } from '../client/site/games/kit/random.js';
 import {
@@ -163,6 +163,22 @@ describe('drawing cards', () => {
 		assert.equal(two[0].id, 4);
 		assert.equal(two.length, 2);
 		assert.equal(new Set(pickCards(pool, 4, new Set(), seeded(3)).map((c) => c.id)).size, 4, 'never the same card twice');
+	});
+
+	test('a game never draws a card twice while others are left, even when those were all seen lately', () => {
+		const pool = cards(['a', 'b', 'c', 'd', 'e', 'f']);
+		// a, b, c played in this game; the phone also saw d, e, f in an earlier game
+		const used = [1, 2, 3];
+		const seen = [4, 5, 6, 1, 2, 3];
+		for (let seed = 1; seed <= 200; seed++) {
+			const card = drawCard(pool, used, seen, seeded(seed));
+			assert.ok(card && !used.includes(card.id), `seed ${seed}: ${card?.text}`);
+		}
+		// unseen first among the unused
+		assert.equal(drawCard(pool, used, [4, 5], seeded(7))?.id, 6);
+		// every card used: only then one comes again
+		assert.ok(drawCard(pool, [1, 2, 3, 4, 5, 6], seen, seeded(8)));
+		assert.equal(drawCard([], [], [], seeded(9)), null);
 	});
 
 	test('the phone remembers at most 70% of a pool, newest last', () => {

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { Prisma, type AdminRole, type CafeTable, type ReservationStatus, type TableShape, type ZoneKey } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { requireAdmin, requireRole } from '../middleware/auth.js';
-import { createManualReservation, ensureInvoice } from '../services/reservation.service.js';
+import { appendNote, createManualReservation, ensureInvoice } from '../services/reservation.service.js';
 import { serializable } from '../lib/transaction.js';
 import { getSettings, setSetting } from '../services/settings.service.js';
 import { CLOCK_TIME, CLOSING_TIME, combineDateAndTime, isValidDateString, normalizePhone } from '../lib/time.js';
@@ -236,8 +236,9 @@ adminRouter.post('/reservations/manual', async (req, res, next) => {
 const STATUS_TRANSITIONS: Record<'CONFIRMED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED', readonly ReservationStatus[]> = {
 	// فقط بعد از بررسی دستی پرداخت (پول گرفته شده ولی ثبت خودکار شکست خورده)
 	CONFIRMED: ['PAYMENT_REVIEW'],
-	COMPLETED: ['CONFIRMED'],
-	NO_SHOW: ['CONFIRMED'],
+	// «تکمیل‌شده» and «عدم حضور» only record whether the customer came: a wrong tap can be corrected either way
+	COMPLETED: ['CONFIRMED', 'NO_SHOW'],
+	NO_SHOW: ['CONFIRMED', 'COMPLETED'],
 	CANCELLED: ['HOLD', 'PAYMENT_REVIEW', 'CONFIRMED'],
 };
 type SettableStatus = keyof typeof STATUS_TRANSITIONS;
@@ -286,7 +287,7 @@ adminRouter.patch('/reservations/:id/status', async (req, res, next) => {
 					where: { id: existing.id, status: existing.status },
 					data: {
 						status: nextStatus,
-						...(notes ? { notes } : {}),
+						...(notes ? { notes: appendNote(existing.notes, notes) } : {}),
 						...(owesRefund ? { refundStatus: 'PENDING' } : {}),
 						...(nextStatus === 'CONFIRMED' ? { paidAmount: existing.totalAmount, holdExpiresAt: null } : {}),
 					},
@@ -745,11 +746,13 @@ adminRouter.get('/reports/revenue', requireRole(...ROLE_GROUPS.manager), async (
 		// باید دقیقاً با کوئری داشبورد یکی باشه، وگرنه ادمین دو عدد متفاوت می‌بینه
 		const paidWhere = { status: 'PAID', reservation: { status: { not: 'CANCELLED' } } } satisfies Prisma.PaymentWhereInput;
 
-		const [paid, counts, guestAgg, recentPayments, topTables] = await Promise.all([
+		// bookings that really happened (or will): not holds that ran out or were cancelled
+		const heldStatuses: ReservationStatus[] = ['CONFIRMED', 'COMPLETED', 'NO_SHOW'];
+		const [paid, counts, guestAgg, recentPayments, topTables, upcoming] = await Promise.all([
 			prisma.payment.aggregate({ where: paidWhere, _sum: { amount: true }, _count: true }),
 			prisma.reservation.groupBy({ by: ['status'], _count: { _all: true } }),
 			prisma.reservation.aggregate({
-				where: { status: { in: ['CONFIRMED', 'COMPLETED', 'NO_SHOW'] } },
+				where: { status: { in: heldStatuses } },
 				_avg: { guestCount: true },
 			}),
 			prisma.payment.findMany({
@@ -761,10 +764,13 @@ adminRouter.get('/reports/revenue', requireRole(...ROLE_GROUPS.manager), async (
 			}),
 			prisma.reservationTable.groupBy({
 				by: ['tableId'],
+				where: { reservation: { status: { in: heldStatuses } } },
 				_count: { _all: true },
 				orderBy: { _count: { tableId: 'desc' } },
 				take: 5,
 			}),
+			// «پیش‌رو»: confirmed and still to come (a past one waiting for «تکمیل‌شده» is not upcoming)
+			prisma.reservation.count({ where: { status: 'CONFIRMED', startAt: { gte: now } } }),
 		]);
 
 		const byStatus = Object.fromEntries(counts.map((c) => [c.status, c._count._all]));
@@ -797,7 +803,7 @@ adminRouter.get('/reports/revenue', requireRole(...ROLE_GROUPS.manager), async (
 			completed: byStatus.COMPLETED || 0,
 			cancelled: byStatus.CANCELLED || 0,
 			noShow: byStatus.NO_SHOW || 0,
-			upcoming: byStatus.CONFIRMED || 0,
+			upcoming,
 			daily: [...daily].map(([date, amount]) => ({ date, amount })),
 			topTables: topTables.map((t) => ({
 				displayNumber: tableById[t.tableId]?.displayNumber || '؟',

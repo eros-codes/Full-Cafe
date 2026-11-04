@@ -5,7 +5,7 @@ import { ICONS } from '../../shared/icons';
 import { adminApi } from '../common/adminApi';
 import { MenuModal } from '../common/MenuModal';
 import { EmptyState, ErrorNotice, Skeleton, fa, useFlash } from '../common/ui';
-import { MenuFlash, PLACEHOLDER, Thumb, uploadImage, type AddOnRow, type CategoryKind, type CategoryRow, type ProductRow } from './menu-common';
+import { MAX_UPLOAD_BYTES, MenuFlash, PLACEHOLDER, Thumb, uploadImage, type AddOnRow, type CategoryKind, type CategoryRow, type ProductRow } from './menu-common';
 import {
 	ProductTagsField,
 	TagChip,
@@ -343,12 +343,13 @@ function ProductForm({ product, categories, addOns, groups, defaultCategoryId, o
 
 	const pickFile = async (file: File | undefined) => {
 		if (!file) return;
-		if (file.size > 5 * 1024 * 1024) {
-			setUploadStatus('حجم فایل بیشتر از ۵ مگابایت است.');
+		// the same limit as the server (MAX_UPLOAD_BYTES): checked here so a large photo is not sent for nothing
+		if (file.size > MAX_UPLOAD_BYTES) {
+			setUploadStatus('حجم فایل بیشتر از ۱۰ مگابایت است.');
 			return;
 		}
 		setUploading(true);
-		setUploadStatus('در حال آپلود…');
+		setUploadStatus('در حال آپلود و تبدیل…');
 		try {
 			setImage(await uploadImage(file));
 			setUploadStatus('آپلود شد ✓');
@@ -439,7 +440,7 @@ function ProductForm({ product, categories, addOns, groups, defaultCategoryId, o
 				)}
 			</div>
 			<div className="field">
-				<label>تصویر (اختیاری · jpg, png, webp, gif تا ۵ مگابایت)</label>
+				<label>تصویر (اختیاری)</label>
 				<div className="menu-image-field">
 					<div className="menu-image-preview">
 						<Thumb image={image} alt="پیش‌نمایش تصویر" />
@@ -476,6 +477,9 @@ function ProductForm({ product, categories, addOns, groups, defaultCategoryId, o
 						</span>
 					</div>
 				</div>
+				<p className="hint">
+					عکس تا ۱۰ مگابایت با فرمت <bdi dir="ltr">jpg, png, webp, gif</bdi>. برای سرعت منو خودکار به WebP تبدیل و کوچک می‌شود.
+				</p>
 			</div>
 			{groups.some((g) => g.isActive) && <ProductTagsField groups={groups} category={category} own={ownTags} onChange={setOwnTags} />}
 		</MenuModal>

@@ -57,14 +57,17 @@ export function PaymentPage() {
 
 			// برگشت از درگاه زرین‌پال: بک‌اند در callback همه‌چیز را verify و ثبت کرده. صفحه از روی وضعیت واقعی رزرو
 			// تصمیم می‌گیرد، نه از روی ?result= آدرس (که هر کسی می‌تواند «success» بنویسد)؛ result فقط پیام را دقیق‌تر می‌کند.
+			// a hold whose time is up is expired even before the cleanup (once a minute) marks it so: before, the
+			// «پرداخت» button still showed and only answered «دیگر قابل پرداخت نیست»
+			const holdOver = reservation.status === 'HOLD' && (!reservation.holdExpiresAt || new Date(reservation.holdExpiresAt) <= new Date());
 			if (result === 'duplicate') return setView({ kind: 'duplicate', reservation });
 			if (reservation.status === 'CONFIRMED') return setView({ kind: 'success', reservation });
 			if (reservation.status === 'PAYMENT_REVIEW') return setView({ kind: 'review' });
-			if (result === 'fail' && reservation.status === 'HOLD') return setView({ kind: 'fail' });
+			if (result === 'fail' && reservation.status === 'HOLD' && !holdOver) return setView({ kind: 'fail' });
 			if (reservation.status === 'CANCELLED') {
 				return setView({ kind: 'expired', title: 'این رزرو لغو شده', message: 'این رزرو لغو شده؛ از صفحه‌ی رزرو می‌تونی دوباره یه میز انتخاب کنی.' });
 			}
-			if (reservation.status === 'EXPIRED') return setView({ kind: 'expired', title: EXPIRED_TITLE, message: EXPIRED_TEXT });
+			if (reservation.status === 'EXPIRED' || holdOver) return setView({ kind: 'expired', title: EXPIRED_TITLE, message: EXPIRED_TEXT });
 			if (reservation.status === 'COMPLETED' || reservation.status === 'NO_SHOW') {
 				return setView({ kind: 'expired', title: 'این رزرو بسته شده', message: 'این رزرو دیگه قابل پرداخت نیست؛ برای رزرو جدید به صفحه‌ی اصلی برو.' });
 			}

@@ -233,3 +233,8 @@ border-radius: 4px;
 }
 
 }
+
+/* the hours: one line per group of days with the same hours */
+.s-hours__line {
+	display: block;
+}

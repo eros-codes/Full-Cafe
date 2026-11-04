@@ -37,6 +37,17 @@ export function pickCards(pool: readonly Card[], count: number, avoid: ReadonlyS
 	return [...fresh, ...rest].slice(0, count);
 }
 
+/**
+ * The next card of a game: one not drawn in this game yet, preferably one this phone has not seen lately; a
+ * card comes a second time only once every card of the pool was drawn. (Before, as soon as the cards left were
+ * all "seen lately", a card already played in this very game could come back while others were never shown.)
+ */
+export function drawCard(pool: readonly Card[], used: readonly number[], seen: readonly number[], rng: Rng = Math.random): Card | null {
+	const usedSet = new Set(used);
+	const unused = pool.filter((card) => !usedSet.has(card.id));
+	return pickCards(unused.length ? unused : pool, 1, new Set(seen), rng)[0] ?? null;
+}
+
 // ─── what this phone has seen ────────────────────────────────────────────────
 
 const SEEN_PREFIX = 'roof.games.seen.';

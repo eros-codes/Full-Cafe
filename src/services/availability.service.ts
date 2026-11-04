@@ -59,6 +59,11 @@ export interface AvailabilityQuery {
 export interface AvailabilityOptions {
 	/** Staff bookings (phone/walk-in) skip the online minimum lead time. */
 	ignoreLeadTime?: boolean;
+	/**
+	 * The signed-in customer: their own unpaid holds do not block the map for them (a new hold lets go of them,
+	 * see createReservationHold), so going back from the payment page shows their table as free again.
+	 */
+	ownerUserId?: string | null;
 	skipCombos?: boolean;
 	skipSuggestions?: boolean;
 }
@@ -162,6 +167,15 @@ function isTableClosed(table: CafeTable, dayClosures: Closure[], startTime: stri
 // رزرو دستی پرسنل (تلفنی/حضوری) فاصله‌ی حداقلی مشتری آنلاین رو لازم نداره، ولی نباید در گذشته باشه.
 const WALK_IN_GRACE_MINUTES = 15;
 
+/** «۴۵ دقیقه», «۲ ساعت», «۱ ساعت و ۳۰ دقیقه» (before: «0 ساعت» for 30 minutes, «1.5 ساعت»). */
+function faDuration(minutes: number): string {
+	const h = Math.floor(minutes / 60);
+	const m = minutes % 60;
+	const fa = (n: number) => n.toLocaleString('fa-IR');
+	if (!h) return `${fa(m)} دقیقه`;
+	return m ? `${fa(h)} ساعت و ${fa(m)} دقیقه` : `${fa(h)} ساعت`;
+}
+
 function validateTimeWindow({
 	date,
 	startTime,
@@ -184,7 +198,7 @@ function validateTimeWindow({
 	if (durationMinutes < minDuration || durationMinutes > maxDuration) {
 		return {
 			ok: false,
-			reason: `مدت رزرو باید بین ${minDuration / 60} تا ${maxDuration / 60} ساعت باشد.`,
+			reason: `مدت رزرو باید بین ${faDuration(minDuration)} تا ${faDuration(maxDuration)} باشد.`,
 		};
 	}
 	const startAt = combineDateAndTime(date, startTime);
@@ -197,13 +211,14 @@ function validateTimeWindow({
 	} else if (startAt < addMinutes(now, minLeadMinutes)) {
 		return {
 			ok: false,
-			reason: `رزرو باید حداقل ${Math.round(minLeadMinutes / 60)} ساعت قبل از شروع ثبت شود.`,
+			reason: `رزرو باید حداقل ${faDuration(minLeadMinutes)} قبل از شروع ثبت شود.`,
 		};
 	}
-	const maxDate = addDays(new Date(), windowDays);
+	// the last day is the last one the booking page offers (today + windowDays − 1); before, one more was accepted
+	const maxDate = addDays(new Date(), windowDays - 1);
 	maxDate.setHours(23, 59, 59, 999);
 	if (startAt > maxDate) {
-		return { ok: false, reason: `رزرو فقط تا ${windowDays} روز آینده ممکن است.` };
+		return { ok: false, reason: `رزرو فقط برای ${windowDays.toLocaleString('fa-IR')} روز پیش رو ممکن است.` };
 	}
 	const workingHour = workingHoursByDay.get(startAt.getDay());
 	if (!workingHour || workingHour.isClosed) return { ok: false, reason: 'کافه در این روز بسته است.' };
@@ -281,6 +296,10 @@ function enumerateConnectedGroups({
 
 	const groups: CafeTable[][] = [];
 	const seen = new Set<string>();
+	// Every connected set of tables up to maxTables is a candidate. On a well-connected floor with a big group (no set
+	// is large enough, so nothing ends the search early) and maxComboTables up to 8, that is hundreds of thousands
+	// of sets: seconds of CPU on every availability request. A ceiling keeps it to milliseconds.
+	const MAX_EXPLORED = 5000;
 	let frontier: string[][] = [...byId.keys()].map((id) => [id]).filter((g) => sumMin(g) < guestCount);
 
 	while (frontier.length && groups.length < maxGroups) {
@@ -295,6 +314,7 @@ function enumerateConnectedGroups({
 				const grown = [...group, n];
 				const key = [...grown].sort().join('|');
 				if (seen.has(key)) continue;
+				if (seen.size >= MAX_EXPLORED) return groups;
 				seen.add(key);
 				const min = sumMin(grown);
 				if (guestCount >= min && guestCount <= sumMax(grown)) {
@@ -309,22 +329,25 @@ function enumerateConnectedGroups({
 	return groups;
 }
 
-function comboAvailabilityForStart(groupTables: CafeTable[], startTime: string, check: WindowCheck, ctx: SlotContext): ComboAvailability | null {
-	if (groupTables.length < 2) return null;
-	if (!check.ok) return null;
-	if (groupTables.some((t) => !t.isActive)) return null;
-
+/** Why these tables together cannot be booked at this start, or null when they can. */
+function comboProblem(groupTables: CafeTable[], startTime: string, check: WindowCheck, ctx: SlotContext): string | null {
+	if (groupTables.length < 2) return 'برای رزرو ترکیبی حداقل دو میز لازم است.';
+	if (!check.ok) return check.reason;
+	if (groupTables.some((t) => !t.isActive)) return 'یکی از این میزها موقتاً غیرفعال است.';
 	const combinedMin = groupTables.reduce((s, t) => s + (t.minGuests || 1), 0);
 	const combinedMax = groupTables.reduce((s, t) => s + (t.maxGuests || 0), 0);
-	const combinedCapacity = groupTables.reduce((s, t) => s + (t.capacity || 0), 0);
-	if (ctx.guestCount < combinedMin || ctx.guestCount > combinedMax) return null;
-
-	if (groupTables.some((t) => isTableClosed(t, ctx.dayClosures, startTime, check.endTime))) return null;
-
+	if (ctx.guestCount < combinedMin) return 'تعداد نفرات برای این میزها کم است.';
+	if (ctx.guestCount > combinedMax) return 'ظرفیت این میزها کافی نیست.';
+	if (groupTables.some((t) => isTableClosed(t, ctx.dayClosures, startTime, check.endTime))) return 'یکی از این میزها/بخش‌ها در این بازه بسته است.';
 	const blocked = ctx.reservations.some((reservation) =>
 		groupTables.some((t) => reservationBlocksTable(reservation, t.id, check.startAt, check.endAt, ctx.bufferMinutes)),
 	);
-	if (blocked) return null;
+	return blocked ? 'یکی از این میزها در این زمان رزرو شده است.' : null;
+}
+
+function comboAvailabilityForStart(groupTables: CafeTable[], startTime: string, check: WindowCheck, ctx: SlotContext): ComboAvailability | null {
+	if (!check.ok || comboProblem(groupTables, startTime, check, ctx)) return null;
+	const combinedCapacity = groupTables.reduce((s, t) => s + (t.capacity || 0), 0);
 
 	const displayNumbers = groupTables.map((t) => t.displayNumber);
 	return {
@@ -341,11 +364,9 @@ function comboAvailabilityForStart(groupTables: CafeTable[], startTime: string, 
 	};
 }
 
-export async function getAvailability(query: AvailabilityQuery, options: AvailabilityOptions = {}, client: Db = prisma) {
-	const { date, guestCount, durationMinutes, startTime, rangeStart, rangeEnd } = query;
-	// expireOldHolds intentionally omitted here: callers should allow background cleanup
+/** Everything the availability of one day depends on: tables, their links, the day's bookings, hours and closures. */
+async function loadDay(date: string, client: Db) {
 	const settings = await getSettings();
-	const interval = numberSetting(settings, 'slotIntervalMinutes', 15, { min: 1 });
 	const { tables, connections: connectionRows } = await getTablesWithConnections(client);
 	const dayStart = combineDateAndTime(date, '00:00');
 	const dayEnd = addMinutes(dayStart, 24 * 60);
@@ -361,7 +382,14 @@ export async function getAvailability(query: AvailabilityQuery, options: Availab
 		client.workingHour.findMany(),
 		client.closure.findMany({ where: { date: dayStart } }),
 	]);
-	const workingHoursByDay = new Map(workingHours.map((w) => [w.dayOfWeek, w]));
+	return { settings, tables, connectionRows, dayStart, reservations, dayClosures, workingHoursByDay: new Map(workingHours.map((w) => [w.dayOfWeek, w])) };
+}
+
+export async function getAvailability(query: AvailabilityQuery, options: AvailabilityOptions = {}, client: Db = prisma) {
+	const { date, guestCount, durationMinutes, startTime, rangeStart, rangeEnd } = query;
+	// expireOldHolds intentionally omitted here: callers should allow background cleanup
+	const { settings, tables, connectionRows, dayStart, reservations, dayClosures, workingHoursByDay } = await loadDay(date, client);
+	const interval = numberSetting(settings, 'slotIntervalMinutes', 15, { min: 1 });
 
 	let starts: string[];
 	if (startTime) {
@@ -373,10 +401,11 @@ export async function getAvailability(query: AvailabilityQuery, options: Availab
 		throw createHttpError(400, 'زمان شروع یا بازه زمانی لازم است.');
 	}
 
+	const ownHold = (r: (typeof reservations)[number]) => Boolean(options.ownerUserId) && r.status === 'HOLD' && r.userId === options.ownerUserId;
 	const ctx: SlotContext = {
 		guestCount,
 		durationMinutes,
-		reservations,
+		reservations: reservations.filter((r) => !ownHold(r)),
 		dayClosures,
 		bufferMinutes: numberSetting(settings, 'cleaningBufferMinutes', 15, { min: 0 }),
 	};
@@ -489,20 +518,44 @@ export async function assertTablesAvailable(
 	client: Db = prisma,
 	{ ignoreLeadTime = false }: { ignoreLeadTime?: boolean } = {},
 ): Promise<void> {
-	// one table: the combinations of tables are not needed (and are the slow part, inside the booking transaction)
-	const availability = await getAvailability(
-		{ date, startTime, durationMinutes, guestCount },
-		{ ignoreLeadTime, skipSuggestions: true, skipCombos: tableIds.length === 1 },
-		client,
-	);
-	if (tableIds.length === 1) {
-		const table = availability.tables.find((t) => t.id === tableIds[0]);
-		if (!table?.availability?.available) {
-			throw createHttpError(400, (table?.availability && !table.availability.available && table.availability.reason) || 'میز در این زمان قابل رزرو نیست.');
-		}
-	} else {
-		const requested = [...tableIds].sort().join('|');
-		const combo = availability.combos.find((c) => [...c.tableIds].sort().join('|') === requested);
-		if (!combo) throw createHttpError(400, 'این ترکیب میز در این زمان قابل رزرو نیست.');
+	const { settings, tables, connectionRows, reservations, dayClosures, workingHoursByDay } = await loadDay(date, client);
+	const check = validateTimeWindow({ date, startTime, durationMinutes, settings, workingHoursByDay, ignoreLeadTime });
+	const ctx: SlotContext = {
+		guestCount,
+		durationMinutes,
+		reservations,
+		dayClosures,
+		bufferMinutes: numberSetting(settings, 'cleaningBufferMinutes', 15, { min: 0 }),
+	};
+	const group = tableIds.map((id) => tables.find((t) => t.id === id));
+	if (group.some((t) => !t)) throw createHttpError(400, 'میز انتخاب‌شده پیدا نشد.');
+	const chosen = group as TableWithConnections[];
+	if (chosen.length === 1) {
+		const result = tableAvailabilityForStart(chosen[0], startTime, check, ctx);
+		if (!result.available) throw createHttpError(400, result.reason || 'میز در این زمان قابل رزرو نیست.');
+		return;
 	}
+	// The requested tables themselves are checked. Before, they had to be one of the suggested combinations,
+	// which are capped (60) and found breadth-first: a valid set (often a staff booking) could be refused.
+	if (!isConnectedGroup(tableIds, connectionRows)) throw createHttpError(400, 'این میزها به هم وصل نیستند و با هم رزرو نمی‌شوند.');
+	const problem = comboProblem(chosen, startTime, check, ctx);
+	if (problem) throw createHttpError(400, problem);
+}
+
+/** Whether the tables form one connected set (each one linked to the others through the set). */
+function isConnectedGroup(tableIds: readonly string[], connectionRows: readonly TableConnection[]): boolean {
+	const inGroup = new Set(tableIds);
+	const reached = new Set([tableIds[0]]);
+	const queue = [tableIds[0]];
+	while (queue.length) {
+		const id = queue.shift() as string;
+		for (const c of connectionRows) {
+			const other = c.tableAId === id ? c.tableBId : c.tableBId === id ? c.tableAId : null;
+			if (other && inGroup.has(other) && !reached.has(other)) {
+				reached.add(other);
+				queue.push(other);
+			}
+		}
+	}
+	return reached.size === inGroup.size;
 }

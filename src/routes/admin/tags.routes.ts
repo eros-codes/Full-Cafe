@@ -315,6 +315,30 @@ adminTagsRouter.patch('/tag-options/:id', requireManager, async (req, res, next)
 	}
 });
 
+/**
+ * Deletes an option. A product that set its group itself with only this option would be left with an empty
+ * group, which means «هیچ‌کدام» (a miss for every answer, and «done» in the coverage) although nobody chose
+ * that. Such a product goes back to its category for the group instead, so it is untagged there and shows up
+ * under «برچسب ناقص». Only when the category itself has options in the group the product keeps the empty group:
+ * it had been set apart from the category, and inheriting would give it the category's option (an iced latte
+ * would become «گرم» when «سرد» is deleted).
+ */
+async function deleteOption(db: Prisma.TransactionClient, optionId: number, groupId: number): Promise<void> {
+	const holders = (await db.productTagOption.findMany({ where: { optionId }, select: { productId: true } })).map((row) => row.productId);
+	await db.tagOption.delete({ where: { id: optionId } });
+	if (!holders.length) return;
+	const products = await db.product.findMany({
+		where: { id: { in: holders } },
+		select: {
+			id: true,
+			tags: { where: { option: { groupId } }, select: { optionId: true } },
+			category: { select: { tags: { where: { option: { groupId } }, select: { optionId: true } } } },
+		},
+	});
+	const backToCategory = products.filter((p) => !p.tags.length && !p.category.tags.length).map((p) => p.id);
+	if (backToCategory.length) await db.productTagGroup.deleteMany({ where: { groupId, productId: { in: backToCategory } } });
+}
+
 adminTagsRouter.delete('/tag-options/:id', requireManager, async (req, res, next) => {
 	try {
 		const id = parseId(req.params.id);
@@ -325,7 +349,7 @@ adminTagsRouter.delete('/tag-options/:id', requireManager, async (req, res, next
 		if ((used.productCount || used.categoryCount) && req.query.force !== '1') {
 			return res.status(409).json({ message: 'این گزینه روی محصولات یا دسته‌ها استفاده شده است.', ...used });
 		}
-		await prisma.tagOption.delete({ where: { id } });
+		await prisma.$transaction((tx) => deleteOption(tx, id, option.groupId));
 		const group = await prisma.tagGroup.findUniqueOrThrow({ where: { id: option.groupId }, include: groupInclude });
 		res.json({ group: toAdminGroup(group) });
 	} catch (error) {

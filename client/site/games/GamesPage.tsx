@@ -13,29 +13,58 @@ import { installAudioUnlock } from './kit/sound';
 type Load = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: GamesData; offline: boolean };
 
 /**
+ * The game's code could not be downloaded: no connection (the café's Wi-Fi dropped), or the site was updated
+ * while the page was open and the old file is gone. Chrome, Safari, Firefox and Vite word it differently.
+ */
+const isCodeLoadError = (error: unknown): boolean =>
+	error instanceof Error &&
+	/dynamically imported module|Importing a module script failed|Unable to preload|Loading (CSS )?chunk/i.test(error.message);
+
+/**
  * If a game crashes (most often: a save left on the phone by an older version of the game), React would
  * unmount the whole page and leave it blank, again on every visit while the save is there. Instead the
  * game's save is dropped and the game can start over from its setup screen.
+ * When only its code could not be downloaded, the save is kept (the game itself is fine) and the page is
+ * loaded again: the browser keeps a failed download for the page, so trying again in place would fail again.
  */
-class GameBoundary extends Component<{ game: GameKey; onLeave: () => void; children: ReactNode }, { failed: boolean; attempt: number }> {
-	state = { failed: false, attempt: 0 };
+class GameBoundary extends Component<{ game: GameKey; onLeave: () => void; children: ReactNode }, { failed: boolean; notLoaded: boolean; attempt: number }> {
+	state = { failed: false, notLoaded: false, attempt: 0 };
 
-	static getDerivedStateFromError() {
-		return { failed: true };
+	static getDerivedStateFromError(error: unknown) {
+		return { failed: true, notLoaded: isCodeLoadError(error) };
 	}
 
 	componentDidCatch(error: unknown, info: ErrorInfo) {
+		if (isCodeLoadError(error)) {
+			console.error(`بازی «${this.props.game}» دانلود نشد.`, error);
+			return;
+		}
 		console.error(`بازی «${this.props.game}» خطا داد؛ بازی ذخیره‌شده‌اش پاک شد.`, error, info.componentStack);
 		clearSave(this.props.game);
 	}
 
 	render() {
 		if (!this.state.failed) return <div key={this.state.attempt} style={{ display: 'contents' }}>{this.props.children}</div>;
+		if (this.state.notLoaded) {
+			return (
+				<div className="gm-frame gm-light">
+					<div className="gm-empty" role="alert">
+						<p>این بازی دانلود نشد؛ احتمالاً اینترنت قطع شده. صفحه رو دوباره باز کن؛ اگه وسط بازی بودی، همون‌جا ادامه می‌دی.</p>
+						<button type="button" className="gm-btn gm-btn-primary" onClick={() => window.location.reload()}>
+							بارگذاری دوباره
+						</button>
+						<button type="button" className="gm-btn gm-btn-ghost" onClick={this.props.onLeave}>
+							برگشت به فهرست بازی‌ها
+						</button>
+					</div>
+				</div>
+			);
+		}
 		return (
 			<div className="gm-frame gm-light">
 				<div className="gm-empty" role="alert">
 					<p>این بازی درست باز نشد. دوباره امتحان کن یا برگرد به فهرست بازی‌ها.</p>
-					<button type="button" className="gm-btn gm-btn-primary" onClick={() => this.setState((s) => ({ failed: false, attempt: s.attempt + 1 }))}>
+					<button type="button" className="gm-btn gm-btn-primary" onClick={() => this.setState((s) => ({ failed: false, notLoaded: false, attempt: s.attempt + 1 }))}>
 						شروع دوباره
 					</button>
 					<button type="button" className="gm-btn gm-btn-ghost" onClick={this.props.onLeave}>
@@ -87,6 +116,16 @@ export function GamesPage() {
 
 	const available: GameKey[] = load.state === 'ready' && load.data.enabled ? load.data.games.filter(isKnownGame) : [];
 	const playing = game && available.includes(game) ? game : null;
+
+	// The cards are kept on the phone so the games still open when the café's Wi-Fi drops, but a game whose code
+	// was never downloaded could not open then. So, once the list is in (online), the games' code comes too, in
+	// the background: about 50 KB for all of them.
+	const availableKey = load.state === 'ready' && !load.offline ? available.join() : '';
+	useEffect(() => {
+		if (!availableKey) return;
+		const timer = window.setTimeout(() => availableKey.split(',').forEach((key) => preloadGame(key as GameKey)), 1500);
+		return () => window.clearTimeout(timer);
+	}, [availableKey]);
 
 	useEffect(() => {
 		document.body.classList.toggle('gm-playing', Boolean(playing));

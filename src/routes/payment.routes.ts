@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma.js';
 import { serializable } from '../lib/transaction.js';
 import { requestZarinpalPayment, verifyZarinpalPayment, type VerifyResult } from '../lib/payment.js';
 import { confirmationMessage, notConfirmedMessage, sendMockSms } from '../lib/sms.js';
-import { ensureInvoice, getReservationFull } from '../services/reservation.service.js';
+import { appendNote, ensureInvoice, getReservationFull } from '../services/reservation.service.js';
 import { findConflictingReservations } from '../services/availability.service.js';
 import { config } from '../config.js';
 import rateLimit from 'express-rate-limit';
@@ -70,7 +70,7 @@ async function confirmPaid(reservationId: string, paymentId: string, refId: stri
 
 		if (isSettled(fresh)) {
 			await tx.payment.update({ where: { id: payment.id }, data: { status: 'REFUND_PENDING', refId, verifiedAt: now, rawResponse } });
-			await tx.reservation.update({ where: { id: fresh.id }, data: { refundStatus: 'PENDING', notes: DUPLICATE_NOTE } });
+			await tx.reservation.update({ where: { id: fresh.id }, data: { refundStatus: 'PENDING', notes: appendNote(fresh.notes, DUPLICATE_NOTE) } });
 			return 'duplicate';
 		}
 
@@ -84,7 +84,7 @@ async function confirmPaid(reservationId: string, paymentId: string, refId: stri
 		const blocked = fresh.status === 'CANCELLED' || (lapsed && (await findConflictingReservations(fresh.id, tx)).length > 0);
 		if (blocked) {
 			await tx.payment.update({ where: { id: payment.id }, data: { status: 'REVIEW', refId, rawResponse } });
-			await tx.reservation.update({ where: { id: fresh.id }, data: { status: 'PAYMENT_REVIEW', notes: REVIEW_NOTE } });
+			await tx.reservation.update({ where: { id: fresh.id }, data: { status: 'PAYMENT_REVIEW', notes: appendNote(fresh.notes, REVIEW_NOTE) } });
 			return 'review';
 		}
 
@@ -129,10 +129,11 @@ paymentRouter.post('/:reservationId/request', paymentRequestLimiter, optionalUse
 
 		// The first trip uses the payment made with the hold; every later one gets its own row. Before, each new
 		// trip overwrote the authority of the last one, and paying on an older gateway page was never found.
+		// The unused row is claimed in the update itself: two «پرداخت» taps at once must not both write into it
+		// (the first page's authority would be lost, and paying on it never found).
 		const unused = reservation.payments.find((p) => p.status === 'PENDING' && !p.authority);
-		if (unused) {
-			await prisma.payment.update({ where: { id: unused.id }, data: { authority } });
-		} else {
+		const claimed = unused ? await prisma.payment.updateMany({ where: { id: unused.id, authority: null }, data: { authority } }) : { count: 0 };
+		if (claimed.count === 0) {
 			await prisma.payment.create({
 				data: { reservationId: reservation.id, amount: reservation.totalAmount, status: 'PENDING', method: 'ZARINPAL', provider: 'zarinpal', authority },
 			});
@@ -243,7 +244,7 @@ async function markUnknown(paymentId: string, reservationId: string): Promise<vo
 		const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } });
 		if (!reservation) return;
 		if (isSettled(reservation)) {
-			await prisma.reservation.update({ where: { id: reservation.id }, data: { refundStatus: 'PENDING', notes: UNKNOWN_NOTE } });
+			await prisma.reservation.update({ where: { id: reservation.id }, data: { refundStatus: 'PENDING', notes: appendNote(reservation.notes, UNKNOWN_NOTE) } });
 		} else {
 			await prisma.reservation.updateMany({ where: { id: reservation.id, status: { in: REVIEWABLE } }, data: { status: 'PAYMENT_REVIEW' } });
 		}

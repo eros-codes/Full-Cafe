@@ -1,5 +1,4 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ApiError } from '../../shared/api';
 import { faNumber } from '../../shared/format';
 import { safeStorage } from '../../shared/storage';
 import { HamburgerButton, MobileDrawer, SiteFooter, useDrawer } from '../../shared/chrome/SiteChrome';
@@ -7,7 +6,7 @@ import { fetchCategories, fetchMenuTypes, fetchProducts, type AddOn, type Catego
 import { OrderDialog } from './OrderDialog';
 import { ProductCard } from './ProductCard';
 import { ProductDialog } from './ProductDialog';
-import { RecommenderLauncher, RecommenderLoadingShell, preloadDialog } from './recommender/Launcher';
+import { RecommenderBoundary, RecommenderLauncher, RecommenderLoadingShell, preloadDialog } from './recommender/Launcher';
 import { addItem, clearOrder, decreaseItem, loadOrder, productQuantity, removeItem, totalQuantity, type OrderItem } from './order';
 import { useBump } from './useBump';
 
@@ -37,7 +36,8 @@ function pickCategory(typeId: number | null, categories: Category[]): number | n
 	return null;
 }
 
-type Products = { state: 'idle' } | { state: 'loaded'; list: Product[] } | { state: 'error' };
+/** Every visible product, read once with the menu: switching categories is then instant, with no request each time. */
+type Products = { state: 'idle' } | { state: 'loaded'; all: Product[] } | { state: 'error' };
 
 export function MenuPage() {
 	const drawer = useDrawer();
@@ -62,42 +62,32 @@ export function MenuPage() {
 	const badgeText = total > 0 ? faNumber(total) : '';
 	const badgeRef = useBump<HTMLSpanElement>(badgeText);
 
-	// ─── load the menu structure once ──────────────────────────────────────────
+	// ─── load the menu once: tabs, categories and products ─────────────────────
 	useEffect(() => {
 		let cancelled = false;
-		Promise.all([fetchMenuTypes().catch(() => [] as MenuType[]), fetchCategories().catch(() => [] as Category[])]).then(([types, cats]) => {
-			if (cancelled) return;
-			setMenuTypes(types);
-			setCategories(cats);
-			const stored = storedNumber(TYPE_KEY);
-			const initial = types.some((t) => t.id === stored) ? stored : (types[0]?.id ?? null);
-			if (initial !== null) safeStorage.set(TYPE_KEY, String(initial));
-			setTypeId(initial);
-			const first = pickCategory(initial, cats);
-			setCategoryId(first);
-			// a type with no category shows the "coming soon" text, like before
-			if (first === null) setProducts({ state: 'loaded', list: [] });
-		});
+		Promise.all([fetchMenuTypes(), fetchCategories(), fetchProducts()])
+			.then(([types, cats, all]) => {
+				if (cancelled) return;
+				setMenuTypes(types);
+				setCategories(cats);
+				const stored = storedNumber(TYPE_KEY);
+				const initial = types.some((t) => t.id === stored) ? stored : (types[0]?.id ?? null);
+				if (initial !== null) safeStorage.set(TYPE_KEY, String(initial));
+				setTypeId(initial);
+				// a type with no category shows the "coming soon" text, like before
+				setCategoryId(pickCategory(initial, cats));
+				setProducts({ state: 'loaded', all });
+			})
+			.catch((error) => {
+				if (cancelled) return;
+				console.error('Failed to fetch the menu:', error);
+				// before, a failed request showed «به زودی محصولات این دسته اضافه خواهند شد!» as if the menu were empty
+				setProducts({ state: 'error' });
+			});
 		return () => {
 			cancelled = true;
 		};
 	}, []);
-
-	// ─── products of the selected category (only the latest request wins) ─────
-	useEffect(() => {
-		if (categoryId === null) return;
-		const controller = new AbortController();
-		fetchProducts(categoryId, controller.signal)
-			.then((list) => setProducts({ state: 'loaded', list: Array.isArray(list) ? list : [] }))
-			.catch((error) => {
-				if (controller.signal.aborted) return;
-				console.error('Failed to fetch products:', error);
-				// a server / network problem is a connection error, not "no products"
-				const serverSide = !(error instanceof ApiError) || error.status === 0 || error.status >= 500;
-				setProducts(serverSide ? { state: 'error' } : { state: 'loaded', list: [] });
-			});
-		return () => controller.abort();
-	}, [categoryId]);
 
 	// ─── the sliding line under the selected menu type ─────────────────────────
 	const placeIndicator = useCallback(() => {
@@ -149,9 +139,7 @@ export function MenuPage() {
 		if (id === typeId) return;
 		safeStorage.set(TYPE_KEY, String(id));
 		setTypeId(id);
-		const next = pickCategory(id, categories);
-		setCategoryId(next);
-		if (next === null) setProducts({ state: 'loaded', list: [] });
+		setCategoryId(pickCategory(id, categories));
 	};
 
 	const selectCategory = (id: number) => {
@@ -212,6 +200,7 @@ export function MenuPage() {
 	};
 
 	const typeCategories = categories.filter((c) => c.menuTypeId === typeId);
+	const shownProducts = products.state === 'loaded' ? products.all.filter((p) => p.categoryId === categoryId) : [];
 
 	return (
 		<>
@@ -283,9 +272,9 @@ export function MenuPage() {
 					{products.state === 'error'
 						? ERROR_TEXT
 						: products.state === 'loaded' &&
-							(products.list.length === 0
+							(shownProducts.length === 0
 								? EMPTY_TEXT
-								: products.list.map((product, index) => (
+								: shownProducts.map((product, index) => (
 										<ProductCard
 											key={product.id}
 											product={product}
@@ -321,9 +310,12 @@ export function MenuPage() {
 				buttonRef={recommenderButtonRef}
 			/>
 			{recommenderMounted && (
-				<Suspense fallback={recommenderOpen ? <RecommenderLoadingShell onClose={closeRecommender} /> : null}>
-					<RecommenderDialog open={recommenderOpen} productOpen={openProduct !== null} onOpenProduct={setOpenProduct} onClose={closeRecommender} />
-				</Suspense>
+				// without the boundary, a failed download of the dialog's code left the whole menu page blank
+				<RecommenderBoundary open={recommenderOpen} onClose={closeRecommender}>
+					<Suspense fallback={recommenderOpen ? <RecommenderLoadingShell onClose={closeRecommender} /> : null}>
+						<RecommenderDialog open={recommenderOpen} productOpen={openProduct !== null} onOpenProduct={setOpenProduct} onClose={closeRecommender} />
+					</Suspense>
+				</RecommenderBoundary>
 			)}
 		</>
 	);

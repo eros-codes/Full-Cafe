@@ -172,25 +172,25 @@ authRouter.post('/otp/verify', otpVerifyLimiter, async (req, res, next) => {
 		}
 
 		const safeName = name ? String(name).trim().slice(0, 80) : null;
-		let resolvedName = safeName;
-		if (!resolvedName) {
+		const existing = await prisma.user.findUnique({ where: { phone } });
+		// A new account without a typed name takes the name of this number's last booking (e.g. a phone booking).
+		// An existing account keeps its own name unless one is typed: before, signing in without a name replaced it
+		// with the customer name of the last reservation (often booked for someone else).
+		let newName = safeName;
+		if (!existing && !newName) {
 			const previous = await prisma.reservation.findFirst({
 				where: { customerPhone: phone, customerName: { not: '' } },
 				orderBy: { createdAt: 'desc' },
 				select: { customerName: true },
 			});
-			resolvedName = previous?.customerName?.trim() || null;
-		}
-
-		const existing = await prisma.user.findUnique({ where: { phone } });
-		if (!existing && !resolvedName) {
-			return res.status(400).json({ message: 'برای ساخت حساب، وارد کردن نام لازم است.' });
+			newName = previous?.customerName?.trim() || null;
+			if (!newName) return res.status(400).json({ message: 'برای ساخت حساب، وارد کردن نام لازم است.' });
 		}
 
 		const user = await prisma.user.upsert({
 			where: { phone },
-			update: { name: resolvedName || undefined },
-			create: { phone, name: resolvedName },
+			update: safeName ? { name: safeName } : {},
+			create: { phone, name: newName },
 		});
 
 		await prisma.reservation

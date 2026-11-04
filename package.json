@@ -19,6 +19,7 @@
 		"db:export-menu": "tsx prisma/export-menu.ts",
 		"db:export-games": "tsx prisma/export-games.ts",
 		"db:merge-games": "tsx prisma/merge-games.ts",
+		"images:webp": "tsx scripts/convert-images.ts",
 		"simulate:recommender": "tsx scripts/simulate-recommender.ts"
 	},
 	"dependencies": {
@@ -34,7 +35,8 @@
 		"morgan": "^1.10.0",
 		"multer": "^2.0.2",
 		"react": "^19.2.8",
-		"react-dom": "^19.2.8"
+		"react-dom": "^19.2.8",
+		"sharp": "^0.34.5"
 	},
 	"devDependencies": {
 		"@types/bcryptjs": "^2.4.6",

@@ -165,6 +165,8 @@ font-family: "Lora", serif;
 	color: var(--chapel-white);
 	line-height: 0.88;
 	letter-spacing: -0.025em;
+	/* the tail of «ر» hangs well below this tight line box: without room it covered the line under the title */
+	margin-bottom: 0.22em;
 }
 
 .s-hero__sub {
@@ -279,6 +281,8 @@ font-family: "Lora", serif;
 	color: var(--chapel-white);
 	line-height: 0.88;
 	letter-spacing: -0.025em;
+	/* the tail of «ر» hangs well below this tight line box: without room it covered the line under the title */
+	margin-bottom: 0.22em;
 }
 
 .s-hero__sub {

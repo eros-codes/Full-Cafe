@@ -235,3 +235,9 @@ font-family: "Baloo Bhaijaan 2", sans-serif;
 }
 
 }
+
+/* the English line of the footer reads left to right (the site's reset makes everything rtl) */
+.s-footer__en {
+	direction: ltr;
+	unicode-bidi: isolate;
+}

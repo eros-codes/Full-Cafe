@@ -1,4 +1,5 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { Component, useEffect, useState, type ReactNode, type RefObject } from 'react';
+import { useLatest } from '../../../shared/useLatest';
 import { fetchRecommenderStatus } from './data';
 import { SPARK_ICON } from './icons';
 
@@ -81,22 +82,83 @@ export function RecommenderLauncher({ hidden, onOpen, buttonRef }: Props) {
 	);
 }
 
-/** Shown for the moment the dialog's code is still loading (slow connection, first tap). */
-export function RecommenderLoadingShell({ onClose }: { onClose: () => void }) {
+/** The dialog's frame while its own code is not there: loading (slow connection, first tap) or failed. */
+function Shell({ onClose, busy, children }: { onClose: () => void; busy?: boolean; children: ReactNode }) {
+	const close = useLatest(onClose);
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') close.current();
+		};
+		document.addEventListener('keydown', onKey);
+		document.body.classList.add('recommender-open');
+		return () => {
+			document.removeEventListener('keydown', onKey);
+			document.body.classList.remove('recommender-open');
+		};
+	}, [close]);
 	return (
 		<>
 			<div className="rec-backdrop visible" onClick={onClose}></div>
-			<section className="rec-dialog open" role="dialog" aria-modal="true" aria-label="انتخاب برای من" aria-busy="true">
+			<section className="rec-dialog open" role="dialog" aria-modal="true" aria-label="انتخاب برای من" aria-busy={busy || undefined}>
 				<div className="rec-head">
 					<span className="rec-head-label">
 						{SPARK_ICON}
 						انتخاب برای من
 					</span>
+					<button type="button" className="rec-close" aria-label="بستن انتخاب برای من" onClick={onClose}>
+						&times;
+					</button>
 				</div>
-				<div className="rec-body">
-					<p className="rec-loading">یه لحظه…</p>
-				</div>
+				<div className="rec-body">{children}</div>
 			</section>
 		</>
 	);
+}
+
+/** Shown for the moment the dialog's code is still loading (slow connection, first tap). */
+export function RecommenderLoadingShell({ onClose }: { onClose: () => void }) {
+	return (
+		<Shell onClose={onClose} busy>
+			<p className="rec-loading">یه لحظه…</p>
+		</Shell>
+	);
+}
+
+interface BoundaryProps {
+	open: boolean;
+	onClose: () => void;
+	children: ReactNode;
+}
+
+/**
+ * Around the dialog. If its code cannot be loaded (a flaky connection, or the site was updated while the page
+ * was open, so the old file is gone) or it fails while drawing, React would otherwise remove the whole menu page
+ * and leave it blank. Instead the dialog says so and offers to load the page again (the order list is kept: it
+ * lives in the phone's storage). A failed download is not retried in place: the browser keeps the failure for the
+ * page, only a reload fetches the code again.
+ */
+export class RecommenderBoundary extends Component<BoundaryProps, { failed: boolean }> {
+	state = { failed: false };
+
+	static getDerivedStateFromError() {
+		return { failed: true };
+	}
+
+	componentDidCatch(error: unknown) {
+		console.error('«انتخاب برای من» باز نشد:', error);
+	}
+
+	render() {
+		if (!this.state.failed) return this.props.children;
+		if (!this.props.open) return null;
+		return (
+			<Shell onClose={this.props.onClose}>
+				<h2 className="rec-title">الان باز نشد</h2>
+				<p className="rec-sub">احتمالاً اینترنت لحظه‌ای قطع شده. صفحه رو دوباره بارگذاری کن؛ لیست سفارشت سر جاش می‌مونه.</p>
+				<button type="button" className="rec-primary" onClick={() => window.location.reload()}>
+					بارگذاری دوباره
+				</button>
+			</Shell>
+		);
+	}
 }

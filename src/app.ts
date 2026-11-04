@@ -72,7 +72,10 @@ app.use(
 		// در تست‌های خودکار همه‌ی درخواست‌ها از یک IP می‌آیند
 		skip: () => config.isTest,
 		windowMs: 60 * 1000,
-		max: 120,
+		// Everyone on the café's Wi-Fi shares one public IP. A menu page alone makes about five API calls, so 120 a
+		// minute was reached by some 25 guests opening the menu at once, and then the whole café got «too many
+		// requests». The costly routes (SMS codes, holds, payments, admin login) keep their own tighter limits.
+		max: 600,
 		standardHeaders: true,
 		legacyHeaders: false,
 		message: { message: 'تعداد درخواست‌ها زیاد بود؛ کمی بعد دوباره تلاش کن.' },
@@ -84,7 +87,9 @@ app.get('/health', (_req, res) => res.json({ ok: true, service: 'roof' }));
 
 app.use(legacyRedirects);
 app.use(trackSiteVisit);
-app.use(PRODUCTS_URL, express.static(PRODUCTS_DIR, { maxAge: config.isProd ? '7d' : 0, index: false }));
+// Every product photo gets a new, unique file name (a changed photo is a new file), so a name's content never changes:
+// browsers may keep it for a year without asking again.
+app.use(PRODUCTS_URL, express.static(PRODUCTS_DIR, { maxAge: config.isProd ? '365d' : 0, immutable: config.isProd, index: false }));
 app.use('/admin', (_req, res, next) => {
 	res.setHeader('X-Robots-Tag', 'noindex, nofollow');
 	next();

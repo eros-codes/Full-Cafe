@@ -4,7 +4,7 @@ One Node.js server runs the whole café site:
 
 | Part | URL | What it is |
 | --- | --- | --- |
-| Café site | `/`, `/menu`, `/feedback`, `/games` | About page, menu (with add-ons, an order list, sold-out marks and «انتخاب برای من»), customer reviews, party games on one phone |
+| Café site | `/`, `/menu`, `/feedback`, `/games` | About page (its opening hours are the panel's «ساعت کاری»), menu (with add-ons, an order list, sold-out marks and «انتخاب برای من»), customer reviews, party games on one phone |
 | Reservation | `/reserve` (+ `/reserve/payment`, `/invoice`, `/profile`, `/track`) | Live floor map, table booking, Zarinpal payment, invoice, guest tracking, customer profile (SMS login) |
 | Admin panel | `/admin` (login at `/admin/login`) | One panel for reservations, the floor map, menu, menu types, add-ons, categories, the «انتخاب برای من» questions and tags, the games and their cards, reviews, hours, closures, settings, reports and admin accounts |
 | API | `/api/...` | JSON API used by all of the above |
@@ -81,6 +81,7 @@ cached). **Restart the server after every build**, because it caches the page HT
 | `npm run db:export-menu` | Export this database's menu (types, categories, products, add-ons, tags, images) to `menu-export/` |
 | `npm run db:export-games` | Export this database's games (order, on/off, every deck and its cards) to `games-export/games.json` |
 | `npm run db:merge-games` | Add the decks and cards of `prisma/seed-data/games.json` that this database does not have yet (after an update brought new cards) |
+| `npm run images:webp` | Convert the product photos stored before uploads became WebP (jpg, png, gif, oversized WebP) and point the products at the new files (`-- --dry-run` only reports; safe to re-run) |
 | `npm run simulate:recommender` | Simulate 1000 customers on the real menu and report how well «انتخاب برای من» does (`-- 5000` for more) |
 | `npm run prisma:deploy` | Apply migrations (production) |
 | `npm run prisma:migrate` | Create a new migration after editing `schema.prisma` (development) |
@@ -137,7 +138,10 @@ suggestion opens the product as usual. The button only appears when the feature 
   replaces the category's options **for that group only**: a decaf coffee in «قهوه» sets the caffeine group to
   «بدون کافئین» and still inherits everything else. «مثل دسته» gives the group back to the category. «هیچ‌کدام» means
   none of the options fits the product (water has no flavour): that is a miss for the customer's answer, unlike an
-  untagged group, which counts as unknown. «وگان» always brings «گیاهخوار» along.
+  untagged group, which counts as unknown. «وگان» always brings «گیاهخوار» along. Deleting an option takes it off
+  every product and category; a product that had only that option in a group it sets itself goes back to its category
+  for the group (untagged there, so it shows under «برچسب ناقص»), unless the category has options in that group: then it
+  stays «هیچ‌کدام» rather than taking the category's option.
 - **Bulk tagging:** tick products in «محصولات منو» and use «افزودن برچسب» / «برداشتن برچسب». The filter
   «برچسب ناقص» lists the products that still miss an active taste group; the cards in «انتخاب برای من» show the
   coverage of each group.
@@ -170,8 +174,9 @@ to the menu, the tags or the settings); the engine runs in the browser.
 ## Games page (/games)
 
 Party games for a table, played on **one phone** that is passed around or put in the middle. Nothing about the players
-goes to the server: the page loads the games and their cards once (`GET /api/games`, also kept on the phone so the games
-still open when the café's Wi-Fi drops), and every game keeps its state on the phone, so a reload, a call or another
+goes to the server: the page loads the games and their cards once (`GET /api/games`, also kept on the phone, and the
+games' own code is fetched in the background right after, about 50 KB, so every game still opens when the café's Wi-Fi
+drops), and every game keeps its state on the phone, so a reload, a call or another
 app does not lose it (a game left for more than 6 hours is dropped). A running clock pauses by itself when the phone
 goes to another app, a call or the lock screen, and waits for «ادامه». Leaving a game, with ✕ or the phone's back
 button, ends it: nothing of it is kept. Only a game interrupted by closing the browser shows «ادامه‌ی بازی» on the list.
@@ -332,8 +337,16 @@ order used in development, and the stylesheets of the café site, the reservatio
 ## Images
 
 Product images are uploaded from the admin panel and stored on the server in `uploads/products/`
-(served at `/uploads/products/<file>`). Files are checked by content, not just by name, and are limited to 5 MB
-(jpg, png, webp, gif). Back this folder up together with the database.
+(served at `/uploads/products/<file>`). The panel accepts jpg, png, webp and gif up to 10 MB; the file is checked by
+its content (not its name or the browser's word), then converted with [sharp](https://sharp.pixelplumbing.com/) into the
+only file that is kept: a WebP at most 1200 px on its longest side, turned upright by the photo's orientation, with all
+metadata removed (a phone photo's GPS position, camera and date), transparency and animation kept. A typical menu
+photo goes from several hundred KB to 20–60 KB. Pictures with more than 60 megapixels and broken files are refused
+with a message. Every photo gets a new unique name, so it is served with a one-year browser cache.
+
+The seed converts `prisma/seed-data/images/` the same way when it copies them. Photos stored before this conversion
+existed are converted with `npm run images:webp` (run it once after updating). Back `uploads/products/` up together
+with the database.
 
 ## Tests
 
@@ -346,11 +359,13 @@ TEST_DATABASE_URL="postgresql://postgres:PASS@localhost:5432/roof_test?schema=pu
 On Windows PowerShell: `$env:TEST_DATABASE_URL="..."; npm test`.
 
 Without `TEST_DATABASE_URL` the integration suite is skipped. It covers admin roles and the floor-map permission,
-menu types, categories, add-ons, uploads, reviews, settings and closure validation, working hours up to 24:00,
+menu types, categories, add-ons, uploads (WebP conversion, refused files, no photo left behind by a failed save),
+reviews, settings and closure validation, working hours up to 24:00,
 reservation status rules, holds/availability/payment/cancellation, Persian-digit input, page URLs and old-URL
 redirects, and the recommender's data (tag inheritance and overrides, sold-out / no-kind / hidden-tab exclusion,
 bulk tagging, coverage, roles), and the games API (switch, roles, deck validation and card lines, playable games, order).
-The unit tests of the recommender, the games, the board games (their bots included), «مافیا», «منچ», «شطرنج» and «تخته نرد» need no database and always run.
+The unit tests of the photo conversion (`test/images.test.ts`), the About page's hours (`test/site-hours.test.ts`), the recommender, the games, the board games (their bots
+included), «مافیا», «منچ», «شطرنج» and «تخته نرد» need no database and always run.
 
 ## Production checklist
 
@@ -361,6 +376,10 @@ The unit tests of the recommender, the games, the board games (their bots includ
   The server refuses to start in production with `SMS_MODE="console"`.
 - Run behind nginx with HTTPS. Set `TRUST_PROXY` to the number of proxies in front of the app (nginx alone = 1, the default;
   Cloudflare + nginx = 2). Every rate limit depends on it: one too few and all visitors share one IP.
+- In nginx, `client_max_body_size 12m;` (its default is 1 MB, which would refuse most product photos before they
+  reach the app; the app itself accepts up to 10 MB).
+- `npm install` on the server installs sharp's prebuilt image library for its system (Linux x64 / arm64 included);
+  after an update that converts images, run `npm run images:webp` once.
 - Back up the database and `uploads/products/`.
 
 ## Old addresses

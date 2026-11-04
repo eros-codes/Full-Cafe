@@ -1,7 +1,10 @@
+import { ApiError } from '../../shared/api';
 import { ICONS } from '../../shared/icons';
 import { adminApi } from '../common/adminApi';
 
 export const PLACEHOLDER = 'placeholder.png';
+/** Largest photo the server accepts (MAX_UPLOAD_BYTES in src/lib/uploads.ts). */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 export interface MenuTypeRow {
 	id: number;
@@ -75,9 +78,18 @@ export function MenuFlash({ flash }: { flash: { type: string; text: string; id: 
 	);
 }
 
+/** Uploads a photo; the server converts it to WebP and answers with the new file's name. */
 export async function uploadImage(file: File): Promise<string> {
 	const data = new FormData();
 	data.append('image', file);
-	const { filename } = await adminApi<{ filename: string }>('/api/admin/upload', { method: 'POST', body: data, fallbackMessage: 'آپلود تصویر ناموفق بود.' });
-	return filename;
+	try {
+		const { filename } = await adminApi<{ filename: string }>('/api/admin/upload', { method: 'POST', body: data, fallbackMessage: 'آپلود تصویر ناموفق بود.' });
+		return filename;
+	} catch (error) {
+		// a 413 without our JSON message comes from the web server in front of the app (nginx: client_max_body_size)
+		if (error instanceof ApiError && error.status === 413 && !error.data.message) {
+			throw new ApiError(413, 'سرور فایلی با این حجم را نپذیرفت؛ عکس کوچک‌تری انتخاب کن.');
+		}
+		throw error;
+	}
 }
