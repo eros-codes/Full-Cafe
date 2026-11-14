@@ -6,6 +6,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import type { ViteDevServer } from 'vite';
 import { config } from '../config.js';
 import { PROJECT_ROOT } from '../lib/paths.js';
+import { fillBrandTokens } from '../brand.js';
 import { LEGACY_REDIRECTS, findPage, type PageEntry } from './pages.js';
 
 // The React pages, served by this same Express server:
@@ -31,7 +32,8 @@ async function pageHtml(page: PageEntry): Promise<string> {
 	const built = path.join(CLIENT_BUILD_DIR, page.html);
 	// Without a build (e.g. while running the API tests) the untransformed source page is enough
 	// to answer the request; real visitors always get the built page.
-	const html = await fs.readFile(existsSync(built) ? built : path.join(CLIENT_SOURCE_DIR, page.html), 'utf8');
+	// (the build already has the café's name in it; the source pages still have the %BRAND_…% placeholders)
+	const html = fillBrandTokens(await fs.readFile(existsSync(built) ? built : path.join(CLIENT_SOURCE_DIR, page.html), 'utf8'));
 	htmlCache.set(page.html, html);
 	return html;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { faNumber } from '../../shared/format';
 import { fetchReviews, type PublicReview } from './api';
+import { BRAND } from '../../shared/brand';
 
 const DURATION = 4000; // shortest time a review stays before the next one
 const MS_PER_CHAR = 50; // a long review or reply stays longer (a 500-character reply: about half a minute)
@@ -29,7 +30,7 @@ function Exchange({ review, motion }: { review: Review; motion: string }) {
 	return (
 		<div className={`msg-exchange${motion ? ` ${motion}` : ''}`}>
 			<Bubble text={review.text} name={review.name} date={review.date} variant="user" />
-			{review.reply ? <Bubble text={review.reply} name="روف" date={null} variant="admin" /> : null}
+			{review.reply ? <Bubble text={review.reply} name={BRAND.nameFa} date={null} variant="admin" /> : null}
 		</div>
 	);
 }
@@ -130,7 +131,7 @@ export function ChatPlayer() {
 			<div className="chat-header">
 				<div className="chat-avatar">R</div>
 				<div className="chat-meta">
-					<h2 className="chat-name">روف</h2>
+					<h2 className="chat-name">{BRAND.nameFa}</h2>
 					<span className="chat-status">
 						<span className="status-dot"></span>
 						آنلاین

@@ -26,7 +26,10 @@ export function MenuModal({ title, submitLabel = 'ذخیره', onSubmit, onClose
 
 	useEffect(() => {
 		const root = formRef.current;
-		(root?.querySelector<HTMLElement>('input, select, textarea') ?? root?.querySelector<HTMLElement>('button'))?.focus();
+		(
+			root?.querySelector<HTMLElement>('input:not([hidden]):not([type="hidden"]), select, textarea') ??
+			root?.querySelector<HTMLElement>('button')
+		)?.focus();
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') close.current();
 		};

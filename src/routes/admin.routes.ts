@@ -1,5 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
 import { Prisma, type AdminRole, type CafeTable, type ReservationStatus, type TableShape, type ZoneKey } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { requireAdmin, requireRole } from '../middleware/auth.js';
@@ -8,7 +9,7 @@ import { serializable } from '../lib/transaction.js';
 import { getSettings, setSetting } from '../services/settings.service.js';
 import { CLOCK_TIME, CLOSING_TIME, combineDateAndTime, isValidDateString, normalizePhone } from '../lib/time.js';
 import { setCookie, signAdminToken } from '../lib/auth.js';
-import { confirmationMessage, sendMockSms } from '../lib/sms.js';
+import { confirmationMessage, manualConfirmationMessage, sendMockSms } from '../lib/sms.js';
 import { ROLE_GROUPS, USERNAME_PATTERN, canManageRole, isAdminRole, normalizeUsername } from '../lib/roles.js';
 import { adminMenuRouter } from './admin/menu.routes.js';
 import { adminTagsRouter } from './admin/tags.routes.js';
@@ -17,8 +18,11 @@ import { RECOMMENDER_SETTING, invalidateRecommenderCache } from '../services/rec
 import { GAMES_SETTING, invalidateGamesCache } from '../services/games.service.js';
 import { todayKey } from '../middleware/site-visit.js';
 import { findConflictingReservations } from '../services/availability.service.js';
+import { reservationsInClosure, reservationsOutsideHours } from '../services/schedule-impact.service.js';
+import { ON_PLAN, removeFromPlan, upcomingBookingsOn } from '../services/floor-plan.service.js';
 import { createHttpError, prismaCode } from '../lib/http-error.js';
 import { currentAdmin } from '../lib/request.js';
+import { config } from '../config.js';
 
 export const adminRouter = express.Router();
 
@@ -38,6 +42,48 @@ adminRouter.use(requireAdmin);
 adminRouter.get('/me', (req, res) => {
 	const admin = currentAdmin(req);
 	res.json({ admin: { id: admin.id, username: admin.username, name: admin.name, role: admin.role } });
+});
+
+// Wrong current passwords per account (a session left open on a café computer must not become a way to guess it).
+const ownPasswordLimiter = rateLimit({
+	skip: () => config.isTest,
+	windowMs: 15 * 60 * 1000,
+	max: 10,
+	keyGenerator: (req) => `own-password:${currentAdmin(req).id}`,
+	skipSuccessfulRequests: true,
+	message: { message: 'تلاش‌های ناموفق زیادی ثبت شده؛ ۱۵ دقیقه‌ی دیگر دوباره تلاش کن.' },
+});
+
+/**
+ * Every admin, staff included, changes their own password here, with the current one. Before, staff could not change
+ * theirs at all, and a manager changed theirs from the admin list without the current password: whoever found the
+ * panel open on a café computer could lock the owner out of the account.
+ */
+adminRouter.post('/me/password', ownPasswordLimiter, async (req, res, next) => {
+	try {
+		const admin = currentAdmin(req);
+		const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
+		const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+		// 400, never 401: a 401 sends the panel to the login page
+		if (!currentPassword) return res.status(400).json({ message: 'رمز فعلی را وارد کن.' });
+		if (newPassword.length < 8 || newPassword.length > 128) {
+			return res.status(400).json({ message: 'رمز جدید باید بین ۸ تا ۱۲۸ کاراکتر باشد.' });
+		}
+		if (currentPassword.length > 128 || !(await bcrypt.compare(currentPassword, admin.passwordHash))) {
+			return res.status(400).json({ message: 'رمز فعلی درست نیست.' });
+		}
+		if (newPassword === currentPassword) return res.status(400).json({ message: 'رمز جدید باید با رمز فعلی فرق داشته باشد.' });
+		const updated = await prisma.adminUser.update({
+			where: { id: admin.id },
+			// every other open session of this account ends (another phone, a forgotten computer)
+			data: { passwordHash: await bcrypt.hash(newPassword, 10), tokenVersion: { increment: 1 } },
+		});
+		// this one goes on with a fresh cookie
+		setCookie(res, 'adminToken', signAdminToken(updated));
+		res.json({ message: 'رمز عبور تغییر کرد.' });
+	} catch (error) {
+		next(error);
+	}
 });
 
 // منو، دسته‌بندی، نظرات و آپلود تصویر (از قالب کافه)
@@ -222,7 +268,7 @@ adminRouter.post('/reservations/manual', async (req, res, next) => {
 		await sendMockSms({
 			phone: reservation.customerPhone,
 			type: 'CONFIRMATION',
-			message: `رزرو دستی شما در Roof تایید شد. کد پیگیری: ${reservation.trackingCode}`,
+			message: manualConfirmationMessage(reservation),
 		}).catch((error) => console.error('SMS رزرو دستی ارسال نشد:', error));
 		res.status(201).json({ reservation });
 	} catch (error) {
@@ -366,10 +412,10 @@ adminRouter.post('/reservations/:id/refund-done', requireRole(...ROLE_GROUPS.man
 
 adminRouter.get('/tables', async (_req, res, next) => {
 	try {
-		const [tables, connections] = await Promise.all([
-			prisma.cafeTable.findMany({ orderBy: { code: 'asc' } }),
-			prisma.tableConnection.findMany(),
-		]);
+		// the tables on the floor plan (a retired one only lives on in its old bookings)
+		const tables = await prisma.cafeTable.findMany({ where: ON_PLAN, orderBy: { code: 'asc' } });
+		const ids = tables.map((t) => t.id);
+		const connections = await prisma.tableConnection.findMany({ where: { tableAId: { in: ids }, tableBId: { in: ids } } });
 		res.json({ tables, connections });
 	} catch (error) {
 		next(error);
@@ -500,7 +546,7 @@ adminRouter.post('/tables', requireRole(...ROLE_GROUPS.mapEditor), async (req, r
 adminRouter.patch('/tables/:id', requireRole(...ROLE_GROUPS.tableToggle), async (req, res, next) => {
 	try {
 		const existing = await prisma.cafeTable.findUnique({ where: { id: req.params.id } });
-		if (!existing) return res.status(404).json({ message: 'میز پیدا نشد.' });
+		if (!existing || existing.retiredAt) return res.status(404).json({ message: 'میز پیدا نشد.' });
 
 		// مدیر کافه فقط می‌تواند میز را فعال/غیرفعال کند؛ هندسه و ظرفیت دست توسعه‌دهنده است
 		if (!(ROLE_GROUPS.mapEditor as readonly AdminRole[]).includes(currentAdmin(req).role)) {
@@ -521,16 +567,28 @@ adminRouter.patch('/tables/:id', requireRole(...ROLE_GROUPS.tableToggle), async 
 	}
 });
 
+/**
+ * «حذف میز» in the map editor. A table with bookings to come stays (move or cancel them first). A table that past
+ * bookings used is retired: off the map, kept for their history. Before, such a table could not be removed at all,
+ * only switched off, and stayed drawn on the map.
+ */
 adminRouter.delete('/tables/:id', requireRole(...ROLE_GROUPS.mapEditor), async (req, res, next) => {
 	try {
-		await prisma.cafeTable.delete({ where: { id: req.params.id } });
-		res.json({ message: 'میز حذف شد.' });
-	} catch (error) {
-		if (prismaCode(error) === 'P2003') {
-			return res
-				.status(409)
-				.json({ message: 'این میز تو رزروهای قبلی یا فعلی استفاده شده و نمی‌شه حذفش کرد؛ به‌جاش می‌تونی غیرفعالش کنی.' });
+		const table = await prisma.cafeTable.findUnique({ where: { id: req.params.id } });
+		if (!table || table.retiredAt) return res.status(404).json({ message: 'میز پیدا نشد.' });
+		const upcoming = await upcomingBookingsOn([table.id]);
+		if (upcoming.length) {
+			const codes = upcoming.map((r) => r.trackingCode).join('، ');
+			return res.status(409).json({
+				message: `این میز رزرو پیش‌رو دارد (${codes})؛ اول آن رزروها را جابه‌جا یا لغو کن، یا فعلاً میز را غیرفعال کن.`,
+			});
 		}
+		const outcome = await prisma.$transaction((tx) => removeFromPlan(tx, table.id));
+		res.json({
+			outcome,
+			message: outcome === 'deleted' ? 'میز حذف شد.' : 'میز از نقشه برداشته شد؛ رزروهای گذشته‌اش با شماره‌ی همین میز در سوابق می‌مانند.',
+		});
+	} catch (error) {
 		if (prismaCode(error) === 'P2025') return res.status(404).json({ message: 'میز پیدا نشد.' });
 		next(error);
 	}
@@ -544,6 +602,10 @@ adminRouter.post('/table-connections', requireRole(...ROLE_GROUPS.mapEditor), as
 		}
 		if (tableAId === tableBId) {
 			return res.status(400).json({ message: 'یک میز را نمی‌توان به خودش وصل کرد.' });
+		}
+		// both on the floor plan (a retired table cannot be joined)
+		if ((await prisma.cafeTable.count({ where: { id: { in: [tableAId, tableBId] }, ...ON_PLAN } })) !== 2) {
+			return res.status(404).json({ message: 'یکی از میزها پیدا نشد.' });
 		}
 		const [a, b] = [tableAId, tableBId].sort();
 		const connection = await prisma.tableConnection.upsert({
@@ -597,9 +659,30 @@ const NUMBER_SETTING_BOUNDS: Record<string, { min: number; max: number }> = {
 	reminderBeforeMinutes: { min: 0, max: 10080 },
 };
 
-const TEXT_SETTINGS: readonly string[] = ['currencyLabel', 'cafeName'];
+// (the café's name is not a setting: it lives in src/brand.ts with the logos)
+const TEXT_SETTINGS: readonly string[] = ['currencyLabel'];
 // on/off switches, stored as "1" / "0"
 const BOOLEAN_SETTINGS: readonly string[] = [RECOMMENDER_SETTING, GAMES_SETTING];
+
+/** The names the panel shows, for the error messages (before: «مقدار «pricePerGuest» باید عددی بین 1 و 100000000 باشد»). */
+const SETTING_FA: Record<string, string> = {
+	pricePerGuest: 'قیمت هر نفر',
+	decorationPrice: 'هزینه تزئین',
+	reservationWindowDays: 'بازه باز بودن رزرو',
+	minLeadMinutes: 'حداقل فاصله از الان',
+	minDurationMinutes: 'حداقل مدت رزرو',
+	maxDurationMinutes: 'حداکثر مدت رزرو',
+	slotIntervalMinutes: 'فاصله اسلات‌ها',
+	cleaningBufferMinutes: 'زمان آماده‌سازی بین رزروها',
+	holdMinutes: 'مدت نگه داشتن میز تا پرداخت',
+	reminderBeforeMinutes: 'یادآوری پیامکی',
+	maxComboTables: 'حداکثر میزهای ترکیبی',
+	currencyLabel: 'واحد پول',
+	[RECOMMENDER_SETTING]: '«انتخاب برای من»',
+	[GAMES_SETTING]: 'بازی‌ها',
+};
+const settingName = (key: string) => SETTING_FA[key] ?? key;
+const faInt = (n: number) => n.toLocaleString('fa-IR');
 
 adminRouter.patch('/settings', requireRole(...ROLE_GROUPS.manager), async (req, res, next) => {
 	try {
@@ -610,18 +693,22 @@ adminRouter.patch('/settings', requireRole(...ROLE_GROUPS.manager), async (req, 
 		for (const [key, value] of updates) {
 			if (TEXT_SETTINGS.includes(key)) {
 				if (typeof value !== 'string' || !value.trim() || value.length > 60) {
-					return res.status(400).json({ message: `مقدار «${key}» نامعتبر است.` });
+					return res.status(400).json({ message: `«${settingName(key)}» باید متنی تا ۶۰ حرف باشد.` });
 				}
 				continue;
 			}
 			if (BOOLEAN_SETTINGS.includes(key)) {
-				if (typeof value !== 'boolean') return res.status(400).json({ message: `مقدار «${key}» باید روشن یا خاموش باشد.` });
+				if (typeof value !== 'boolean') return res.status(400).json({ message: `${settingName(key)} باید روشن یا خاموش باشد.` });
 				continue;
 			}
 			const bounds = NUMBER_SETTING_BOUNDS[key];
-			const n = Number(value);
+			// a number or digits only: Number('') / Number(null) / Number(false) are all 0, so an emptied field
+			// would have been saved as 0 (decoration switched off, no lead time) without a word
+			const n = typeof value === 'number' ? value : typeof value === 'string' && /^\s*-?\d+\s*$/.test(value) ? Number(value) : NaN;
 			if (!Number.isInteger(n) || n < bounds.min || n > bounds.max) {
-				return res.status(400).json({ message: `مقدار «${key}» باید عددی بین ${bounds.min} و ${bounds.max} باشد.` });
+				return res
+					.status(400)
+					.json({ message: `«${settingName(key)}» باید عدد صحیحی بین ${faInt(bounds.min)} و ${faInt(bounds.max)} باشد.` });
 			}
 		}
 		// حداقل مدت رزرو نباید از حداکثر بیشتر باشد (وگرنه هیچ رزروی ممکن نیست)
@@ -672,7 +759,8 @@ adminRouter.patch('/working-hours/:dayOfWeek', requireRole(...ROLE_GROUPS.manage
 			update: { opensAt, closesAt, isClosed },
 			create: { dayOfWeek, opensAt, closesAt, isClosed },
 		});
-		res.json({ workingHour });
+		// bookings already made for this weekday that the new hours leave out: the panel lists them
+		res.json({ workingHour, affected: await reservationsOutsideHours(dayOfWeek, workingHour) });
 	} catch (error) {
 		next(error);
 	}
@@ -707,7 +795,7 @@ adminRouter.post('/closures', requireRole(...ROLE_GROUPS.manager), async (req, r
 		}
 		// قبلاً سالن یا میز نامعتبر مستقیم به دیتابیس می‌رفت و خطای ۵۰۰ می‌داد
 		if (req.body.zone && !ZONES.includes(req.body.zone)) return res.status(400).json({ message: 'سالن نامعتبر است.' });
-		if (req.body.tableId && !(await prisma.cafeTable.findUnique({ where: { id: String(req.body.tableId) } }))) {
+		if (req.body.tableId && !(await prisma.cafeTable.findFirst({ where: { id: String(req.body.tableId), ...ON_PLAN } }))) {
 			return res.status(400).json({ message: 'میز انتخاب‌شده پیدا نشد.' });
 		}
 		const closure = await prisma.closure.create({
@@ -721,7 +809,8 @@ adminRouter.post('/closures', requireRole(...ROLE_GROUPS.manager), async (req, r
 				reason: req.body.reason ? String(req.body.reason).slice(0, 300) : null,
 			},
 		});
-		res.status(201).json({ closure });
+		// bookings already made inside the closure: the panel lists them so the staff can call the customers
+		res.status(201).json({ closure, affected: await reservationsInClosure(closure) });
 	} catch (error) {
 		next(error);
 	}
@@ -918,6 +1007,8 @@ adminRouter.patch('/admins/:id', requireRole(...ROLE_GROUPS.manager), async (req
 			data.tokenVersion = { increment: 1 };
 		}
 		if (body.password !== undefined) {
+			// your own password needs the current one (POST /me/password)
+			if (isSelf) return res.status(400).json({ message: 'رمز خودت را از «تغییر رمز من» عوض کن؛ رمز فعلی لازم است.' });
 			const password = String(body.password);
 			if (password.length < 8 || password.length > 128)
 				return res.status(400).json({ message: 'رمز عبور باید بین ۸ تا ۱۲۸ کاراکتر باشد.' });
@@ -927,11 +1018,6 @@ adminRouter.patch('/admins/:id', requireRole(...ROLE_GROUPS.manager), async (req
 		}
 
 		const admin = await prisma.adminUser.update({ where: { id: req.params.id }, data, select: ADMIN_PUBLIC_FIELDS });
-		// اگر ادمین رمز خودش را عوض کرد، کوکی تازه بگیرد تا از پنل بیرون نیفتد
-		if (isSelf && data.tokenVersion) {
-			const fresh = await prisma.adminUser.findUnique({ where: { id: admin.id } });
-			if (fresh) setCookie(res, 'adminToken', signAdminToken(fresh));
-		}
 		res.json({ admin });
 	} catch (error) {
 		if (prismaCode(error) === 'P2002') return res.status(409).json({ message: 'ادمینی با این نام کاربری از قبل وجود دارد.' });

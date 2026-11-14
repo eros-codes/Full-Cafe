@@ -1,13 +1,14 @@
 import { prisma } from './prisma.js';
 import type { SmsLog, SmsType } from '@prisma/client';
 import { config } from '../config.js';
+import { BRAND } from '../brand.js';
 
 type WithTrackingCode = { trackingCode: string };
 
 export async function sendMockSms({ phone, type, message }: { phone: string; type: SmsType; message: string }): Promise<SmsLog | null> {
 	const status = config.smsMode === 'console' ? 'MOCK_SENT' : 'PENDING_PROVIDER';
 	// کد تایید نباید تو دیتابیس بمونه؛ فقط شکل پیام لاگ می‌شه
-	const storedMessage = type === 'OTP' ? 'کد تایید Roof: ******' : message;
+	const storedMessage = type === 'OTP' ? otpMessage('******') : message;
 	let log: SmsLog | null = null;
 	try {
 		log = await prisma.smsLog.create({ data: { phone, type, message: storedMessage, status } });
@@ -30,11 +31,16 @@ export async function sendMockSms({ phone, type, message }: { phone: string; typ
 }
 
 export function otpMessage(code: string): string {
-	return `کد تایید Roof: ${code}`;
+	return `کد تایید ${BRAND.nameFa}: ${code}`;
 }
 
 export function confirmationMessage(reservation: WithTrackingCode): string {
-	return `رزرو شما در Roof تایید شد. کد پیگیری: ${reservation.trackingCode}`;
+	return `رزرو شما در ${BRAND.cafeFa} تایید شد. کد پیگیری: ${reservation.trackingCode}`;
+}
+
+/** A booking the staff made (phone / walk-in). */
+export function manualConfirmationMessage(reservation: WithTrackingCode): string {
+	return `رزرو دستی شما در ${BRAND.cafeFa} تایید شد. کد پیگیری: ${reservation.trackingCode}`;
 }
 
 export function notConfirmedMessage(reservation: WithTrackingCode): string {
@@ -48,5 +54,5 @@ export function reminderMessage(reservation: WithTrackingCode, minutesBefore: nu
 			? `${Math.round(minutesBefore / 60).toLocaleString('fa-IR')} ساعت`
 			: `${Math.round(minutesBefore).toLocaleString('fa-IR')} دقیقه`
 		: 'کمی';
-	return `یادآوری Roof: رزرو شما تا ${when} دیگر شروع می‌شود. کد: ${reservation.trackingCode}`;
+	return `یادآوری ${BRAND.cafeFa}: رزرو شما تا ${when} دیگر شروع می‌شود. کد: ${reservation.trackingCode}`;
 }

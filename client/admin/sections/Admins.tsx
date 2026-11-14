@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { errorText } from '../../shared/api';
 import { adminApi } from '../common/adminApi';
 import { MenuModal } from '../common/MenuModal';
+import { OwnPasswordDialog } from '../common/OwnPasswordDialog';
 import { ROLE_FA, assignableRoles, type Admin, type AdminRole } from '../common/roles';
 import { ErrorNotice, Notice, Skeleton, type NoticeState } from '../common/ui';
 
@@ -77,7 +78,7 @@ export function Admins({ me }: { me: Admin }) {
 
 	return (
 		<>
-			<Notice id="adminNotice" notice={notice} />
+			<Notice id="adminNotice" notice={notice} reveal />
 			<div className="card" style={{ marginBottom: '14px' }}>
 				<h4>افزودن ادمین جدید</h4>
 				<div className="row">
@@ -212,12 +213,20 @@ export function Admins({ me }: { me: Admin }) {
 					</div>
 				)}
 			</div>
-			{passwordFor && (
+			{/* your own password needs the current one; someone else's is a reset */}
+			{passwordFor?.id === me.id && (
+				<OwnPasswordDialog
+					me={me}
+					onClose={() => setPasswordFor(null)}
+					onSaved={() => setNotice({ type: 'ok', text: 'رمز عبور تو تغییر کرد. حساب تو روی دستگاه‌های دیگر از پنل خارج شد.' })}
+				/>
+			)}
+			{passwordFor && passwordFor.id !== me.id && (
 				<PasswordForm
 					admin={passwordFor}
 					onClose={() => setPasswordFor(null)}
 					onSaved={() => {
-						setNotice({ type: 'ok', text: 'رمز عبور تغییر کرد.' });
+						setNotice({ type: 'ok', text: `رمز «${passwordFor.name}» تغییر کرد؛ اگر وارد پنل بود، باید با رمز تازه دوباره وارد شود.` });
 						void refresh();
 					}}
 				/>
@@ -236,6 +245,7 @@ function PasswordForm({ admin, onClose, onSaved }: { admin: AdminRow; onClose: (
 			onClose={onClose}
 			onSubmit={async () => {
 				if (password.length < 8) throw new Error('رمز عبور باید حداقل ۸ کاراکتر باشد.');
+				if (password.length > 128) throw new Error('رمز عبور حداکثر ۱۲۸ کاراکتر است.');
 				await adminApi(`/api/admin/admins/${admin.id}`, { method: 'PATCH', body: { password } });
 				onSaved();
 			}}

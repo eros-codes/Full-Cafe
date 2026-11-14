@@ -1,0 +1,923 @@
+{
+	"$comment": "The tables of the floor plan (client/public/maps/roof-base.svg). Positions are the centres of the tables in the plan's 1800×900 coordinates; chairs are relative to the centre. `npm run db:seed` creates them in an empty database and `npm run map:apply` puts an existing database on this layout.",
+	"tables": [
+		{
+			"code": "W01",
+			"displayNumber": "1",
+			"zone": "WINDOW",
+			"shape": "SQUARE",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 128,
+			"y": 150,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -56,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 56,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": "کنار پنجره"
+		},
+		{
+			"code": "W02",
+			"displayNumber": "2",
+			"zone": "WINDOW",
+			"shape": "SQUARE",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 128,
+			"y": 285,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -56,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 56,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": "کنار پنجره"
+		},
+		{
+			"code": "W03",
+			"displayNumber": "3",
+			"zone": "WINDOW",
+			"shape": "SQUARE",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 128,
+			"y": 420,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -56,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 56,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": "کنار پنجره"
+		},
+		{
+			"code": "W04",
+			"displayNumber": "4",
+			"zone": "WINDOW",
+			"shape": "SQUARE",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 128,
+			"y": 555,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -56,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 56,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": "کنار پنجره"
+		},
+		{
+			"code": "W05",
+			"displayNumber": "5",
+			"zone": "WINDOW",
+			"shape": "SQUARE",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 128,
+			"y": 690,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -56,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 56,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": "کنار پنجره"
+		},
+		{
+			"code": "W06",
+			"displayNumber": "6",
+			"zone": "WINDOW",
+			"shape": "RECTANGLE",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 340,
+			"y": 210,
+			"width": 96,
+			"height": 60,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -24,
+					"y": -52,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 24,
+					"y": -52,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": -24,
+					"y": 52,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": 24,
+					"y": 52,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "W07",
+			"displayNumber": "7",
+			"zone": "WINDOW",
+			"shape": "RECTANGLE",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 340,
+			"y": 430,
+			"width": 96,
+			"height": 60,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -24,
+					"y": -52,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 24,
+					"y": -52,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": -24,
+					"y": 52,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": 24,
+					"y": 52,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "W08",
+			"displayNumber": "8",
+			"zone": "WINDOW",
+			"shape": "RECTANGLE",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 340,
+			"y": 650,
+			"width": 96,
+			"height": 60,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -24,
+					"y": -52,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 24,
+					"y": -52,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": -24,
+					"y": 52,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": 24,
+					"y": 52,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "W09",
+			"displayNumber": "9",
+			"zone": "WINDOW",
+			"shape": "SQUARE",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 560,
+			"y": 210,
+			"width": 70,
+			"height": 70,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -58,
+					"y": -18,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": -58,
+					"y": 18,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 58,
+					"y": -18,
+					"angle": 0,
+					"type": "shared"
+				},
+				{
+					"x": 58,
+					"y": 18,
+					"angle": 0,
+					"type": "shared"
+				}
+			],
+			"description": "دو نفر روی مبل"
+		},
+		{
+			"code": "W10",
+			"displayNumber": "10",
+			"zone": "WINDOW",
+			"shape": "SQUARE",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 560,
+			"y": 430,
+			"width": 70,
+			"height": 70,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -58,
+					"y": -18,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": -58,
+					"y": 18,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 58,
+					"y": -18,
+					"angle": 0,
+					"type": "shared"
+				},
+				{
+					"x": 58,
+					"y": 18,
+					"angle": 0,
+					"type": "shared"
+				}
+			],
+			"description": "دو نفر روی مبل"
+		},
+		{
+			"code": "W11",
+			"displayNumber": "11",
+			"zone": "WINDOW",
+			"shape": "SQUARE",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 560,
+			"y": 650,
+			"width": 70,
+			"height": 70,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -58,
+					"y": -18,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": -58,
+					"y": 18,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 58,
+					"y": -18,
+					"angle": 0,
+					"type": "shared"
+				},
+				{
+					"x": 58,
+					"y": 18,
+					"angle": 0,
+					"type": "shared"
+				}
+			],
+			"description": "دو نفر روی مبل"
+		},
+		{
+			"code": "M01",
+			"displayNumber": "12",
+			"zone": "CENTER",
+			"shape": "RECTANGLE",
+			"capacity": 6,
+			"minGuests": 3,
+			"maxGuests": 6,
+			"x": 930,
+			"y": 480,
+			"width": 200,
+			"height": 70,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -66,
+					"y": -56,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": -56,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 66,
+					"y": -56,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": -66,
+					"y": 56,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 56,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": 66,
+					"y": 56,
+					"angle": 180,
+					"type": "normal"
+				}
+			],
+			"description": "میز بلند جمعی"
+		},
+		{
+			"code": "M02",
+			"displayNumber": "13",
+			"zone": "CENTER",
+			"shape": "ROUND",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 740,
+			"y": 360,
+			"width": 76,
+			"height": 76,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -62,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 62,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 62,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": -62,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "M03",
+			"displayNumber": "14",
+			"zone": "CENTER",
+			"shape": "ROUND",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 1110,
+			"y": 340,
+			"width": 76,
+			"height": 76,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -62,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 62,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 62,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": -62,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "M04",
+			"displayNumber": "15",
+			"zone": "CENTER",
+			"shape": "ROUND",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 740,
+			"y": 610,
+			"width": 76,
+			"height": 76,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -62,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 62,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 62,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": -62,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "M05",
+			"displayNumber": "16",
+			"zone": "CENTER",
+			"shape": "ROUND",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 1110,
+			"y": 590,
+			"width": 76,
+			"height": 76,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -62,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 62,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 62,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": -62,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "R01",
+			"displayNumber": "17",
+			"zone": "ROOF",
+			"shape": "ROUND",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 1330,
+			"y": 210,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -52,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 52,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "R02",
+			"displayNumber": "18",
+			"zone": "ROOF",
+			"shape": "ROUND",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 1480,
+			"y": 210,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -52,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 52,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "R03",
+			"displayNumber": "19",
+			"zone": "ROOF",
+			"shape": "ROUND",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 1630,
+			"y": 210,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -52,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 52,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "R04",
+			"displayNumber": "20",
+			"zone": "ROOF",
+			"shape": "ROUND",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 1390,
+			"y": 470,
+			"width": 80,
+			"height": 80,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -64,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 64,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 64,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": -64,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "R05",
+			"displayNumber": "21",
+			"zone": "ROOF",
+			"shape": "ROUND",
+			"capacity": 4,
+			"minGuests": 2,
+			"maxGuests": 4,
+			"x": 1600,
+			"y": 470,
+			"width": 80,
+			"height": 80,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": 0,
+					"y": -64,
+					"angle": 0,
+					"type": "normal"
+				},
+				{
+					"x": 64,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				},
+				{
+					"x": 0,
+					"y": 64,
+					"angle": 180,
+					"type": "normal"
+				},
+				{
+					"x": -64,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "R06",
+			"displayNumber": "22",
+			"zone": "ROOF",
+			"shape": "ROUND",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 1330,
+			"y": 730,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -52,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 52,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "R07",
+			"displayNumber": "23",
+			"zone": "ROOF",
+			"shape": "ROUND",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 1480,
+			"y": 730,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -52,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 52,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				}
+			],
+			"description": null
+		},
+		{
+			"code": "R08",
+			"displayNumber": "24",
+			"zone": "ROOF",
+			"shape": "ROUND",
+			"capacity": 2,
+			"minGuests": 1,
+			"maxGuests": 2,
+			"x": 1630,
+			"y": 730,
+			"width": 64,
+			"height": 64,
+			"rotation": 0,
+			"chairs": [
+				{
+					"x": -52,
+					"y": 0,
+					"angle": 270,
+					"type": "normal"
+				},
+				{
+					"x": 52,
+					"y": 0,
+					"angle": 90,
+					"type": "normal"
+				}
+			],
+			"description": null
+		}
+	],
+	"connections": [
+		[
+			"W01",
+			"W02"
+		],
+		[
+			"W02",
+			"W03"
+		],
+		[
+			"W03",
+			"W04"
+		],
+		[
+			"W04",
+			"W05"
+		],
+		[
+			"W06",
+			"W07"
+		],
+		[
+			"W07",
+			"W08"
+		],
+		[
+			"W09",
+			"W10"
+		],
+		[
+			"W10",
+			"W11"
+		],
+		[
+			"R01",
+			"R02"
+		],
+		[
+			"R02",
+			"R03"
+		],
+		[
+			"R04",
+			"R05"
+		],
+		[
+			"R06",
+			"R07"
+		],
+		[
+			"R07",
+			"R08"
+		]
+	]
+}

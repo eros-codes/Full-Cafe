@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { api, errorText } from '../../shared/api';
+import { ApiError, api, errorText } from '../../shared/api';
 import { ICONS, type IconName } from '../../shared/icons';
 import { Topbar } from '../../shared/chrome/Topbar';
 import type { MapTable } from '../../reserve/map/types';
 import { LOGIN_URL, adminApi } from '../common/adminApi';
+import { OwnPasswordDialog } from '../common/OwnPasswordDialog';
 import { ROLE_FA, can, type Admin } from '../common/roles';
+import { Notice, useFlash } from '../common/ui';
 import { AddOns } from '../sections/AddOns';
 import { Admins } from '../sections/Admins';
 import { Categories } from '../sections/Categories';
@@ -88,6 +90,12 @@ export function AdminApp() {
 	const [dashboardKey, setDashboardKey] = useState(0);
 	const [reservationsKey, setReservationsKey] = useState(0);
 	const [dialog, setDialog] = useState<TableDialogTarget>(null);
+	// «تغییر رمز» in the header, for every role
+	const [passwordOpen, setPasswordOpen] = useState(false);
+	const banner = useFlash();
+	// identifying the admin failed for another reason than the session (server or connection down)
+	const [meError, setMeError] = useState<string | null>(null);
+	const [meAttempt, setMeAttempt] = useState(0);
 
 	const isMain = can(admin, 'manager');
 	const canEditMap = can(admin, 'mapEditor');
@@ -110,15 +118,18 @@ export function AdminApp() {
 				setVisits({ [first]: 1 });
 				loadTables().catch((error) => current && setFatal(errorText(error)));
 			},
-			// بدون نشست معتبر (یا هر خطای دیگری در شناسایی ادمین) جای پنل، صفحه‌ی ورود است
-			() => {
-				if (current) window.location.href = LOGIN_URL;
+			(error) => {
+				if (!current) return;
+				// only a missing or ended session goes to the login page. Before, any error did: with the server or
+				// the connection down for a moment, the staff were sent to log in again, and logging in failed too.
+				if (error instanceof ApiError && (error.status === 401 || error.status === 403)) window.location.href = LOGIN_URL;
+				else setMeError(errorText(error));
 			},
 		);
 		return () => {
 			current = false;
 		};
-	}, [loadTables]);
+	}, [loadTables, meAttempt]);
 
 	const open = (key: SectionKey) => {
 		setActive(key);
@@ -159,7 +170,7 @@ export function AdminApp() {
 			<main className="shell">
 				<Topbar
 					href="/"
-					sub={admin ? `${admin.name} · ${ROLE_FA[admin.role] || admin.role}` : 'در حال بارگذاری...'}
+					sub={admin ? `${admin.name} · ${ROLE_FA[admin.role] || admin.role}` : meError ? 'پنل مدیریت' : 'در حال بارگذاری...'}
 					subId="adminInfo"
 					drawerLinks={['about', 'menu', 'feedback', 'games', 'reserve']}
 				>
@@ -170,7 +181,15 @@ export function AdminApp() {
 							<span className="admin-who-role">{ROLE_FA[admin.role] || admin.role}</span>
 						</span>
 					)}
-					<a href="/">سایت</a>
+					{admin && (
+						<button type="button" id="adminPassword" title="تغییر رمز من" onClick={() => setPasswordOpen(true)}>
+							تغییر رمز
+						</button>
+					)}
+					{/* on a phone the logo and the drawer lead to the site, and the room goes to the admin's name */}
+					<a href="/" className="admin-site-link">
+						سایت
+					</a>
 					<button id="adminLogout" onClick={logout}>
 						خروج
 					</button>
@@ -186,15 +205,41 @@ export function AdminApp() {
 						))}
 					</nav>
 					<section className="card card-pad admin-content">
+						{meError && !admin && (
+							<div className="notice danger" role="alert">
+								{`پنل باز نشد: ${meError} `}
+								<button
+									type="button"
+									className="secondary-btn"
+									onClick={() => {
+										setMeError(null);
+										setMeAttempt((n) => n + 1);
+									}}
+								>
+									تلاش دوباره
+								</button>
+							</div>
+						)}
 						{fatal && <div className="notice danger">{fatal}</div>}
+						<Notice notice={banner.flash} reveal />
 						<Section id="dashboard" active={active === 'dashboard'} title="داشبورد امروز">
-							{shown('dashboard') ? <Dashboard reloadKey={dashboardKey} /> : <div id="dashboardBox" className="kpi-grid"></div>}
+							{shown('dashboard') ? (
+								<Dashboard reloadKey={dashboardKey} visit={visit('dashboard')} />
+							) : (
+								<div id="dashboardBox" className="kpi-grid"></div>
+							)}
 						</Section>
 						{admin && (
 							<>
 								<Section id="reservations" active={active === 'reservations'} title="رزروها">
 									{shown('reservations') && (
-										<Reservations isMain={isMain} reloadKey={reservationsKey} onChanged={() => setDashboardKey((k) => k + 1)} />
+										<Reservations
+											isMain={isMain}
+											// read again after a manual booking and on every visit (new online bookings); both numbers only
+											// grow, so the sum changes whenever either does
+											reloadKey={reservationsKey + visit('reservations')}
+											onChanged={() => setDashboardKey((k) => k + 1)}
+										/>
 									)}
 								</Section>
 								<Section id="manual" active={active === 'manual'} title="ثبت رزرو دستی" hint="این رزرو بلافاصله تایید‌شده و پرداخت‌شده ثبت می‌شود.">
@@ -273,7 +318,7 @@ export function AdminApp() {
 										</Section>
 										<Section id="reports" active={active === 'reports'} title="گزارش‌ها">
 											<div id="reportsBox" className="kpi-grid">
-												{shown('reports') && <Reports />}
+												{shown('reports') && <Reports visit={visit('reports')} />}
 											</div>
 										</Section>
 										<Section id="admins" active={active === 'admins'} title="مدیریت ادمین‌ها">
@@ -286,6 +331,13 @@ export function AdminApp() {
 					</section>
 				</section>
 			</main>
+			{admin && passwordOpen && (
+				<OwnPasswordDialog
+					me={admin}
+					onClose={() => setPasswordOpen(false)}
+					onSaved={() => banner.show('رمز عبور تغییر کرد. حساب تو روی دستگاه‌های دیگر از پنل خارج شد.', 'ok')}
+				/>
+			)}
 			{canEditMap && (
 				<TableEditorDialog
 					target={dialog}

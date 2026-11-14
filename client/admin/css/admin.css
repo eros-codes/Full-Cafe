@@ -1723,3 +1723,122 @@ div.chip-row button.chip {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
+
+/* Persian date: day · month · year (JalaliDateField) */
+.jalali-date {
+	display: grid;
+	grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) minmax(0, 1fr);
+	gap: 8px;
+}
+.jalali-date select {
+	padding-inline: 10px;
+	text-align: center;
+}
+.jalali-date__readout {
+	margin-top: 6px;
+	color: var(--deep-taupe);
+	font-size: 12px;
+	opacity: 0.8;
+	text-align: center;
+}
+
+/* bookings a new closure or new working hours fall on */
+.affected-list {
+	margin: 8px 0 0;
+	padding-inline-start: 18px;
+	display: grid;
+	gap: 4px;
+}
+.affected-list bdi {
+	direction: ltr;
+	unicode-bidi: isolate;
+}
+
+/* a notice scrolled into view stops below the sticky header */
+.admin-content .notice {
+	scroll-margin-top: 120px;
+}
+
+.settings-amount {
+	margin-top: 5px;
+	font-size: 12px;
+	text-align: center;
+}
+
+/* working hours: one line per day on a computer, a small card per day on a phone */
+.hours-list {
+	display: grid;
+}
+.hours-day {
+	display: grid;
+	grid-template-columns: 96px minmax(0, 170px) minmax(0, 170px) auto auto;
+	justify-content: start;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--line);
+}
+.hours-day:last-child {
+	border-bottom: none;
+}
+.hours-day__name {
+	color: var(--burnt-oak);
+	font-size: 14px;
+}
+.hours-day__time {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--deep-taupe);
+	font-size: 12px;
+}
+.hours-day__time span {
+	flex: none;
+	min-width: 1.4em;
+}
+.hours-day__time input {
+	text-align: center;
+	padding: 10px;
+}
+.hours-day.is-closed .hours-day__time {
+	opacity: 0.45;
+}
+.hours-day__closed {
+	color: var(--deep-taupe);
+	font-size: 13px;
+	padding-inline: 4px;
+}
+.hours-day__save {
+	width: auto;
+	min-width: 112px;
+	padding: 10px 14px;
+}
+
+@media (max-width: 767px) {
+	.hours-day {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		grid-template-areas:
+			'name closed'
+			'open close'
+			'save save';
+		gap: 10px 12px;
+		padding: 14px 0;
+	}
+	.hours-day__name {
+		grid-area: name;
+	}
+	.hours-day__open {
+		grid-area: open;
+	}
+	.hours-day__close {
+		grid-area: close;
+	}
+	.hours-day__closed {
+		grid-area: closed;
+		justify-content: flex-end;
+	}
+	.hours-day__save {
+		grid-area: save;
+		width: 100%;
+	}
+}

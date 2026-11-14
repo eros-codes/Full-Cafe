@@ -129,7 +129,8 @@ export async function getPublicConfig() {
 
 export async function getTablesWithConnections(client: Db = prisma): Promise<{ tables: TableWithConnections[]; connections: TableConnection[] }> {
 	const [tables, connections] = await Promise.all([
-		client.cafeTable.findMany({ orderBy: [{ zone: 'asc' }, { code: 'asc' }] }),
+		// a retired table (taken off the plan, kept for its old bookings) is in no search and on no map
+		client.cafeTable.findMany({ where: { retiredAt: null }, orderBy: [{ zone: 'asc' }, { code: 'asc' }] }),
 		client.tableConnection.findMany(),
 	]);
 	const byId = new Map<string, TableWithConnections>(tables.map((t) => [t.id, { ...t, connectableTableIds: [] }]));

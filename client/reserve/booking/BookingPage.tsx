@@ -11,8 +11,9 @@ import { FloorMap } from '../map/FloorMap';
 import type { MapTable } from '../map/types';
 import { card, DetailContent, type Detail } from './DetailContent';
 import { useSheet } from './useSheet';
+import { BRAND } from '../../shared/brand';
+import { ZONE_FA } from '../../shared/zones';
 
-const ZONE_FA: Record<string, string> = { WINDOW: 'سالن پنجره', CENTER: 'سالن وسط', ROOF: 'روف گاردن' };
 /** Most guests one online booking takes (the +/− buttons and typing alike); bigger groups book by phone. */
 const GUESTS_MAX = 20;
 
@@ -536,7 +537,7 @@ export function BookingPage() {
 							mode={mode}
 							onTableClick={selectTable}
 							onError={(error) => setNotice({ className: 'notice danger', text: error.message })}
-							svgProps={{ id: 'floorMap', 'aria-label': 'نقشه تعاملی کافه روف' }}
+							svgProps={{ id: 'floorMap', 'aria-label': `نقشه تعاملی ${BRAND.cafeFa}` }}
 							wrapId="mapWrap"
 							zoneTabsId="zoneTabs"
 							loadingId="mapLoading"

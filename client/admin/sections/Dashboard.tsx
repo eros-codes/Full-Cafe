@@ -56,26 +56,37 @@ function UpcomingList({ rows }: { rows: UpcomingReservation[] }) {
 	);
 }
 
-/** Today at a glance: what needs attention, revenue, visitors, menu numbers and the rest of today's bookings. */
-export function Dashboard({ reloadKey }: { reloadKey: number }) {
+/**
+ * Today at a glance: what needs attention, revenue, visitors, menu numbers and the rest of today's bookings.
+ * Read again on every visit (before: once, so a panel left open since the morning showed the morning's numbers)
+ * and after a booking changes; the numbers on screen stay until the new ones arrive.
+ */
+export function Dashboard({ reloadKey, visit }: { reloadKey: number; visit: number }) {
 	const [data, setData] = useState<DashboardData | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
 		let current = true;
-		setData(null);
-		setError(null);
 		adminApi<DashboardData>('/api/admin/dashboard')
-			.then((d) => current && setData(d))
+			.then((d) => {
+				if (!current) return;
+				setData(d);
+				setError(null);
+			})
 			.catch((err) => current && setError(errorText(err)));
 		return () => {
 			current = false;
 		};
-	}, [reloadKey]);
+	}, [reloadKey, visit]);
 
 	return (
 		<div id="dashboardBox" className="kpi-grid">
-			{error ? (
+			{error && data && (
+				<div className="notice danger" style={{ gridColumn: '1 / -1' }}>
+					{`به‌روز نشد: ${error}`}
+				</div>
+			)}
+			{error && !data ? (
 				<ErrorNotice message={error} />
 			) : !data ? (
 				<SkeletonKpis count={6} />

@@ -113,10 +113,3 @@ export const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
-/** The Roof monogram in the reservation header. */
-export const ROOF_MONOGRAM = (
-	<svg viewBox="0 0 24 24" fill="none" stroke="#EFEAE4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-		<path d="M4 12.5L12 5l8 7.5" />
-		<path d="M6.5 10.7V19h11v-8.3" />
-	</svg>
-);

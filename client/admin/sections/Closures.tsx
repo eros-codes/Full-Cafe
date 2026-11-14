@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { errorText } from '../../shared/api';
+import { faDigits } from '../../shared/format';
 import { ICONS } from '../../shared/icons';
+import { jalaliLabel, tehranDayOf, tehranToday } from '../../shared/jalali';
 import type { MapTable } from '../../reserve/map/types';
 import { adminApi } from '../common/adminApi';
+import { affectedNotice, type AffectedReservation } from '../common/AffectedReservations';
+import { JalaliDateField } from '../common/JalaliDateField';
 import { ErrorNotice, Notice, Skeleton, ZONE_FA, type NoticeState } from '../common/ui';
 
 interface Closure {
@@ -22,6 +26,11 @@ interface Closure {
 function closingTime(start: string, end: string): string | null {
 	if (!end) return null;
 	return start && end === '00:00' ? '24:00' : end;
+}
+
+function scopeText(closure: Closure): string {
+	const parts = [closure.zone ? ZONE_FA[closure.zone] : '', closure.table ? `میز ${faDigits(closure.table.displayNumber)}` : ''].filter(Boolean);
+	return parts.length ? parts.join(' · ') : 'کل کافه';
 }
 
 /** Days off and blocked hours: the whole café, one hall, or one table. */
@@ -56,9 +65,11 @@ export function Closures({ tables }: { tables: MapTable[] }) {
 	if (!closures) return <Skeleton height={180} />;
 
 	const add = async () => {
+		if (!title.trim()) return setNotice({ type: 'danger', text: 'عنوان تعطیلی را بنویس.' });
+		if (!date) return setNotice({ type: 'danger', text: 'روز، ماه و سال تعطیلی را انتخاب کن.' });
 		setBusy(true);
 		try {
-			await adminApi('/api/admin/closures', {
+			const { affected } = await adminApi<{ affected?: AffectedReservation[] }>('/api/admin/closures', {
 				method: 'POST',
 				body: { title, date, startTime: start || null, endTime: closingTime(start, end), zone: zone || null, tableId: tableId || null },
 			});
@@ -68,7 +79,7 @@ export function Closures({ tables }: { tables: MapTable[] }) {
 			setEnd('');
 			setZone('');
 			setTableId('');
-			setNotice({ type: 'ok', text: 'تعطیلی ثبت شد.' });
+			setNotice(affectedNotice('تعطیلی ثبت شد.', affected));
 			setReloadKey((k) => k + 1);
 		} catch (err) {
 			setNotice({ type: 'danger', text: errorText(err) });
@@ -80,54 +91,55 @@ export function Closures({ tables }: { tables: MapTable[] }) {
 	const remove = async (closure: Closure) => {
 		try {
 			await adminApi(`/api/admin/closures/${closure.id}`, { method: 'DELETE' });
-			setNotice(null);
+			setNotice({ type: 'ok', text: `«${closure.title}» حذف شد.` });
 			setReloadKey((k) => k + 1);
 		} catch (err) {
 			setNotice({ type: 'danger', text: errorText(err) });
 		}
 	};
 
+	const today = tehranToday();
+
 	return (
 		<>
-			<Notice id="closuresNotice" notice={notice} />
+			<Notice id="closuresNotice" notice={notice} reveal />
 			<div className="form-grid" style={{ marginBottom: '20px' }}>
 				<div className="row">
 					<div className="field">
-						<label>عنوان تعطیلی</label>
-						<input id="cTitle" placeholder="مثلاً تعطیلی رسمی" value={title} onChange={(e) => setTitle(e.target.value)} />
+						<label htmlFor="cTitle">عنوان تعطیلی</label>
+						<input id="cTitle" placeholder="مثلاً تعطیلی رسمی" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
 					</div>
-					<div className="field">
-						<label>تاریخ</label>
-						<input id="cDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-					</div>
+					<JalaliDateField id="cDate" label="تاریخ" value={date} onChange={setDate} />
 				</div>
 				<div className="row">
 					<div className="field">
-						<label>از ساعت (اختیاری)</label>
+						<label htmlFor="cStart">از ساعت (خالی = کل روز)</label>
 						<input id="cStart" type="time" step="900" value={start} onChange={(e) => setStart(e.target.value)} />
 					</div>
 					<div className="field">
-						<label>تا ساعت (اختیاری)</label>
+						<label htmlFor="cEnd">تا ساعت (۰۰:۰۰ = پایان روز)</label>
 						<input id="cEnd" type="time" step="900" value={end} onChange={(e) => setEnd(e.target.value)} />
 					</div>
 				</div>
 				<div className="row">
 					<div className="field">
-						<label>سالن</label>
+						<label htmlFor="cZone">سالن</label>
 						<select id="cZone" value={zone} onChange={(e) => setZone(e.target.value)}>
 							<option value="">کل کافه</option>
-							<option value="WINDOW">سالن پنجره</option>
-							<option value="CENTER">سالن وسط</option>
-							<option value="ROOF">روف گاردن</option>
+							{Object.entries(ZONE_FA).map(([key, label]) => (
+								<option key={key} value={key}>
+									{label}
+								</option>
+							))}
 						</select>
 					</div>
 					<div className="field">
-						<label>میز خاص</label>
+						<label htmlFor="cTable">میز خاص</label>
 						<select id="cTable" value={tableId} onChange={(e) => setTableId(e.target.value)}>
 							<option value="">بدون میز خاص</option>
 							{tables.map((table) => (
 								<option key={table.id} value={table.id}>
-									{`میز ${table.displayNumber}`}
+									{`میز ${faDigits(table.displayNumber)}`}
 								</option>
 							))}
 						</select>
@@ -151,19 +163,23 @@ export function Closures({ tables }: { tables: MapTable[] }) {
 					</thead>
 					<tbody>
 						{closures.length ? (
-							closures.map((closure) => (
-								<tr key={closure.id}>
-									<td>{closure.title}</td>
-									<td>{new Date(closure.date).toLocaleDateString('fa-IR')}</td>
-									<td>{closure.startTime ? `${closure.startTime} تا ${closure.endTime || '?'}` : 'کل روز'}</td>
-									<td>{`${(closure.zone && ZONE_FA[closure.zone]) || ''} ${closure.table ? `میز ${closure.table.displayNumber}` : ''}`}</td>
-									<td>
-										<button className="danger-btn" aria-label={`حذف «${closure.title}»`} onClick={() => remove(closure)}>
-											{ICONS.trash}
-										</button>
-									</td>
-								</tr>
-							))
+							closures.map((closure) => {
+								// the stored date is midnight in Tehran: read it in Tehran, whatever the device's time zone
+								const day = tehranDayOf(closure.date);
+								return (
+									<tr key={closure.id} style={day < today ? { opacity: 0.55 } : undefined}>
+										<td>{closure.title}</td>
+										<td>{jalaliLabel(day)}</td>
+										<td>{closure.startTime ? `${faDigits(closure.startTime)} تا ${faDigits(closure.endTime || '?')}` : 'کل روز'}</td>
+										<td>{scopeText(closure)}</td>
+										<td>
+											<button className="danger-btn" aria-label={`حذف «${closure.title}»`} onClick={() => remove(closure)}>
+												{ICONS.trash}
+											</button>
+										</td>
+									</tr>
+								);
+							})
 						) : (
 							<tr>
 								<td colSpan={5} style={{ textAlign: 'center', color: 'var(--deep-taupe)' }}>

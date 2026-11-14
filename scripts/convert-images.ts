@@ -11,8 +11,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { prisma } from '../src/lib/prisma.js';
 import { PLACEHOLDER_IMAGE, PRODUCTS_DIR, isFinalWebp, removeImage, toWebp, writeProductImage } from '../src/lib/uploads.js';
+import { requireOptions } from './cli-args.js';
 
-const dryRun = process.argv.includes('--dry-run');
+// an option it does not know (e.g. «—dry-run» with a long dash) stops it before it converts anything
+const dryRun = requireOptions(['--dry-run']).has('--dry-run');
 const kb = (bytes: number) => `${Math.round(bytes / 1024).toLocaleString('en-US')} KB`;
 
 async function main() {

@@ -5,6 +5,7 @@ import { adminApi } from '../common/adminApi';
 import { MenuModal } from '../common/MenuModal';
 import { EmptyState, ErrorNotice, Skeleton, fa, useFlash } from '../common/ui';
 import { MenuFlash } from './menu-common';
+import { BRAND } from '../../shared/brand';
 
 interface Review {
 	id: number;
@@ -100,7 +101,7 @@ export function Reviews({ visit }: { visit: number }) {
 							<p className="review-text">{r.text}</p>
 							{r.reply && (
 								<div className="review-reply">
-									<b>پاسخ روف:</b>
+									<b>{`پاسخ ${BRAND.nameFa}:`}</b>
 									{` ${r.reply}`}
 								</div>
 							)}
@@ -151,7 +152,7 @@ function ReplyForm({ review, onClose, onSaved }: { review: Review; onClose: () =
 		>
 			<div className="notice">{review.text}</div>
 			<div className="field">
-				<label htmlFor="rReply">پاسخ روف (خالی = حذف پاسخ)</label>
+				<label htmlFor="rReply">{`پاسخ ${BRAND.nameFa} (خالی = حذف پاسخ)`}</label>
 				<textarea id="rReply" name="reply" rows={4} maxLength={500} value={reply} onChange={(e) => setReply(e.target.value)}></textarea>
 			</div>
 		</MenuModal>

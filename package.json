@@ -17,9 +17,11 @@
 		"prisma:studio": "prisma studio",
 		"db:seed": "tsx prisma/seed.ts",
 		"db:export-menu": "tsx prisma/export-menu.ts",
+		"db:export-tables": "tsx prisma/export-tables.ts",
 		"db:export-games": "tsx prisma/export-games.ts",
 		"db:merge-games": "tsx prisma/merge-games.ts",
 		"images:webp": "tsx scripts/convert-images.ts",
+		"map:apply": "tsx scripts/apply-floor-map.ts",
 		"simulate:recommender": "tsx scripts/simulate-recommender.ts"
 	},
 	"dependencies": {

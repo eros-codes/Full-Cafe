@@ -9,6 +9,7 @@ import { ProductDialog } from './ProductDialog';
 import { RecommenderBoundary, RecommenderLauncher, RecommenderLoadingShell, preloadDialog } from './recommender/Launcher';
 import { addItem, clearOrder, decreaseItem, loadOrder, productQuantity, removeItem, totalQuantity, type OrderItem } from './order';
 import { useBump } from './useBump';
+import { BRAND } from '../../shared/brand';
 
 // «انتخاب برای من»: its dialog (and the engine) load only when the feature is on, a few seconds after the page
 const RecommenderDialog = lazy(() => preloadDialog().then((module) => ({ default: module.RecommenderDialog })));
@@ -210,7 +211,7 @@ export function MenuPage() {
 						<div className="menu-header-right">
 							<HamburgerButton drawer={drawer} />
 							<a className="menu-logo" href="/" aria-label="صفحه‌ی اصلی">
-								<img src="/images/Logo-2.PNG" alt="روف" />
+								<img src={BRAND.logo.light} alt={BRAND.nameFa} />
 							</a>
 							<button
 								id="order-list-button"

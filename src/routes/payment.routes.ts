@@ -11,6 +11,7 @@ import { config } from '../config.js';
 import rateLimit from 'express-rate-limit';
 import { optionalUser } from '../middleware/auth.js';
 import { hasReservationAccess } from './reservation.routes.js';
+import { BRAND } from '../brand.js';
 
 // Online payment with Zarinpal. Every trip to the gateway is its own Payment row with its own authority, so a
 // customer who pays on an older gateway page (went back, pressed «پرداخت» again, paid on the first tab) is still
@@ -116,7 +117,7 @@ paymentRouter.post('/:reservationId/request', paymentRequestLimiter, optionalUse
 		try {
 			({ authority, paymentUrl } = await requestZarinpalPayment({
 				amount: reservation.totalAmount,
-				description: `رزرو Roof · کد پیگیری ${reservation.trackingCode}`,
+				description: `رزرو ${BRAND.cafeFa} · کد پیگیری ${reservation.trackingCode}`,
 				callbackUrl: `${config.appUrl}/api/payments/callback`,
 				mobile: reservation.customerPhone,
 			}));

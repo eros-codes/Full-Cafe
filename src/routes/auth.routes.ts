@@ -54,6 +54,9 @@ const adminLoginLimiter = rateLimit({
 	skip: () => config.isTest,
 	windowMs: 15 * 60 * 1000,
 	max: 8,
+	// only wrong attempts count. Before, every login did: the café's staff share one internet address, so a few
+	// logins and logouts (a shift change, showing the panel with each role) locked everyone out for 15 minutes.
+	skipSuccessfulRequests: true,
 	message: {
 		message: 'تعداد تلاش بیش از حد مجاز است؛ کمی بعد دوباره تلاش کن.',
 	},

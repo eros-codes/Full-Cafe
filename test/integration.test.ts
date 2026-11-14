@@ -14,8 +14,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
-import type { CafeTable, PrismaClient } from '@prisma/client';
+import type { CafeTable, PrismaClient, ReservationStatus } from '@prisma/client';
 import sharp from 'sharp';
+import { BRAND } from '../src/brand.js';
 
 const TEST_DB = process.env.TEST_DATABASE_URL;
 const skip = !TEST_DB
@@ -327,11 +328,42 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.equal((await tempClient.get('/api/admin/me')).status, 401);
 		});
 
-		test('changing your own password keeps you logged in, old sessions die', async () => {
+		test('your own password: only with the current one; other sessions end, this one stays', async () => {
 			const other = await login('manager', 'MainPass123');
-			assert.equal((await main.patch(`/api/admin/admins/${mainId}`, { password: 'MainPass456' })).status, 200);
-			assert.equal((await main.get('/api/admin/me')).status, 200);
-			assert.equal((await other.get('/api/admin/me')).status, 401);
+			// before, the admin list changed your own password without the current one
+			const viaList = await main.patch(`/api/admin/admins/${mainId}`, { password: 'MainPass456' });
+			assert.equal(viaList.status, 400, viaList.text);
+			const own = (body: object) => main.post('/api/admin/me/password', body);
+			const wrong = await own({ currentPassword: 'not-it-123', newPassword: 'MainPass456' });
+			assert.equal(wrong.status, 400, 'a wrong current password is a 400: a 401 would send the panel to the login page');
+			assert.match(wrong.json.message, /رمز فعلی/);
+			assert.equal((await own({ newPassword: 'MainPass456' })).status, 400, 'no current password');
+			assert.equal((await own({ currentPassword: 'MainPass123', newPassword: 'short' })).status, 400);
+			assert.equal((await own({ currentPassword: 'MainPass123', newPassword: 'x'.repeat(129) })).status, 400);
+			assert.equal((await own({ currentPassword: 'MainPass123', newPassword: 'MainPass123' })).status, 400, 'the same password');
+			assert.equal((await other.get('/api/admin/me')).status, 200, 'the refused attempts changed nothing');
+
+			const ok = await own({ currentPassword: 'MainPass123', newPassword: 'MainPass456' });
+			assert.equal(ok.status, 200, ok.text);
+			assert.equal((await main.get('/api/admin/me')).status, 200, 'this session goes on');
+			assert.equal((await other.get('/api/admin/me')).status, 401, 'the other one ends');
+			assert.equal((await client().post('/api/admin/login', { username: 'manager', password: 'MainPass123' })).status, 401);
+			await login('manager', 'MainPass456');
+		});
+
+		test('staff change their own password too; a manager can still reset it', async () => {
+			const created = await dev.post('/api/admin/admins', { username: 'waiter', name: 'گارسون', role: 'SECONDARY', password: 'WaiterPass1' });
+			assert.equal(created.status, 201, created.text);
+			const waiter = await login('waiter', 'WaiterPass1');
+			assert.equal((await waiter.patch(`/api/admin/admins/${created.json.admin.id}`, { password: 'WaiterPass2' })).status, 403, 'the list is for managers');
+			const res = await waiter.post('/api/admin/me/password', { currentPassword: 'WaiterPass1', newPassword: 'WaiterPass2' });
+			assert.equal(res.status, 200, res.text);
+			assert.equal((await waiter.get('/api/admin/me')).status, 200);
+			await login('waiter', 'WaiterPass2');
+			// forgotten password: the manager sets a new one, and the open session ends
+			assert.equal((await dev.patch(`/api/admin/admins/${created.json.admin.id}`, { password: 'WaiterPass3' })).status, 200);
+			assert.equal((await waiter.get('/api/admin/me')).status, 401);
+			await login('waiter', 'WaiterPass3');
 		});
 
 		test('the floor map is editable only by the developer', async () => {
@@ -1073,9 +1105,78 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.equal((await dev.patch('/api/admin/settings', { minLeadMinutes: 1.5 })).status, 400);
 			assert.equal((await dev.patch('/api/admin/settings', { anything: '1' })).status, 400);
 			assert.equal((await dev.patch('/api/admin/settings', { minDurationMinutes: 300, maxDurationMinutes: 240 })).status, 400);
-			const ok = await dev.patch('/api/admin/settings', { cleaningBufferMinutes: 20, cafeName: 'Roof' });
+			const ok = await dev.patch('/api/admin/settings', { cleaningBufferMinutes: 20, currencyLabel: 'تومان' });
 			assert.equal(ok.status, 200);
 			assert.equal(ok.json.settings.cleaningBufferMinutes, '20');
+		});
+
+		test('settings: an empty value is not 0, and errors name the field in Persian', async () => {
+			// before: Number('') is 0, so an emptied «هزینه تزئین» switched decoration off without a word
+			for (const value of ['', '  ', null, false, true, '1e3', '12.5', [], {}]) {
+				const res = await dev.patch('/api/admin/settings', { decorationPrice: value });
+				assert.equal(res.status, 400, `${JSON.stringify(value)}: ${res.text}`);
+			}
+			assert.equal(String((await dev.get('/api/admin/settings')).json.settings.decorationPrice), '50000');
+			const bad = await dev.patch('/api/admin/settings', { pricePerGuest: 0 });
+			assert.equal(bad.status, 400);
+			assert.match(bad.json.message, /«قیمت هر نفر»/);
+			assert.match(bad.json.message, /۱۰۰٬۰۰۰٬۰۰۰/, 'the bounds in Persian digits');
+			assert.doesNotMatch(bad.json.message, /pricePerGuest/);
+			assert.equal((await dev.patch('/api/admin/settings', { decorationPrice: ' 50000 ' })).status, 200, 'digits with spaces are fine');
+		});
+
+		test('a closure or new hours over paid bookings list those bookings for the staff', async () => {
+			const day = tehranDate(20);
+			const dow = new Date(`${day}T12:00:00+03:30`).getDay();
+			const make = (trackingCode: string, start: string, end: string, tableId: string, status: ReservationStatus = 'CONFIRMED') =>
+				prisma.reservation.create({
+					data: {
+						trackingCode,
+						customerName: 'مهمان',
+						customerPhone: '09120000031',
+						guestCount: 2,
+						startAt: new Date(`${day}T${start}:00+03:30`),
+						endAt: new Date(`${day}T${end}:00+03:30`),
+						durationMinutes: 60,
+						status,
+						pricePerGuest: 100000,
+						totalAmount: 200000,
+						paidAmount: status === 'CANCELLED' ? 0 : 200000,
+						tables: { create: [{ tableId }] },
+					},
+				});
+			const made = [
+				await make('RSV-900000101', '10:00', '11:00', tables.a.id),
+				await make('RSV-900000102', '18:00', '19:00', tables.b.id),
+				await make('RSV-900000103', '18:00', '19:00', tables.c.id, 'CANCELLED'),
+			];
+			const mine = new Set(made.map((r) => r.trackingCode));
+			// other tests book other days of the same weekday: only these three are looked at
+			const codes = (res: { json: { affected: { trackingCode: string }[] } }) =>
+				res.json.affected.map((r) => r.trackingCode).filter((code) => mine.has(code));
+			const closure = async (body: object) => {
+				const res = await dev.post('/api/admin/closures', { title: 'بررسی', date: day, ...body });
+				assert.equal(res.status, 201, res.text);
+				await dev.del(`/api/admin/closures/${res.json.closure.id}`);
+				return res;
+			};
+
+			const evening = await closure({ startTime: '17:30', endTime: '24:00', tableId: tables.b.id });
+			assert.deepEqual(codes(evening), ['RSV-900000102'], 'that table, those hours');
+			assert.deepEqual(evening.json.affected[0].tables, ['2']);
+			assert.equal(evening.json.affected[0].customerPhone, '09120000031');
+			assert.deepEqual(codes(await closure({ startTime: '11:00', endTime: '12:00' })), [], 'ends exactly when the closure starts');
+			assert.deepEqual(codes(await closure({ startTime: '18:00', endTime: '24:00', tableId: tables.a.id })), [], 'another table');
+			assert.deepEqual(codes(await closure({ zone: 'ROOF' })), [], 'another hall');
+			assert.deepEqual(codes(await closure({ zone: 'WINDOW' })), ['RSV-900000101', 'RSV-900000102'], 'the hall of both');
+			assert.deepEqual(codes(await closure({})), ['RSV-900000101', 'RSV-900000102'], 'whole café, whole day; not the cancelled one');
+
+			const hours = (body: object) => dev.patch(`/api/admin/working-hours/${dow}`, { opensAt: '09:00', closesAt: '21:00', isClosed: false, ...body });
+			assert.deepEqual(codes(await hours({ opensAt: '12:00' })), ['RSV-900000101'], 'opening later leaves the morning out');
+			assert.deepEqual(codes(await hours({ closesAt: '18:30' })), ['RSV-900000102'], 'closing earlier leaves the evening out');
+			assert.deepEqual(codes(await hours({ isClosed: true })), ['RSV-900000101', 'RSV-900000102'], 'a closed day leaves all out');
+			assert.deepEqual(codes(await hours({})), [], 'back as it was');
+			await prisma.reservation.deleteMany({ where: { id: { in: made.map((r) => r.id) } } });
 		});
 
 		test('closures: bad zone / table / time are a 400, not a raw database error', async () => {
@@ -1766,6 +1867,113 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.equal(report.upcoming, await prisma.reservation.count({ where: { status: 'CONFIRMED', startAt: { gte: new Date() } } }));
 			const held = await prisma.reservationTable.count({ where: { reservation: { status: { in: ['CONFIRMED', 'COMPLETED', 'NO_SHOW'] } } } });
 			assert.ok(report.topTables.reduce((sum: number, t: { count: number }) => sum + t.count, 0) <= held);
+		});
+	});
+
+	// ─── the café's name and a new floor plan ────────────────────────────────────
+	describe('brand and floor plan', () => {
+		const booking = (trackingCode: string, tableId: string, day: string, status: ReservationStatus) =>
+			prisma.reservation.create({
+				data: {
+					trackingCode,
+					customerName: 'نقشه',
+					customerPhone: '09125550041',
+					guestCount: 2,
+					startAt: new Date(`${day}T12:00:00+03:30`),
+					endAt: new Date(`${day}T13:00:00+03:30`),
+					durationMinutes: 60,
+					status,
+					pricePerGuest: 100000,
+					totalAmount: 200000,
+					paidAmount: 200000,
+					tables: { create: [{ tableId }] },
+				},
+			});
+		const extraTable = (code: string, x: number) =>
+			prisma.cafeTable.create({
+				data: { code, displayNumber: code, zone: 'WINDOW', shape: 'SQUARE', x, y: 700, capacity: 2, maxGuests: 2, minGuests: 1 },
+			});
+		const seats = (n: number) => Array.from({ length: n }, (_, i) => ({ x: 0, y: i % 2 ? 50 : -50, angle: i % 2 ? 180 : 0 }));
+
+		test('pages and SMS carry the name of src/brand.ts; the old name is gone', async () => {
+			const about = await client().get('/');
+			assert.equal(about.status, 200);
+			assert.ok(about.text.includes(`<title>درباره ما | ${BRAND.nameFa}</title>`), about.text.slice(0, 400));
+			assert.doesNotMatch(about.text, /%BRAND_|روف|Roof/);
+			assert.ok(about.text.includes(`href="${BRAND.logo.mark}"`), 'tab icon');
+			assert.ok((await client().get('/admin/login')).text.includes(`ورود ادمین · ${BRAND.nameEn}`));
+			const otp = smsLog.filter((line) => line.includes('[OTP]'));
+			assert.ok(otp.length && otp.every((line) => line.includes(`کد تایید ${BRAND.nameFa}:`)), otp[0]);
+			assert.ok(!smsLog.some((line) => line.includes('Roof')), 'no SMS says Roof');
+			// the name is not a database setting any more (one that changed nothing)
+			assert.equal((await dev.patch('/api/admin/settings', { cafeName: 'X' })).status, 400);
+		});
+
+		test('a new floor plan: tables move, used ones retire, unused ones go; bookings to come stop it', async () => {
+			const { applyLayout, parseLayout } = await import('../src/services/floor-plan.service.js');
+			const used = await extraTable('X1', 600);
+			const unused = await extraTable('X2', 700);
+			const booked = await extraTable('X3', 800);
+			const past = await booking('RSV-900000201', used.id, tehranDate(-3), 'COMPLETED');
+			const coming = await booking('RSV-900000202', booked.id, tehranDate(5), 'CONFIRMED');
+
+			const keep = (await prisma.cafeTable.findMany({ where: { retiredAt: null } })).filter((t) => !t.code.startsWith('X'));
+			const codeOf = new Map(keep.map((t) => [t.id, t.code]));
+			const pairs = (await prisma.tableConnection.findMany())
+				.filter((c) => codeOf.has(c.tableAId) && codeOf.has(c.tableBId))
+				.map((c) => [codeOf.get(c.tableAId), codeOf.get(c.tableBId)]);
+			const layout = parseLayout({
+				tables: [
+					...keep.map((t) => ({ ...t, x: t.id === tables.a.id ? t.x + 10 : t.x, chairs: seats(t.capacity) })),
+					{ code: 'N1', displayNumber: 'N1', zone: 'CENTER', shape: 'ROUND', capacity: 4, minGuests: 2, maxGuests: 4, x: 900, y: 450, width: 76, height: 76, rotation: 0, chairs: seats(4) },
+				],
+				connections: pairs,
+			});
+
+			await assert.rejects(applyLayout(layout, { client: prisma }), /RSV-900000202/, 'a booking to come is on X3');
+			assert.equal(await prisma.cafeTable.count({ where: { code: 'N1' } }), 0, 'nothing changed');
+
+			await prisma.reservation.update({ where: { id: coming.id }, data: { status: 'CANCELLED' } });
+			const done = await applyLayout(layout, { client: prisma });
+			assert.deepEqual(done, { created: 1, updated: keep.length, deleted: 1, retired: 2, connections: pairs.length });
+			assert.equal(await prisma.cafeTable.count({ where: { id: unused.id } }), 0, 'never used: deleted');
+			for (const id of [used.id, booked.id]) {
+				const t = await prisma.cafeTable.findUnique({ where: { id } });
+				assert.ok(t?.retiredAt && !t.isActive, 'used: retired');
+			}
+			assert.equal((await prisma.cafeTable.findUnique({ where: { id: tables.a.id } }))?.x, tables.a.x + 10, 'moved');
+			// old bookings keep their table; maps, searches and the panel no longer show it
+			const kept = await prisma.reservation.findUnique({ where: { id: past.id }, include: { tables: { include: { table: true } } } });
+			assert.equal(kept?.tables[0].table.code, 'X1');
+			const shown = (await dev.get('/api/admin/tables')).json.tables.map((t: { code: string }) => t.code);
+			assert.ok(shown.includes('N1') && !shown.includes('X1') && !shown.includes('X3'), shown.join(','));
+			const searched = (await client().get(`/api/availability?date=${tehranDate(6)}&guests=2&durationMinutes=60&startTime=12:00`)).json.tables;
+			assert.ok(!searched.some((t: { code: string }) => t.code === 'X1' || t.code === 'X3'));
+			assert.equal((await dev.patch(`/api/admin/tables/${used.id}`, { isActive: true })).status, 404, 'a retired table cannot be edited');
+
+			assert.deepEqual(await applyLayout(layout, { client: prisma }), { created: 0, updated: keep.length + 1, deleted: 0, retired: 0, connections: pairs.length }, 'safe to run again');
+		});
+
+		test('«حذف میز» in the editor: unused → deleted, used → off the map, booked → refused', async () => {
+			const fresh = await extraTable('Y1', 600);
+			const del = await dev.del(`/api/admin/tables/${fresh.id}`);
+			assert.equal(del.status, 200, del.text);
+			assert.equal(del.json.outcome, 'deleted');
+
+			const old = await extraTable('Y2', 700);
+			await booking('RSV-900000203', old.id, tehranDate(-2), 'COMPLETED');
+			const retire = await dev.del(`/api/admin/tables/${old.id}`);
+			assert.equal(retire.status, 200, 'before: a 409, the table could never leave the map');
+			assert.equal(retire.json.outcome, 'retired');
+			assert.equal((await dev.del(`/api/admin/tables/${old.id}`)).status, 404);
+			assert.equal((await dev.post('/api/admin/table-connections', { tableAId: old.id, tableBId: tables.b.id })).status, 404);
+			assert.equal((await dev.post('/api/admin/closures', { title: 'x', date: tehranDate(4), tableId: old.id })).status, 400);
+
+			const busy = await extraTable('Y3', 800);
+			await booking('RSV-900000204', busy.id, tehranDate(4), 'CONFIRMED');
+			const refused = await dev.del(`/api/admin/tables/${busy.id}`);
+			assert.equal(refused.status, 409);
+			assert.match(refused.json.message, /RSV-900000204/);
 		});
 	});
 });

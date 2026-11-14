@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { errorText } from '../../shared/api';
 import { latinDigits } from '../../shared/format';
 import { adminApi } from '../common/adminApi';
+import { affectedNotice, type AffectedReservation } from '../common/AffectedReservations';
 import { ErrorNotice, Notice, Skeleton, type NoticeState } from '../common/ui';
 
 interface WorkingHour {
@@ -13,10 +14,21 @@ interface WorkingHour {
 
 /** Indexed by dayOfWeek (0 = Sunday, like Date.getDay()). */
 const DAY_FA = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
+/** The Persian week starts on Saturday (before, the list started on Sunday and ended with Saturday). */
+const weekOrder = (day: number) => (day + 1) % 7;
 
-/** Opening hours per weekday. Closing time goes up to 24:00 (midnight); past-midnight hours are not supported. */
+const sameHours = (a: WorkingHour, b: WorkingHour | undefined) =>
+	Boolean(b) && a.opensAt === b!.opensAt && a.closesAt === b!.closesAt && a.isClosed === b!.isClosed;
+
+/**
+ * Opening hours per weekday, each day saved on its own. Closing time goes up to 24:00 (midnight); past-midnight
+ * hours are not supported. One line per day on a computer, a small card per day on a phone (before: a five-column
+ * table that a phone had to scroll sideways, with «ذخیره» off screen).
+ */
 export function Hours() {
 	const [rows, setRows] = useState<WorkingHour[] | null>(null);
+	// what the server has, to mark a day edited but not saved yet
+	const [saved, setSaved] = useState<Map<number, WorkingHour>>(new Map());
 	const [error, setError] = useState<string | null>(null);
 	const [notice, setNotice] = useState<NoticeState>(null);
 	const [savingDay, setSavingDay] = useState<number | null>(null);
@@ -24,7 +36,11 @@ export function Hours() {
 	useEffect(() => {
 		let current = true;
 		adminApi<{ workingHours: WorkingHour[] }>('/api/admin/working-hours')
-			.then((r) => current && setRows(r.workingHours))
+			.then((r) => {
+				if (!current) return;
+				setRows([...r.workingHours].sort((a, b) => weekOrder(a.dayOfWeek) - weekOrder(b.dayOfWeek)));
+				setSaved(new Map(r.workingHours.map((w) => [w.dayOfWeek, w])));
+			})
 			.catch((err) => current && setError(errorText(err)));
 		return () => {
 			current = false;
@@ -39,12 +55,17 @@ export function Hours() {
 	const save = async (row: WorkingHour) => {
 		setSavingDay(row.dayOfWeek);
 		try {
-			const { workingHour } = await adminApi<{ workingHour: WorkingHour }>(`/api/admin/working-hours/${row.dayOfWeek}`, {
-				method: 'PATCH',
-				body: { opensAt: latinDigits(row.opensAt).trim(), closesAt: latinDigits(row.closesAt).trim(), isClosed: row.isClosed },
-			});
+			const { workingHour, affected } = await adminApi<{ workingHour: WorkingHour; affected?: AffectedReservation[] }>(
+				`/api/admin/working-hours/${row.dayOfWeek}`,
+				{
+					method: 'PATCH',
+					body: { opensAt: latinDigits(row.opensAt).trim(), closesAt: latinDigits(row.closesAt).trim(), isClosed: row.isClosed },
+				},
+			);
 			edit(row.dayOfWeek, workingHour);
-			setNotice({ type: 'ok', text: `ساعت کاری ${DAY_FA[row.dayOfWeek]} ذخیره شد.` });
+			setSaved((map) => new Map(map).set(row.dayOfWeek, workingHour));
+			// bookings already made for this weekday that the new hours leave out are listed
+			setNotice(affectedNotice(`ساعت کاری ${DAY_FA[row.dayOfWeek]} ذخیره شد.`, affected));
 		} catch (err) {
 			setNotice({ type: 'danger', text: errorText(err) });
 		} finally {
@@ -54,56 +75,53 @@ export function Hours() {
 
 	return (
 		<>
-			<Notice id="hoursNotice" notice={notice} />
-			<div className="table-scroll">
-				<table className="table-list">
-					<thead>
-						<tr>
-							<th>روز</th>
-							<th>از ساعت</th>
-							<th>تا ساعت</th>
-							<th>تعطیل</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody>
-						{rows.map((row) => (
-							<tr key={row.dayOfWeek}>
-								<td>{DAY_FA[row.dayOfWeek]}</td>
-								<td>
-									<input
-										value={row.opensAt}
-										aria-label={`ساعت باز شدن ${DAY_FA[row.dayOfWeek]}`}
-										style={{ maxWidth: '100px' }}
-										onChange={(e) => edit(row.dayOfWeek, { opensAt: e.target.value })}
-									/>
-								</td>
-								<td>
-									<input
-										value={row.closesAt}
-										aria-label={`ساعت بسته شدن ${DAY_FA[row.dayOfWeek]} (نیمه‌شب: 24:00)`}
-										style={{ maxWidth: '100px' }}
-										onChange={(e) => edit(row.dayOfWeek, { closesAt: e.target.value })}
-									/>
-								</td>
-								<td>
-									<input
-										type="checkbox"
-										checked={row.isClosed}
-										aria-label={`${DAY_FA[row.dayOfWeek]} تعطیل است`}
-										style={{ width: '18px', height: '18px', boxShadow: 'none' }}
-										onChange={(e) => edit(row.dayOfWeek, { isClosed: e.target.checked })}
-									/>
-								</td>
-								<td>
-									<button className="secondary-btn" disabled={savingDay === row.dayOfWeek} onClick={() => save(row)}>
-										ذخیره
-									</button>
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
+			<Notice id="hoursNotice" notice={notice} reveal />
+			<div className="hours-list">
+				{rows.map((row) => {
+					const day = DAY_FA[row.dayOfWeek];
+					const dirty = !sameHours(row, saved.get(row.dayOfWeek));
+					return (
+						<div className={`hours-day${row.isClosed ? ' is-closed' : ''}`} key={row.dayOfWeek} role="group" aria-label={day} data-day={row.dayOfWeek}>
+							<strong className="hours-day__name">{day}</strong>
+							<label className="hours-day__time hours-day__open">
+								<span>از</span>
+								<input
+									value={row.opensAt}
+									dir="ltr"
+									inputMode="numeric"
+									maxLength={5}
+									aria-label={`ساعت باز شدن ${day}`}
+									onChange={(e) => edit(row.dayOfWeek, { opensAt: e.target.value })}
+								/>
+							</label>
+							<label className="hours-day__time hours-day__close">
+								<span>تا</span>
+								<input
+									value={row.closesAt}
+									dir="ltr"
+									inputMode="numeric"
+									maxLength={5}
+									aria-label={`ساعت بسته شدن ${day} (نیمه‌شب: 24:00)`}
+									onChange={(e) => edit(row.dayOfWeek, { closesAt: e.target.value })}
+								/>
+							</label>
+							<label className="checkbox-row hours-day__closed">
+								<input type="checkbox" checked={row.isClosed} aria-label={`${day} تعطیل است`} onChange={(e) => edit(row.dayOfWeek, { isClosed: e.target.checked })} />
+								<span>تعطیل</span>
+							</label>
+							{/* an edited day that is not saved yet stands out, so it is not left unsaved by mistake */}
+							<button
+								type="button"
+								className={`${dirty ? 'primary-btn' : 'secondary-btn'} hours-day__save`}
+								disabled={savingDay === row.dayOfWeek}
+								aria-label={dirty ? `ذخیره ${day} (تغییر ذخیره نشده)` : `ذخیره ${day}`}
+								onClick={() => save(row)}
+							>
+								{dirty ? 'ذخیره تغییر' : 'ذخیره'}
+							</button>
+						</div>
+					);
+				})}
 			</div>
 		</>
 	);

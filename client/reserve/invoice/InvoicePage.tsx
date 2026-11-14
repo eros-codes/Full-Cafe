@@ -6,6 +6,7 @@ import { Topbar } from '../../shared/chrome/Topbar';
 import { ReserveFooter } from '../common/ReserveFooter';
 import { PAYMENT_STATUS_FA, REFUND_STATUS_FA, faDateTime, faHours, faNumber, statusFa, tablesText, toman } from '../common/format';
 import type { PublicConfig, Reservation } from '../common/types';
+import { BRAND } from '../../shared/brand';
 
 /** Used only until /api/config answers; the server decides (and checks again) in any case. */
 const DEFAULT_CANCEL_MINUTES = 120;
@@ -32,18 +33,18 @@ function downloadCalendarFile(reservation: Reservation) {
 	const lines = [
 		'BEGIN:VCALENDAR',
 		'VERSION:2.0',
-		'PRODID:-//Roof//Reservation//FA',
+		`PRODID:-//${BRAND.nameEn}//Reservation//FA`,
 		'BEGIN:VEVENT',
 		`UID:${reservation.trackingCode}@roof`,
 		`DTSTAMP:${icsDate(new Date())}`,
 		`DTSTART:${icsDate(reservation.startAt)}`,
 		`DTEND:${icsDate(reservation.endAt)}`,
-		`SUMMARY:${escapeIcs('رزرو میز در کافه Roof')}`,
+		`SUMMARY:${escapeIcs(`رزرو میز در ${BRAND.cafeFa}`)}`,
 		`DESCRIPTION:${escapeIcs(`کد پیگیری: ${reservation.trackingCode}\nمیز ${tablesText(reservation)}\n${reservation.guestCount} نفر`)}`,
 		'BEGIN:VALARM',
 		'TRIGGER:-PT3H',
 		'ACTION:DISPLAY',
-		`DESCRIPTION:${escapeIcs('۳ ساعت تا رزرو کافه Roof')}`,
+		`DESCRIPTION:${escapeIcs(`۳ ساعت تا رزرو ${BRAND.cafeFa}`)}`,
 		'END:VALARM',
 		'END:VEVENT',
 		'END:VCALENDAR',
@@ -212,7 +213,7 @@ function Invoice({
 		<>
 			<div className="invoice-head">
 				<div>
-					<h3 style={{ marginBottom: '6px' }}>فاکتور رزرو Roof</h3>
+					<h3 style={{ marginBottom: '6px' }}>{`فاکتور رزرو ${BRAND.nameFa}`}</h3>
 					<span className="invoice-num">کد پیگیری {reservation.trackingCode}</span>
 				</div>
 				<div style={{ textAlign: 'left' }}>

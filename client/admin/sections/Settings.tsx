@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { errorText } from '../../shared/api';
-import { latinDigits } from '../../shared/format';
+import { latinDigits, toman } from '../../shared/format';
 import { adminApi } from '../common/adminApi';
 import { ErrorNotice, Notice, Skeleton, type NoticeState } from '../common/ui';
 
@@ -13,18 +13,22 @@ const FIELDS: [string, string][] = [
 	['maxDurationMinutes', 'حداکثر مدت رزرو (دقیقه)'],
 	['slotIntervalMinutes', 'فاصله اسلات‌ها (دقیقه)'],
 	['cleaningBufferMinutes', 'زمان آماده‌سازی بین رزروها (دقیقه)'],
-	['holdMinutes', 'مدت نگه‌داری hold (دقیقه)'],
+	['holdMinutes', 'مدت نگه داشتن میز تا پرداخت (دقیقه)'],
 	['reminderBeforeMinutes', 'یادآوری پیامکی قبل از رزرو (دقیقه)'],
 ];
 
-const DEFAULT_NOTICE: NoticeState = { type: '', text: 'قیمت پیش‌فرض: ۱۰۰٬۰۰۰ تومان به ازای هر نفر.' };
+/** Amounts in toman: the field shows the number written out under it, so an extra zero is seen before saving. */
+const MONEY = new Set(['pricePerGuest', 'decorationPrice']);
+
+const fieldsFrom = (settings: Record<string, unknown>) => Object.fromEntries(FIELDS.map(([key]) => [key, String(settings[key] ?? '')]));
 
 /** Price per guest, the booking rules (window, durations, slot size, hold time, reminder) and the «انتخاب برای من» switch. */
 export function Settings() {
 	const [values, setValues] = useState<Record<string, string> | null>(null);
 	const [recommender, setRecommender] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [notice, setNotice] = useState<NoticeState>(DEFAULT_NOTICE);
+	// before: a fixed «قیمت پیش‌فرض: ۱۰۰٬۰۰۰ تومان» that read like the current price whatever it was
+	const [notice, setNotice] = useState<NoticeState>(null);
 	const [busy, setBusy] = useState(false);
 
 	useEffect(() => {
@@ -32,7 +36,7 @@ export function Settings() {
 		adminApi<{ settings: Record<string, unknown> }>('/api/admin/settings')
 			.then(({ settings }) => {
 				if (!current) return;
-				setValues(Object.fromEntries(FIELDS.map(([key]) => [key, String(settings[key] ?? '')])));
+				setValues(fieldsFrom(settings));
 				setRecommender(String(settings.recommenderEnabled) === '1');
 			})
 			.catch((err) => current && setError(errorText(err)));
@@ -46,13 +50,17 @@ export function Settings() {
 
 	const save = async () => {
 		const body: Record<string, string> = {};
-		FIELDS.forEach(([key]) => {
+		for (const [key, label] of FIELDS) {
 			const value = latinDigits(values[key] ?? '').trim();
-			if (value !== '') body[key] = value;
-		});
+			// before, an emptied field was left out and «تنظیمات ذخیره شد» was shown with the old value still in place
+			if (value === '') return setNotice({ type: 'danger', text: `«${label.replace(/ \(.*\)$/, '')}» خالی است.` });
+			body[key] = value;
+		}
 		setBusy(true);
 		try {
-			await adminApi('/api/admin/settings', { method: 'PATCH', body });
+			const { settings } = await adminApi<{ settings: Record<string, unknown> }>('/api/admin/settings', { method: 'PATCH', body });
+			// what was really stored («۰۱۲۰» → 120)
+			setValues(fieldsFrom(settings));
 			setNotice({ type: 'ok', text: 'تنظیمات ذخیره شد.' });
 		} catch (err) {
 			setNotice({ type: 'danger', text: errorText(err) });
@@ -64,12 +72,26 @@ export function Settings() {
 	return (
 		<div className="form-grid">
 			<div className="row">
-				{FIELDS.map(([key, label]) => (
-					<div className="field" key={key}>
-						<label htmlFor={`set-${key}`}>{label}</label>
-						<input id={`set-${key}`} value={values[key]} onChange={(e) => setValues({ ...values, [key]: e.target.value })} />
-					</div>
-				))}
+				{FIELDS.map(([key, label]) => {
+					const amount = Number(latinDigits(values[key] ?? '').trim());
+					return (
+						<div className="field" key={key}>
+							<label htmlFor={`set-${key}`}>{label}</label>
+							<input
+								id={`set-${key}`}
+								inputMode="numeric"
+								value={values[key]}
+								aria-describedby={MONEY.has(key) ? `set-${key}-amount` : undefined}
+								onChange={(e) => setValues({ ...values, [key]: e.target.value })}
+							/>
+							{MONEY.has(key) && (
+								<p id={`set-${key}-amount`} className="hint settings-amount">
+									{values[key].trim() && Number.isFinite(amount) ? toman(amount) : '\u00a0'}
+								</p>
+							)}
+						</div>
+					);
+				})}
 			</div>
 			<button id="saveSettings" className="primary-btn" disabled={busy} onClick={save}>
 				ذخیره تنظیمات

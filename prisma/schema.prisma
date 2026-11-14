@@ -137,6 +137,9 @@ model CafeTable {
   rotation        Float              @default(0)
   chairs          Json?
   description     String?
+  /// Taken off the floor plan but kept, because bookings point at it (src/services/floor-plan.service.ts).
+  /// A retired table is on no map and in no search; its old bookings still show its number.
+  retiredAt       DateTime?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   reservations    ReservationTable[]

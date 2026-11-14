@@ -66,7 +66,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 		const admin = await prisma.adminUser.findUnique({ where: { id: payload.sub } });
 		if (!admin || !admin.isActive) return res.status(401).json({ message: 'ادمین فعال نیست.' });
 		if ((payload.ver ?? 0) !== (admin.tokenVersion ?? 0)) {
-			return res.status(401).json({ message: 'رمز عبور تغییر کرده؛ دوباره وارد شو.' });
+			return res.status(401).json({ message: 'نشست تمام شده (رمز یا دسترسی حساب عوض شده)؛ دوباره وارد شو.' });
 		}
 		req.admin = admin;
 		next();

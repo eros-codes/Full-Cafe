@@ -3,6 +3,7 @@ import { useLatest } from '../../shared/useLatest';
 import { MapTableNode, tableStateClass } from './MapTable';
 import { MapViewport, rounded } from './viewport';
 import type { MapConfig, MapTable } from './types';
+import { ZONE_FA } from '../../shared/zones';
 
 // The interactive floor map shared by the reservation page and the admin map editor:
 // zone tabs, the SVG (painted base + tables), a loading overlay and the +/−/⌂ controls.
@@ -190,7 +191,7 @@ export const FloorMap = forwardRef<FloorMapHandle, Props>(function FloorMap(
 							aria-pressed={key === activeZone}
 							onClick={() => viewportRef.current?.focusZone(key)}
 						>
-							{zone.label || key}
+							{ZONE_FA[key] || zone.label || key}
 						</button>
 					))}
 			</div>

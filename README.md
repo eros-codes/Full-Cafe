@@ -12,6 +12,9 @@ One Node.js server runs the whole café site:
 **Stack:** Express 4 + Prisma 5 + PostgreSQL, strict TypeScript on the server; React 19 + Vite 6 (TypeScript) for every page.
 Persian, RTL, mobile-first.
 
+*Roof* is the name of the template. The café it is set up for (name, logos, address) is configured in one file,
+`src/brand.ts`: currently **آوِل / Avel** (see «Branding»).
+
 > **Phase 2 of 3.** Phase 1 merged the former *Roof Reservation* project and the *Simple Cafe Template* into one server,
 > one database and one admin panel. Phase 2 (this version) moves the backend to TypeScript and rebuilds every page in
 > React, pixel-identical to phase 1, and adds manageable menu types and product add-ons. Phase 3 is cleanup and restyling.
@@ -79,9 +82,11 @@ cached). **Restart the server after every build**, because it caches the page HT
 | `npm test` | Integration tests (see below) |
 | `npm run db:seed` | Seed settings, working hours, floor-map tables, the first admin, the menu and «انتخاب برای من» questions, and the game cards from `prisma/seed-data/` (safe to re-run; never overwrites existing data) |
 | `npm run db:export-menu` | Export this database's menu (types, categories, products, add-ons, tags, images) to `menu-export/` |
+| `npm run db:export-tables` | Print this database's floor plan (tables, chairs, connections) in the format of `prisma/seed-data/floor-map.json` (`-- --write` writes that file) |
 | `npm run db:export-games` | Export this database's games (order, on/off, every deck and its cards) to `games-export/games.json` |
 | `npm run db:merge-games` | Add the decks and cards of `prisma/seed-data/games.json` that this database does not have yet (after an update brought new cards) |
 | `npm run images:webp` | Convert the product photos stored before uploads became WebP (jpg, png, gif, oversized WebP) and point the products at the new files (`-- --dry-run` only reports; safe to re-run) |
+| `npm run map:apply` | Put this database on the floor plan of `prisma/seed-data/floor-map.json` (see «Floor plan»; `-- --dry-run` only reports, `-- --force` applies even with bookings to come on tables that leave the plan) |
 | `npm run simulate:recommender` | Simulate 1000 customers on the real menu and report how well «انتخاب برای من» does (`-- 5000` for more) |
 | `npm run prisma:deploy` | Apply migrations (production) |
 | `npm run prisma:migrate` | Create a new migration after editing `schema.prisma` (development) |
@@ -97,6 +102,13 @@ cached). **Restart the server after every build**, because it caches the page HT
 The rules live in one place on the server: `src/lib/roles.ts`. The admin UI mirrors them in
 `client/admin/common/roles.ts` only to hide buttons; the server always checks. At least one active developer account
 always remains.
+
+**Passwords.** Every admin, staff included, changes their own password with «تغییر رمز» in the panel header; it asks
+for the current password (`POST /api/admin/me/password`, ten wrong tries per account per 15 minutes). The admin list
+resets *someone else's* password (a forgotten one) and refuses your own. Either way the account's other open
+sessions end at once; the one that made the change stays signed in. The login limit counts wrong attempts only (eight
+per address and ten per username per 15 minutes), so the staff logging in and out on the café's shared connection
+never lock each other out.
 
 ## Menu: types, categories, products, add-ons
 
@@ -299,18 +311,59 @@ Closing time can be at most `24:00` (midnight). Hours past midnight (e.g. until 
 (day off or blocked hours) can also run until `24:00`; in the admin form, "until 00:00" after a start time means
 until midnight.
 
+Dates in the admin forms (closures, manual booking) are picked as Persian dates (day · month · year, with the weekday
+read back); the API still takes `YYYY-MM-DD`. Saving a closure, or a weekday's new hours, never moves or cancels a
+booking, but the answer lists the confirmed bookings it falls on (`affected`), and the panel shows them with the
+customer's phone so the staff can call them (`src/services/schedule-impact.service.ts`).
+
+## Floor plan
+
+The map on the booking page and in the panel is made of three files:
+
+| File | What it holds |
+| --- | --- |
+| `client/public/maps/roof-base.svg` | The drawing (walls, windows, bar, kitchen, plants…), 1800×900. No tables. Text uses the page's font. |
+| `client/public/maps/roof-map.json` | The halls' areas (what each hall tab zooms to) and the zoom limits. |
+| `prisma/seed-data/floor-map.json` | The tables: code, number, hall, shape, seats (min / max), centre position, size, chairs (relative to the centre; `"type": "shared"` is a seat on a sofa) and the pairs of tables that can be booked together. |
+
+The hall names are in `client/shared/zones.ts` (the halls' database keys are fixed: `WINDOW`, `CENTER`, `ROOF`; on
+this plan `ROOF` is the terrace). The map draws every table and its chairs at 60% of the stored size
+(`.roof-table-lift` in the booking CSS), so a chair 58 units from the centre is drawn 35 away.
+
+An empty database gets the tables from `npm run db:seed`. An existing database is put on a new plan with
+`npm run map:apply` (try `-- --dry-run` first): tables of the layout are created or updated by their code (a table the
+manager switched off stays off); every other table leaves the plan: deleted when no booking ever used it, otherwise
+**retired** (`CafeTable.retiredAt`): on no map and in no search, while its past bookings keep its number. It refuses
+while bookings to come sit on a table that would leave (move or cancel them, or `-- --force`). Menu, bookings,
+settings and accounts are not touched; it is safe to run again. An option it does not know stops it before it changes
+anything (also `—dry-run` typed with a long dash, which before ran it for real); the same holds for `images:webp`. The developer's «حذف میز» in the map editor works the
+same way (a used table is retired instead of the old "cannot be deleted"; a table with bookings to come is refused).
+After arranging tables in the editor, `npm run db:export-tables -- --write` saves the arrangement as the seed layout.
+
+## Branding
+
+Everything that names the café comes from `src/brand.ts`: the Persian and Latin name (page titles, header, footer,
+About page, chat, invoice and calendar file, SMS texts, the payment gateway's description, the admin panel), the About
+page's address, phone, map pin and Instagram link (no icon while it is empty), and the paths of the three logo files
+in `client/public/images/brand/` (`logo-light.svg` for the dark headers, `logo-dark.svg` for the mobile drawer,
+`mark.svg` for the browser tab). The pages' `index.html` files use `%BRAND_FA%`, `%BRAND_EN%`, `%BRAND_CAFE_FA%` and
+`%BRAND_MARK%`, filled in by `vite.config.ts`. To set the template up for another café: edit `src/brand.ts`, replace
+the three logo files (same names) and build. Menu items that mention the name are data: edit them in the panel.
+
 ## Project layout
 
 ```
 prisma/
   schema.prisma            one schema for reservation + menu
-  migrations/              init (phase 1) + menu_types_addons (phase 2) + recommender_tags + games + reservation_payments
+  migrations/              init (phase 1) + menu_types_addons (phase 2) + recommender_tags + games + reservation_payments + table_retired
   seed.ts                  settings, working hours, floor-map tables, first admin (+ seed-menu.ts: menu and questions)
-  seed-data/               the seed menu: menu.json + product photos (see «Seed menu»), games.json (the game cards)
+  seed-data/               the seed menu: menu.json + product photos (see «Seed menu»), games.json (the game cards),
+                           floor-map.json (the tables of the floor plan)
   seed-games.ts            games part of the seed + db:merge-games; export-games.ts: npm run db:export-games
   export-menu.ts           npm run db:export-menu: this database's menu → menu-export/ (same format as seed-data)
-  export-tables.ts         prints the current tables as seed data (after editing the map in the panel)
+  export-tables.ts         npm run db:export-tables: this database's floor plan → seed-data/floor-map.json format
 src/                       the server (TypeScript, ES modules)
+  brand.ts                 the café's name, contact details and logo paths (also read by the pages and vite.config.ts)
   app.ts                   Express app: security headers, API routers, pages
   server.ts                HTTP server + background jobs (hold expiry, SMS reminders, upload cleanup); Vite in dev
   config.ts                environment variables and production safety checks
@@ -325,8 +378,8 @@ client/                    the React pages (each page is its own small app with 
   site/                    about, menu (+ menu/recommender: engine, dialog, button), feedback, games (+ common header/drawer/footer)
   reserve/                 booking, payment, invoice, profile, track (+ common parts, floor map, CSS)
   admin/                   login, panel (one component per section in sections/), CSS
-  public/                  fonts (self-hosted), images, floor-map files — served at the site root
-scripts/                   simulate-recommender.ts
+  public/                  fonts (self-hosted), images (+ images/brand: the logos), floor-map files — served at the site root
+scripts/                   simulate-recommender.ts, convert-images.ts (images:webp), apply-floor-map.ts (map:apply)
 test/                      node:test integration suite + recommender, games, board games, mafia/ludo and chess/backgammon unit tests
 uploads/products/          product images uploaded from the admin panel (not in git)
 ```
@@ -352,19 +405,28 @@ with the database.
 
 ```bash
 # create an empty database whose name contains "test" (it is WIPED on every run), then:
-TEST_DATABASE_URL="postgresql://postgres:PASS@localhost:5432/roof_test?schema=public" npx prisma migrate deploy
+DATABASE_URL="postgresql://postgres:PASS@localhost:5432/roof_test?schema=public" npx prisma migrate deploy
 TEST_DATABASE_URL="postgresql://postgres:PASS@localhost:5432/roof_test?schema=public" npm test
 ```
 
-On Windows PowerShell: `$env:TEST_DATABASE_URL="..."; npm test`.
+Prisma reads `DATABASE_URL`, so the first line sets that one (only for that command): with `TEST_DATABASE_URL` it
+would migrate the database of `.env` and leave the test database empty.
+
+On Windows PowerShell:
+`$env:DATABASE_URL="…roof_test…"; npx prisma migrate deploy; Remove-Item Env:DATABASE_URL`, then
+`$env:TEST_DATABASE_URL="…roof_test…"; npm test` (remove `DATABASE_URL` again, or the next `npm run dev` in that window
+runs on the test database).
 
 Without `TEST_DATABASE_URL` the integration suite is skipped. It covers admin roles and the floor-map permission,
 menu types, categories, add-ons, uploads (WebP conversion, refused files, no photo left behind by a failed save),
-reviews, settings and closure validation, working hours up to 24:00,
+reviews, settings and closure validation, own-password changes, bookings listed under a new closure or new hours,
+the café's name on pages and in SMS texts, a new floor plan (tables retired or deleted, bookings to come protected) and
+«حذف میز», working hours up to 24:00,
 reservation status rules, holds/availability/payment/cancellation, Persian-digit input, page URLs and old-URL
 redirects, and the recommender's data (tag inheritance and overrides, sold-out / no-kind / hidden-tab exclusion,
 bulk tagging, coverage, roles), and the games API (switch, roles, deck validation and card lines, playable games, order).
-The unit tests of the photo conversion (`test/images.test.ts`), the About page's hours (`test/site-hours.test.ts`), the recommender, the games, the board games (their bots
+The unit tests of the photo conversion (`test/images.test.ts`), the About page's hours (`test/site-hours.test.ts`), the admin forms' Persian dates (`test/admin-dates.test.ts`), the floor plan's layout and the brand
+(`test/floor-plan.test.ts`), the recommender, the games, the board games (their bots
 included), «مافیا», «منچ», «شطرنج» and «تخته نرد» need no database and always run.
 
 ## Production checklist

@@ -4,19 +4,17 @@ import { toman } from '../../shared/format';
 import { DurationChips, fitDuration } from '../../reserve/common/DurationChips';
 import type { PublicConfig } from '../../reserve/common/types';
 import type { MapTable } from '../../reserve/map/types';
+import { tehranToday } from '../../shared/jalali';
 import { adminApi } from '../common/adminApi';
+import { JalaliDateField } from '../common/JalaliDateField';
 import { Notice, ZONE_FA, type NoticeState } from '../common/ui';
-
-function todayLocal(): string {
-	const now = new Date();
-	return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
 
 /** Phone / walk-in booking: confirmed and paid at once, no online payment. */
 export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCreated: () => void }) {
 	const [name, setName] = useState('');
 	const [phone, setPhone] = useState('');
-	const [date, setDate] = useState(todayLocal);
+	// today in Tehran (before: the device's own day, a day behind after midnight on a laptop set to UTC)
+	const [date, setDate] = useState(tehranToday);
 	const [time, setTime] = useState('15:00');
 	const [guests, setGuests] = useState('2');
 	const [duration, setDuration] = useState(60);
@@ -54,6 +52,7 @@ export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCre
 	const create = async () => {
 		setBusy(true);
 		try {
+			if (!date) throw new Error('روز، ماه و سال رزرو رو انتخاب کن.');
 			if (!selectedIds.length) throw new Error('حداقل یک میز رو انتخاب کن.');
 			const { reservation } = await adminApi<{ reservation: { trackingCode: string } }>('/api/admin/reservations/manual', {
 				method: 'POST',
@@ -92,10 +91,7 @@ export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCre
 				</div>
 			</div>
 			<div className="row">
-				<div className="field">
-					<label>تاریخ</label>
-					<input id="mDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-				</div>
+				<JalaliDateField id="mDate" label="تاریخ" value={date} onChange={setDate} />
 				<div className="field">
 					<label>ساعت شروع</label>
 					<input id="mTime" type="time" step="900" value={time} onChange={(e) => setTime(e.target.value)} />

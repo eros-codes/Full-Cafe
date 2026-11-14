@@ -6,6 +6,7 @@ import { loadGames, type GameKey, type GamesData } from './data';
 import { clearSave, hasLiveSave } from './kit/persist';
 import { exitFullscreen } from './kit/screen';
 import { installAudioUnlock } from './kit/sound';
+import { BRAND } from '../../shared/brand';
 
 // /games: the list of games, and the game being played. A game opens in place (its address gets #spy,
 // #heads_up, …), so the phone's back button returns to the list and a reload stays in the game.
@@ -167,7 +168,7 @@ export function GamesPage() {
 						<div className="menu-header-right">
 							<HamburgerButton drawer={drawer} />
 							<a className="menu-logo" href="/" aria-label="صفحه‌ی اصلی">
-								<img src="/images/Logo-2.PNG" alt="روف" />
+								<img src={BRAND.logo.light} alt={BRAND.nameFa} />
 							</a>
 						</div>
 					</div>

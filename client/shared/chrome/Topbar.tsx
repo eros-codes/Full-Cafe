@@ -1,5 +1,6 @@
 import { useCallback, useRef, type ReactNode } from 'react';
 import { HamburgerButton, MobileDrawer, useDrawer, type LinkKey } from './SiteChrome';
+import { BRAND } from '../brand';
 
 const RESERVE_DRAWER: LinkKey[] = ['about', 'menu', 'feedback', 'games', 'reserve', 'profile', 'track'];
 
@@ -52,7 +53,7 @@ export function Topbar({
 					<div className="menu-header-right">
 						<HamburgerButton drawer={drawer} />
 						<a className="menu-logo" href={href} aria-label="صفحه‌ی اصلی">
-							<img src="/images/Logo-2.PNG" alt="روف" />
+							<img src={BRAND.logo.light} alt={BRAND.nameFa} />
 						</a>
 					</div>
 					<nav

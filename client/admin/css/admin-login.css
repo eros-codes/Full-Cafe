@@ -18,6 +18,13 @@
 	height: 18px;
 }
 
+/* the café's logo (client/public/images/brand/logo-light.svg) */
+.brand-mark img {
+	width: 28px;
+	height: 21px;
+	object-fit: contain;
+}
+
 .brand:hover .brand-mark {
 	transform: rotate(-6deg) scale(1.08);
 }

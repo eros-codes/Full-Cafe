@@ -1,10 +1,17 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fillBrandTokens } from './src/brand.js';
 import { PAGES } from './src/web/pages.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+
+/** The café's name and tab icon in every page's index.html (%BRAND_FA% …), from src/brand.ts. */
+const brandPages: Plugin = {
+	name: 'brand-pages',
+	transformIndexHtml: (html) => fillBrandTokens(html),
+};
 const CLIENT = path.join(ROOT, 'client');
 
 // One build entry per page (see src/web/pages.ts). Shared code (React, API helpers) is split into
@@ -13,7 +20,7 @@ export default defineConfig({
 	root: CLIENT,
 	// client/public → served at the site root: /fonts/…, /images/…, /maps/…
 	publicDir: path.join(CLIENT, 'public'),
-	plugins: [react()],
+	plugins: [react(), brandPages],
 	build: {
 		outDir: path.join(ROOT, 'dist', 'client'),
 		emptyOutDir: true,

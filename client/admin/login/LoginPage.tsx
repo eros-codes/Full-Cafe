@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { api, errorText } from '../../shared/api';
-import { ROOF_MONOGRAM } from '../../shared/icons';
+import { BRAND } from '../../shared/brand';
 
 export function LoginPage() {
 	const [username, setUsername] = useState('');
@@ -15,6 +15,8 @@ export function LoginPage() {
 			return;
 		}
 		setBusy(true);
+		// cleared first, so the same message said again is announced again
+		setError(null);
 		try {
 			await api('/api/admin/login', { method: 'POST', body: { username: username.trim(), password } });
 			window.location.href = '/admin';
@@ -29,10 +31,10 @@ export function LoginPage() {
 			<section className="card card-pad" style={{ maxWidth: '420px', width: '100%' }}>
 				<div style={{ textAlign: 'center', marginBottom: '20px' }}>
 					<span className="brand-mark" style={{ margin: '0 auto 14px' }}>
-						{ROOF_MONOGRAM}
+						<img src={BRAND.logo.light} alt="" />
 					</span>
 					<span className="brand-word" style={{ fontSize: '24px' }}>
-						Roof
+						{BRAND.nameEn}
 					</span>
 					<p style={{ color: 'var(--deep-taupe)', fontSize: '12.5px', marginTop: '4px', opacity: 0.8 }}>پنل مدیریت</p>
 				</div>
@@ -58,7 +60,8 @@ export function LoginPage() {
 					<button id="login" type="submit" className="primary-btn" disabled={busy}>
 						ورود به پنل
 					</button>
-					<div id="notice" className={error ? 'notice danger' : undefined}>
+					{/* role="alert": a screen reader says the error (before, a wrong password was silent) */}
+					<div id="notice" role="alert" className={error ? 'notice danger' : undefined}>
 						{error}
 					</div>
 				</form>

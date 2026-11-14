@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { faNumber } from '../../shared/format';
 import { ICONS, type IconName } from '../../shared/icons';
 
-export const ZONE_FA: Record<string, string> = { WINDOW: 'سالن پنجره', CENTER: 'سالن وسط', ROOF: 'روف گاردن' };
+// the hall names live in client/shared/zones.ts (also used by the booking page and the map)
+export { ZONE_FA } from '../../shared/zones';
 export const SHAPE_FA: Record<string, string> = { ROUND: 'گرد', SQUARE: 'مربع', RECTANGLE: 'مستطیل' };
 export const fa = (n: unknown) => faNumber(Number(n || 0));
 
@@ -49,10 +50,18 @@ export function EmptyState({ title, text }: { title: string; text: string }) {
 
 export type NoticeState = { type: string; text: ReactNode } | null;
 
-/** `<div class="notice …">` that renders nothing-styled (empty div) when there is no message. */
-export function Notice({ notice, id }: { notice: NoticeState; id?: string }) {
+/**
+ * `<div class="notice …">` that renders nothing-styled (empty div) when there is no message. With `reveal`, a new
+ * message is scrolled into view: on a phone a form's notice above a long form is otherwise off screen, and a click
+ * on «افزودن» seemed to do nothing.
+ */
+export function Notice({ notice, id, reveal = false }: { notice: NoticeState; id?: string; reveal?: boolean }) {
+	const ref = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (reveal && notice) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+	}, [notice, reveal]);
 	return (
-		<div id={id} className={notice ? `notice ${notice.type}`.trim() : undefined}>
+		<div id={id} ref={ref} className={notice ? `notice ${notice.type}`.trim() : undefined} role="status">
 			{notice?.text}
 		</div>
 	);

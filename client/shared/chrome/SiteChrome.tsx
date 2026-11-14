@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { BRAND } from '../brand';
 
 // Pieces shared by every public page (menu, feedback, reservation) and the admin panel: the drawer (with its
 // hamburger button, on every screen size) and the footer. Styles: header.css and footer.css in this folder.
@@ -266,7 +267,7 @@ export function MobileDrawer({ drawer, links }: { drawer: Drawer; links: LinkKey
 				>
 					&times;
 				</button>
-				<img src="/images/Logo-3.PNG" alt="روف" className="drawer-logo" />
+				<img src={BRAND.logo.dark} alt={BRAND.nameFa} className="drawer-logo" />
 				<nav className="mobile-drawer-nav">
 					<ul className="menu-footer-links">
 						{shown.map((key) => (
@@ -294,7 +295,7 @@ export function SiteFooter({ links, className }: { links: LinkKey[]; className?:
 			<div>
 				<div className="menu-footer-top">
 					<h6 className="menu-footer-subtitle">your daily escape</h6>
-					<h4 className="menu-footer-title">Roof,</h4>
+					<h4 className="menu-footer-title">{`${BRAND.nameEn},`}</h4>
 				</div>
 				<div>
 					<ul className="menu-footer-links">
@@ -306,7 +307,7 @@ export function SiteFooter({ links, className }: { links: LinkKey[]; className?:
 					</ul>
 				</div>
 			</div>
-			<h6 className="menu-footer-copyright">تمامی حقوق این سایت متعلق به کافه روف می‌باشد.</h6>
+			<h6 className="menu-footer-copyright">{`تمامی حقوق این سایت متعلق به ${BRAND.cafeFa} می‌باشد.`}</h6>
 			<h6 className="menu-footer-credit">{CREDIT}</h6>
 		</footer>
 	);

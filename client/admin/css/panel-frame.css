@@ -226,3 +226,9 @@ body {
 		display: none;
 	}
 }
+
+@media (max-width: 420px) {
+	.menu-options .admin-site-link {
+		display: none;
+	}
+}

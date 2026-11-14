@@ -5,6 +5,7 @@ import { safeStorage } from '../../shared/storage';
 import { HamburgerButton, MobileDrawer, SiteFooter, useDrawer } from '../../shared/chrome/SiteChrome';
 import { ChatPlayer } from './ChatPlayer';
 import { postReview } from './api';
+import { BRAND } from '../../shared/brand';
 
 const MAX = 100;
 const PENDING_KEY = 'pendingReviews';
@@ -189,7 +190,7 @@ export function FeedbackPage() {
 						<div className="menu-header-right">
 							<HamburgerButton drawer={drawer} />
 							<a className="menu-logo" href="/" aria-label="صفحه‌ی اصلی">
-								<img src="/images/Logo-2.PNG" alt="روف" />
+								<img src={BRAND.logo.light} alt={BRAND.nameFa} />
 							</a>
 						</div>
 					</div>
