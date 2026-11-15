@@ -5,7 +5,7 @@ import { safeStorage } from '../../shared/storage.js';
 // the cards of the word games. A copy is kept on the phone, so the games still open when the café's
 // Wi-Fi drops; everything else happens on the phone.
 
-export type GameKey = 'spy' | 'heads_up' | 'charades' | 'taboo' | 'tic_tac_toe' | 'connect_four' | 'dots' | 'mafia' | 'ludo' | 'chess' | 'backgammon';
+export type GameKey = 'spy' | 'heads_up' | 'charades' | 'taboo' | 'tic_tac_toe' | 'connect_four' | 'dots' | 'mafia' | 'ludo' | 'chess' | 'backgammon' | 'checkers';
 
 export interface Card {
 	id: number;

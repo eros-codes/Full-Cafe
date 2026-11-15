@@ -7,7 +7,8 @@ import type { ViteDevServer } from 'vite';
 import { config } from '../config.js';
 import { PROJECT_ROOT } from '../lib/paths.js';
 import { fillBrandTokens } from '../brand.js';
-import { LEGACY_REDIRECTS, findPage, type PageEntry } from './pages.js';
+import { LEGACY_REDIRECTS, NOT_FOUND_PAGE, findPage, type PageEntry } from './pages.js';
+import { withSeo } from './seo.js';
 
 // The React pages, served by this same Express server:
 //   development → Vite in middleware mode (instant reload, sources from client/)
@@ -50,10 +51,22 @@ export async function servePage(req: Request, res: Response, next: NextFunction)
 	const page = findPage(req.path);
 	if (!page) return next();
 	try {
-		const html = await pageHtml(page);
+		// the description, canonical address, link preview and (home page) the café's details: src/web/seo.ts
+		const html = await withSeo(await pageHtml(page), page.path);
 		// HTML is never cached, so a deploy is visible immediately; the hashed assets it points to are
 		res.setHeader('Cache-Control', 'no-cache');
 		res.type('html').send(html);
+	} catch (error) {
+		next(error);
+	}
+}
+
+/** An address that is not a page: the 404 page, with status 404 (search engines drop the address). */
+export async function serveNotFound(_req: Request, res: Response, next: NextFunction): Promise<void> {
+	try {
+		const html = await withSeo(await pageHtml(NOT_FOUND_PAGE), NOT_FOUND_PAGE.path);
+		res.setHeader('Cache-Control', 'no-cache');
+		res.status(404).type('html').send(html);
 	} catch (error) {
 		next(error);
 	}

@@ -1,0 +1,753 @@
+/* map.css — the floor map in «مدیریت میزها» and the table editor dialog.
+ *
+ * The map is drawn like a paper floor plan and stays light in the dark theme too: its drawing rules (the same
+ * as the booking page's, client/reserve/booking/booking.css) read the site's old colour names, which are set
+ * back to their light values inside the map. Only the frame around it (zone tabs, help text, the dialog)
+ * follows the panel's theme. */
+
+.map-wrap,
+.chair-canvas-wrap {
+	--chapel-white: #efeae4;
+	--antique-veil: #c5bcad;
+	--deep-taupe: #6d5f54;
+	--rich-sabel: #422e2f;
+	--burnt-oak: #1f1516;
+	--line: rgba(66, 46, 47, 0.12);
+	--line-soft: rgba(66, 46, 47, 0.07);
+	--warn: #96703c;
+	--warn-ink: #6b4e26;
+	--r-sm: 8px;
+	--r-xs: 5px;
+	color: #1f1516;
+	color-scheme: light;
+}
+
+/* ─── the frame ───────────────────────────────────────────────────────────── */
+
+.admin-map-editor {
+	margin-bottom: 22px;
+}
+
+.admin-map-canvas {
+	min-width: 0;
+}
+
+.map-zone-tabs {
+	display: flex;
+	gap: 6px;
+	overflow-x: auto;
+	padding: 1px 1px 12px;
+	scrollbar-width: none;
+}
+
+.map-zone-tabs::-webkit-scrollbar {
+	display: none;
+}
+
+.map-zone-tabs button {
+	flex: none;
+	min-height: 36px;
+	padding: 6px 15px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: var(--surface);
+	color: var(--ink-2);
+	font: inherit;
+	font-size: 12.5px;
+	font-weight: 500;
+	cursor: pointer;
+	transition:
+		background 0.18s var(--ease),
+		border-color 0.18s var(--ease),
+		color 0.18s var(--ease);
+}
+
+.map-zone-tabs button:hover:not(.active) {
+	border-color: var(--line-2);
+	background: var(--surface-2);
+	color: var(--ink);
+}
+
+.map-zone-tabs button.active {
+	background: var(--brand);
+	border-color: var(--brand);
+	color: var(--on-brand);
+}
+
+.map-wrap {
+	position: relative;
+	overflow: hidden;
+	border: 1px solid var(--line-2);
+	border-radius: var(--radius-md);
+}
+
+.admin-map-wrap {
+	min-height: 360px;
+	aspect-ratio: 2 / 1;
+}
+
+/* the editor's map fills its frame (on a phone the frame is taller than the map) */
+.admin-map-wrap > svg {
+	height: 100%;
+}
+
+.editor-help {
+	margin-top: 10px;
+	color: var(--ink-2);
+	font-size: 12.5px;
+	line-height: 1.8;
+}
+
+.admin-table-list-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.admin-table-list-head h4 {
+	color: var(--ink);
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.admin-table-list-head span {
+	color: var(--ink-3);
+	font-size: 12px;
+}
+
+#tableListNotice:not(:empty) {
+	margin-bottom: 12px;
+}
+
+/* ─── the drawing (unchanged from before) ─────────────────────────────────── */
+
+.map-wrap {
+	min-height: 430px;
+	aspect-ratio: 2 / 1;
+	background: #e8e1d8;
+	isolation: isolate;
+	touch-action: none;
+	cursor: grab;
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.map-wrap:active {
+	cursor: grabbing;
+}
+
+.roof-floor-map {
+	width: 100%;
+	height: 100%;
+	display: block;
+	user-select: none;
+	-webkit-user-select: none;
+	background: #e8e1d8;
+}
+
+.roof-floor-map.is-panning {
+	cursor: grabbing;
+}
+
+.map-loading {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	display: grid;
+	place-content: center;
+	justify-items: center;
+	gap: 10px;
+	background: linear-gradient(135deg, rgba(239, 234, 228, 0.96), rgba(197, 188, 173, 0.92));
+	color: var(--rich-sabel);
+}
+
+.map-loading span {
+	width: 34px;
+	height: 34px;
+	border: 2px solid var(--line);
+	border-top-color: var(--rich-sabel);
+	border-radius: 50%;
+	animation: mapSpin 0.8s linear infinite;
+}
+
+.map-loading b {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.map-controls {
+	position: absolute;
+	direction: ltr;
+	left: 12px;
+	bottom: 12px;
+	z-index: 4;
+	display: flex;
+	overflow: hidden;
+	border: 1px solid rgba(66, 46, 47, 0.17);
+	border-radius: var(--r-sm);
+	background: rgba(239, 234, 228, 0.9);
+	box-shadow: 0 8px 24px rgba(31, 21, 22, 0.12);
+}
+
+.map-controls button {
+	width: 36px;
+	height: 34px;
+	color: var(--rich-sabel);
+	font-size: 18px;
+	font-family: var(--font-serif);
+	border-left: 1px solid var(--line);
+	transition:
+		background 0.2s ease,
+		color 0.2s ease;
+}
+
+.map-controls button:first-child {
+	border-left: 0;
+}
+
+.map-controls button:hover {
+	background: var(--rich-sabel);
+	color: var(--chapel-white);
+}
+
+.roof-table-anchor {
+	--table-top: #c7bcae;
+	--table-side: #827367;
+	--table-edge: rgba(66, 46, 47, 0.24);
+	--table-label-bg: #efeae4;
+	--table-label-ink: #422e2f;
+	cursor: pointer;
+	outline: none;
+}
+
+.roof-table-anchor.is-perfect {
+	--table-top: #788c5e;
+	--table-side: #50623d;
+	--table-edge: rgba(56, 73, 40, 0.7);
+	--table-label-bg: #eef1e8;
+	--table-label-ink: #354526;
+}
+
+.roof-table-anchor.is-soft {
+	--table-top: #adbd90;
+	--table-side: #7f9166;
+	--table-edge: rgba(84, 104, 62, 0.56);
+	--table-label-bg: #f1f3ec;
+	--table-label-ink: #46562f;
+}
+
+.roof-table-anchor.is-selected {
+	--table-top: #422e2f;
+	--table-side: #24191b;
+	--table-edge: #efeae4;
+	--table-label-bg: #efeae4;
+	--table-label-ink: #422e2f;
+}
+
+.roof-table-anchor.is-neutral {
+	--table-top: #d5cbc0;
+	--table-side: #84766b;
+	--table-edge: rgba(66, 46, 47, 0.28);
+}
+
+.roof-table-anchor.is-unavailable {
+	--table-top: #806f69;
+	--table-side: #594a49;
+	--table-edge: rgba(66, 46, 47, 0.25);
+	opacity: 0.34;
+	cursor: not-allowed;
+}
+
+.roof-table-anchor.is-editable {
+	cursor: grab;
+}
+
+.roof-table-anchor.is-dragging {
+	cursor: grabbing;
+}
+
+.roof-table-lift {
+	scale: 0.6;
+	transform-origin: center;
+	transform-box: fill-box;
+	transition:
+		transform 0.28s var(--ease),
+		filter 0.28s var(--ease);
+	animation: tableEnter 0.48s var(--ease) both;
+	animation-delay: var(--table-delay, 0ms);
+	filter: drop-shadow(0 7px 6px rgba(31, 21, 22, 0.13));
+}
+
+.roof-table-anchor:hover:not(.is-unavailable) .roof-table-lift,
+.roof-table-anchor:focus-visible:not(.is-unavailable) .roof-table-lift {
+	transform: translateY(-7px);
+	filter: drop-shadow(0 15px 12px rgba(31, 21, 22, 0.22));
+}
+
+.roof-table-anchor.is-dragging .roof-table-lift {
+	transform: translateY(-10px) scale(1.025);
+	filter: drop-shadow(0 20px 15px rgba(31, 21, 22, 0.26));
+}
+
+.roof-table-anchor.is-selected .roof-table-lift {
+	filter: drop-shadow(0 17px 13px rgba(66, 46, 47, 0.34));
+}
+
+.table-shadow {
+	fill: rgba(31, 21, 22, 0.16);
+}
+
+.table-side {
+	fill: var(--table-side);
+	stroke: var(--table-edge);
+	stroke-width: 1.2;
+}
+
+.table-top {
+	fill: var(--table-top);
+	stroke: var(--table-edge);
+	stroke-width: 1.4;
+	transition:
+		fill 0.3s ease,
+		stroke 0.3s ease;
+}
+
+.table-highlight {
+	fill: rgba(255, 255, 255, 0.16);
+	stroke: rgba(255, 255, 255, 0.28);
+	stroke-width: 2;
+	stroke-linecap: round;
+	pointer-events: none;
+}
+
+.table-number-badge {
+	pointer-events: none;
+}
+
+.table-number-bg {
+	fill: var(--table-label-bg);
+	stroke: var(--table-edge);
+	stroke-width: 1;
+	transition: fill 0.3s ease;
+}
+
+.table-number {
+	fill: var(--table-label-ink);
+	font-family: var(--font-fa);
+	font-size: 14px;
+	font-weight: 800;
+	pointer-events: none;
+}
+
+.roof-table-anchor.is-selected .table-number-bg {
+	animation: selectedPulse 1.7s ease-in-out infinite;
+}
+
+.chair-shadow,
+.sofa-shadow {
+	fill: rgba(31, 21, 22, 0.17);
+}
+
+.chair-base,
+.sofa-seat {
+	fill: #eee8e1;
+	stroke: rgba(66, 46, 47, 0.25);
+	stroke-width: 1;
+}
+
+.chair-back,
+.sofa-back {
+	fill: #c6baae;
+	stroke: rgba(66, 46, 47, 0.22);
+	stroke-width: 1;
+}
+
+.chair-seam {
+	fill: none;
+	stroke: rgba(66, 46, 47, 0.21);
+	stroke-width: 1;
+	stroke-linecap: round;
+}
+
+.shared-seat-dot {
+	fill: var(--rich-sabel);
+	opacity: 0.5;
+}
+
+.sofa-capacity {
+	fill: rgba(239, 234, 228, 0.84);
+	stroke: rgba(66, 46, 47, 0.22);
+	stroke-width: 1;
+}
+
+.roof-table-anchor.is-unavailable .roof-chair,
+.roof-table-anchor.is-unavailable .roof-sofa-module {
+	opacity: 0.72;
+}
+
+.map-time-bubble {
+	pointer-events: none;
+	animation: bubblePop 0.26s var(--ease) both;
+}
+
+.map-time-bubble rect,
+.map-time-bubble path {
+	fill: var(--rich-sabel);
+}
+
+.map-time-bubble text {
+	fill: var(--chapel-white);
+	font-family: var(--font-fa);
+	font-size: 11px;
+	font-weight: 650;
+}
+
+.combo-connector {
+	fill: none;
+	stroke: var(--rich-sabel);
+	stroke-width: 5;
+	stroke-linecap: round;
+	stroke-dasharray: 8 8;
+	opacity: 0.72;
+	animation: comboDash 1.1s linear infinite;
+}
+
+.combo-badge circle {
+	fill: var(--rich-sabel);
+	stroke: var(--chapel-white);
+	stroke-width: 2;
+}
+
+.combo-badge text {
+	fill: var(--chapel-white);
+	font-family: var(--font-serif);
+	font-weight: 700;
+	font-size: 20px;
+}
+
+@keyframes mapSpin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes tableEnter {
+	from {
+		opacity: 0;
+		transform: translateY(11px) scale(0.94);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes selectedPulse {
+	0%,
+	100% {
+		stroke-width: 1;
+	}
+	50% {
+		stroke-width: 4;
+	}
+}
+
+@keyframes bubblePop {
+	from {
+		opacity: 0;
+		transform: translateY(8px) scale(0.86);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes comboDash {
+	to {
+		stroke-dashoffset: -32;
+	}
+}
+
+/* ─── the table dialog ────────────────────────────────────────────────────── */
+
+.table-editor-dialog {
+	width: min(680px, 100%);
+}
+
+.dialog-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 4px;
+}
+
+.dialog-head strong {
+	color: var(--ink);
+	font-size: 18px;
+	font-weight: 800;
+}
+
+.dialog-head .ghost-btn {
+	min-height: 36px;
+	padding: 6px 12px;
+}
+
+.dialog-hint {
+	color: var(--ink-2);
+	font-size: 12.5px;
+	line-height: 1.8;
+}
+
+.dialog-divider {
+	margin: 6px 0;
+	border: none;
+	border-top: 1px solid var(--line);
+}
+
+.table-editor-dialog h5 {
+	margin-bottom: 8px;
+	color: var(--ink);
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.chair-editor {
+	display: grid;
+	grid-template-columns: 240px minmax(0, 1fr);
+	gap: 18px;
+	align-items: start;
+}
+
+.chair-side {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.chair-side > .row {
+	align-self: stretch;
+}
+
+.connection-editor {
+	display: grid;
+	gap: 9px;
+}
+
+.connection-list {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	min-height: 30px;
+}
+
+.connection-list > small {
+	color: var(--ink-3);
+}
+
+.connection-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 6px 4px 11px;
+	border: 1px solid var(--line-2);
+	border-radius: 999px;
+	background: var(--surface-2);
+	color: var(--ink);
+	font-size: 12px;
+}
+
+.connection-chip button {
+	display: grid;
+	place-items: center;
+	width: 20px;
+	height: 20px;
+	border: none;
+	border-radius: 50%;
+	background: none;
+	color: var(--danger);
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.connection-chip button:hover {
+	background: var(--danger-soft);
+}
+
+.connection-add {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 8px;
+}
+
+/* the rotation dial */
+.rotation-field-row {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.rotation-dial {
+	width: 84px;
+	height: 84px;
+	flex: none;
+	touch-action: none;
+	cursor: grab;
+}
+
+.rotation-dial:active {
+	cursor: grabbing;
+}
+
+.rotation-dial-track {
+	fill: var(--surface-2);
+	stroke: var(--line-2);
+	stroke-width: 1.5;
+}
+
+.rotation-dial-tick {
+	stroke: var(--line-2);
+	stroke-width: 1.5;
+}
+
+.rotation-dial-hand {
+	stroke: var(--ink);
+	stroke-width: 2;
+	stroke-linecap: round;
+}
+
+.rotation-dial-handle {
+	fill: var(--accent);
+	stroke: var(--surface);
+	stroke-width: 2;
+}
+
+.rotation-dial-center {
+	fill: var(--ink-3);
+}
+
+.rotation-field input[data-field='rotation'] {
+	max-width: 96px;
+}
+
+.rotation-field--chair .rotation-dial {
+	width: 62px;
+	height: 62px;
+}
+
+.rotation-field--chair .rotation-field-row {
+	gap: 10px;
+}
+
+.rotation-field--chair input {
+	max-width: 80px;
+}
+
+/* the small chair canvas (light, like the map) */
+.chair-canvas-wrap {
+	border: 1px solid var(--line);
+	border-radius: var(--r-sm);
+	background: rgba(255, 255, 255, 0.3);
+	aspect-ratio: 1;
+}
+
+.chair-mini-canvas {
+	width: 100%;
+	height: 100%;
+	cursor: grab;
+	touch-action: none;
+}
+.chair-mini-canvas:active {
+	cursor: grabbing;
+}
+
+.mini-table-shape {
+	fill: var(--antique-veil);
+	stroke: var(--rich-sabel);
+	stroke-opacity: 0.3;
+}
+
+.mini-chair-seat {
+	fill: var(--chapel-white);
+	stroke: var(--rich-sabel);
+	stroke-opacity: 0.4;
+}
+.mini-chair-back {
+	fill: none;
+	stroke: var(--rich-sabel);
+	stroke-opacity: 0.4;
+	stroke-width: 2;
+}
+.mini-chair {
+	cursor: pointer;
+	transition: filter 0.2s var(--ease);
+}
+.mini-chair.is-selected .mini-chair-seat {
+	stroke: var(--rich-sabel);
+	stroke-width: 2;
+	stroke-opacity: 1;
+}
+.mini-chair.is-selected {
+	filter: drop-shadow(0 0 4px rgba(66, 46, 47, 0.35));
+}
+
+.shared-dot {
+	fill: var(--warn);
+	fill-opacity: 0.55;
+	stroke: var(--warn-ink);
+}
+.mini-chair--shared.is-selected .shared-dot {
+	stroke-width: 2;
+	fill-opacity: 0.85;
+}
+
+/* ─── smaller screens ─────────────────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+	.map-wrap {
+		min-height: 390px;
+	}
+}
+
+@media (max-width: 767px) {
+	.map-wrap {
+		min-height: 430px;
+		aspect-ratio: auto;
+	}
+
+	.map-controls {
+		left: 8px;
+		bottom: 8px;
+	}
+
+	.admin-map-wrap {
+		min-height: 400px;
+		aspect-ratio: auto;
+	}
+
+	.connection-add {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	.chair-editor {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.roof-table-lift,
+	.map-time-bubble,
+	.combo-connector,
+	.table-number-bg,
+	.map-loading span {
+		animation: none !important;
+	}
+}

@@ -1,0 +1,294 @@
+/* theme.css — the admin panel's colours, type and base elements, in a light and a dark theme.
+ *
+ * The theme follows the device (prefers-color-scheme) until the manager picks one with the button in the
+ * top bar: then <html data-theme="light|dark"> (set by /admin-theme.js before the page draws, and kept in
+ * localStorage) wins over the device.
+ *
+ * Every other admin stylesheet uses only these variables, so a colour is changed here once for both themes.
+ * The café's colours: cream (#FAF2E8) and the logo's brown (#3A1F12), with one warm caramel accent.
+ */
+
+:root {
+	color-scheme: light;
+
+	/* surfaces */
+	--bg: #f5efe7;
+	--surface: #ffffff;
+	--surface-2: #faf6f1;
+	--surface-3: #f1e9df;
+	--overlay: rgba(42, 26, 18, 0.42);
+
+	/* text */
+	--ink: #2a1a12;
+	--ink-2: #6b5a4e;
+	--ink-3: #8f7f72;
+
+	/* lines */
+	--line: #ede4d9;
+	--line-2: #dfd3c4;
+
+	/* the logo's brown: buttons, the active menu item, selected chips */
+	--brand: #3a1f12;
+	--brand-hover: #54311f;
+	--on-brand: #faf2e8;
+
+	/* one warm accent: charts, the active marker, highlights */
+	--accent: #b9672a;
+	--accent-ink: #94501c;
+	--accent-soft: #f8eadc;
+
+	/* states: always with a word, never colour alone */
+	--ok: #3d7a4b;
+	--ok-soft: #e5f1e7;
+	--warn: #9c6410;
+	--warn-soft: #faefd9;
+	--danger: #b03a2d;
+	--danger-soft: #fae6e2;
+
+	/* charts (checked with the colour-blindness validator: light on white, dark on the dark card) */
+	--chart-1: #b5621f;
+	--chart-2: #1a7fa3;
+	--chart-grid: #efe7dd;
+
+	--focus: #b9672a;
+
+	--shadow-sm: 0 1px 2px rgba(58, 31, 18, 0.05);
+	--shadow: 0 1px 2px rgba(58, 31, 18, 0.04), 0 10px 30px rgba(58, 31, 18, 0.06);
+	--shadow-lg: 0 30px 70px rgba(30, 15, 8, 0.22);
+
+	--radius: 20px;
+	--radius-md: 14px;
+	--radius-sm: 11px;
+	--radius-xs: 8px;
+
+	--side-w: 268px;
+	--top-h: 76px;
+
+	--font-fa: 'Estedad', 'Baloo Bhaijaan 2', Tahoma, sans-serif;
+	--ease: cubic-bezier(0.4, 0, 0.2, 1);
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* the dark theme: chosen in the panel, or the device's choice when none was made */
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--bg: #14100d;
+	--surface: #1e1712;
+	--surface-2: #261e18;
+	--surface-3: #30261e;
+	--overlay: rgba(0, 0, 0, 0.6);
+	--ink: #f4ebe0;
+	--ink-2: #c4b5a6;
+	--ink-3: #968677;
+	--line: #31271f;
+	--line-2: #43372c;
+	--brand: #f0e2cf;
+	--brand-hover: #fff3e3;
+	--on-brand: #2a1a12;
+	--accent: #e39b5a;
+	--accent-ink: #f0b47e;
+	--accent-soft: rgba(227, 155, 90, 0.14);
+	--ok: #86c595;
+	--ok-soft: rgba(134, 197, 149, 0.13);
+	--warn: #e6b562;
+	--warn-soft: rgba(230, 181, 98, 0.13);
+	--danger: #f08b7b;
+	--danger-soft: rgba(240, 139, 123, 0.13);
+	--chart-1: #c97a35;
+	--chart-2: #3797bd;
+	--chart-grid: #2e251e;
+	--focus: #e39b5a;
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+	--shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.28);
+	--shadow-lg: 0 30px 70px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		color-scheme: dark;
+		--bg: #14100d;
+		--surface: #1e1712;
+		--surface-2: #261e18;
+		--surface-3: #30261e;
+		--overlay: rgba(0, 0, 0, 0.6);
+		--ink: #f4ebe0;
+		--ink-2: #c4b5a6;
+		--ink-3: #968677;
+		--line: #31271f;
+		--line-2: #43372c;
+		--brand: #f0e2cf;
+		--brand-hover: #fff3e3;
+		--on-brand: #2a1a12;
+		--accent: #e39b5a;
+		--accent-ink: #f0b47e;
+		--accent-soft: rgba(227, 155, 90, 0.14);
+		--ok: #86c595;
+		--ok-soft: rgba(134, 197, 149, 0.13);
+		--warn: #e6b562;
+		--warn-soft: rgba(230, 181, 98, 0.13);
+		--danger: #f08b7b;
+		--danger-soft: rgba(240, 139, 123, 0.13);
+		--chart-1: #c97a35;
+		--chart-2: #3797bd;
+		--chart-grid: #2e251e;
+		--focus: #e39b5a;
+		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+		--shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.28);
+		--shadow-lg: 0 30px 70px rgba(0, 0, 0, 0.55);
+	}
+}
+
+/* ─── base ────────────────────────────────────────────────────────────────── */
+
+html {
+	direction: rtl;
+	font-size: 14px;
+	background: var(--bg);
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	min-height: 100dvh;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: var(--font-fa);
+	font-size: 14px;
+	line-height: 1.7;
+	-webkit-font-smoothing: antialiased;
+	transition: background-color 0.25s var(--ease), color 0.25s var(--ease);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+p {
+	margin: 0;
+	font-family: var(--font-fa) !important;
+}
+
+::selection {
+	background: var(--accent);
+	color: #fff;
+}
+
+:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+[hidden] {
+	display: none !important;
+}
+
+bdi {
+	unicode-bidi: isolate;
+}
+
+/* thin, quiet scrollbars */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--line-2) transparent;
+}
+
+.sr-only {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.muted {
+	color: var(--ink-2);
+}
+
+.hint {
+	color: var(--ink-2);
+	font-size: 12.5px;
+	line-height: 1.8;
+}
+
+.fw-bold {
+	font-weight: 700;
+}
+
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes shimmer-bg {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+/* switching theme: the new one spreads in a circle from the button (common/theme.ts draws the circle) */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation: none;
+	mix-blend-mode: normal;
+}
+
+/* browsers without View Transitions: every colour fades at once, so cards and page change together */
+html.theme-fade,
+html.theme-fade *,
+html.theme-fade *::before,
+html.theme-fade *::after {
+	transition:
+		background-color 0.3s var(--ease),
+		border-color 0.3s var(--ease),
+		color 0.3s var(--ease),
+		fill 0.3s var(--ease),
+		stroke 0.3s var(--ease),
+		box-shadow 0.3s var(--ease) !important;
+}
+
+/* the sun / moon of the theme button turns in */
+.theme-icon {
+	display: grid;
+	place-items: center;
+	animation: icon-turn 0.45s var(--ease-out) both;
+}
+
+@keyframes icon-turn {
+	from {
+		opacity: 0;
+		transform: rotate(-90deg) scale(0.6);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}

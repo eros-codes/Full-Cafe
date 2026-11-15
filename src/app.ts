@@ -16,7 +16,8 @@ import { recommenderRouter } from './routes/recommender.routes.js';
 import { gamesRouter } from './routes/games.routes.js';
 import { trackSiteVisit } from './middleware/site-visit.js';
 import { PRODUCTS_DIR, PRODUCTS_URL } from './lib/uploads.js';
-import { clientFiles, legacyRedirects, servePage } from './web/frontend.js';
+import { clientFiles, legacyRedirects, serveNotFound, servePage } from './web/frontend.js';
+import { seoRouter } from './web/seo.js';
 
 // Pages (React, see client/ and src/web/pages.ts):
 //   /, /menu, /feedback, /games             → café site
@@ -86,6 +87,8 @@ app.get('/health', (_req, res) => res.json({ ok: true, service: 'roof' }));
 // ─── Pages ───────────────────────────────────────────────────────────────────
 
 app.use(legacyRedirects);
+// robots.txt, sitemap.xml, the web manifest, the icons and the link-preview picture (src/web/seo.ts)
+app.use(seoRouter);
 app.use(trackSiteVisit);
 // Every product photo gets a new, unique file name (a changed photo is a new file), so a name's content never changes:
 // browsers may keep it for a year without asking again.
@@ -112,13 +115,14 @@ app.use('/api/admin', adminRouter);
 app.use(servePage);
 app.use(clientFiles);
 
-app.use((req, res) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
 	if (req.path.startsWith('/api')) return res.status(404).json({ message: 'مسیر API پیدا نشد.' });
 	// فقط GET به صفحه‌ی اصلی برمی‌گرده؛ بقیه‌ی متدها یعنی مسیر واقعاً وجود نداره
 	if (req.method !== 'GET') return res.status(404).json({ message: 'مسیر پیدا نشد.' });
 	// فایل‌های استاتیک گم‌شده (عکس، css، js) نباید HTML بگیرن
 	if (path.extname(req.path)) return res.status(404).end();
-	res.redirect(302, '/');
+	// a real 404 page (before: a quiet redirect home, which search engines count as a broken page)
+	void serveNotFound(req, res, next);
 });
 
 interface ErrorLike {

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api, errorText } from '../../shared/api';
-import { toman } from '../../shared/format';
+import { faDigits, toman } from '../../shared/format';
 import { DurationChips, fitDuration } from '../../reserve/common/DurationChips';
 import type { PublicConfig } from '../../reserve/common/types';
 import type { MapTable } from '../../reserve/map/types';
 import { tehranToday } from '../../shared/jalali';
 import { adminApi } from '../common/adminApi';
 import { JalaliDateField } from '../common/JalaliDateField';
-import { Notice, ZONE_FA, type NoticeState } from '../common/ui';
+import { Notice, ZONE_FA, fa, type NoticeState } from '../common/ui';
 
 /** Phone / walk-in booking: confirmed and paid at once, no online payment. */
 export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCreated: () => void }) {
@@ -120,7 +120,7 @@ export function ManualBooking({ tables, onCreated }: { tables: MapTable[]; onCre
 				<div id="mTables" className="chip-row">
 					{activeTables.map((table) => (
 						<button key={table.id} type="button" className={`chip${selectedIds.includes(table.id) ? ' active' : ''}`} onClick={() => toggleTable(table.id)}>
-							{`میز ${table.displayNumber} · ${ZONE_FA[table.zone] || table.zone} · ${table.capacity} نفره`}
+							{`میز ${faDigits(table.displayNumber)} · ${ZONE_FA[table.zone] || table.zone} · ${fa(table.capacity)} نفره`}
 						</button>
 					))}
 				</div>

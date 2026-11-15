@@ -9,7 +9,7 @@ import { MenuFlash } from './menu-common';
 // The games page (/games) in the admin panel: the switch, which games are shown and in what order, and the
 // decks of cards of the word games. Manager only. Server: src/routes/admin/games.routes.ts.
 
-type GameKey = 'spy' | 'heads_up' | 'charades' | 'taboo' | 'tic_tac_toe' | 'connect_four' | 'dots' | 'mafia' | 'ludo' | 'chess' | 'backgammon';
+type GameKey = 'spy' | 'heads_up' | 'charades' | 'taboo' | 'tic_tac_toe' | 'connect_four' | 'dots' | 'mafia' | 'ludo' | 'chess' | 'backgammon' | 'checkers';
 type CardGameKey = 'spy' | 'heads_up' | 'charades' | 'taboo';
 
 interface GameRow {
@@ -49,9 +49,10 @@ const GAME_FA: Record<GameKey, string> = {
 	ludo: 'منچ',
 	chess: 'شطرنج',
 	backgammon: 'تخته نرد',
+	checkers: 'چکرز',
 };
 /** What a card of a deck is for each word game (only these draw cards). */
-const CARD_FA: Record<CardGameKey, string> = { spy: 'مکان', heads_up: 'کلمه', charades: 'کلمه', taboo: 'کارت با کلمه‌ی ممنوع' };
+const CARD_FA: Record<CardGameKey, string> = { spy: 'کلمه', heads_up: 'کلمه', charades: 'کلمه', taboo: 'کارت با کلمه‌ی ممنوع' };
 const CARD_GAME_KEYS = Object.keys(CARD_FA) as CardGameKey[];
 const DECK_NAME_MAX = 40;
 
@@ -195,7 +196,7 @@ export function Games({ visit }: { visit: number }) {
 			<h4 className="games-subhead">دسته‌کارت‌ها</h4>
 			<div className="menu-toolbar tag-toolbar">
 				<p className="hint">
-					کارت‌های بازی‌های کلمه‌ای: مکان‌های «جاسوس»، کلمه‌های «گوشی رو پیشونی» و «پانتومیم»، و کارت‌های «کلمات ممنوعه». هر دسته می‌تواند به چند بازی برسد.
+					کارت‌های بازی‌های کلمه‌ای؛ هر دسته یک موضوع است و می‌تواند به چند بازی برسد. در «جاسوس» اسم دسته موضوعی است که همه، حتی جاسوس، می‌بینند؛ بخش قبل از «:» (مثل «کلمات ممنوعه:») در سایت نشان داده نمی‌شود.
 				</p>
 				<button type="button" className="primary-btn menu-add-btn" disabled={busy} onClick={() => setEditing('new')}>
 					{ICONS.plus}

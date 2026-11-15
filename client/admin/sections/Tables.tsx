@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { errorText } from '../../shared/api';
 import { FloorMap, type FloorMapHandle } from '../../reserve/map/FloorMap';
 import type { MapTable, ZoneKey } from '../../reserve/map/types';
+import { faDigits } from '../../shared/format';
 import { adminApi } from '../common/adminApi';
 import { SHAPE_FA, ZONE_FA, fa } from '../common/ui';
 
@@ -102,7 +103,7 @@ export function Tables({ tables, canEditMap, canToggleTables, reload, openDialog
 							{tables.map((table) => (
 								<tr key={table.id}>
 									<td>{table.code}</td>
-									<td>{table.displayNumber}</td>
+									<td>{faDigits(table.displayNumber)}</td>
 									<td>{ZONE_FA[table.zone] || table.zone}</td>
 									<td>{SHAPE_FA[table.shape] || table.shape}</td>
 									<td>{fa(table.capacity)}</td>

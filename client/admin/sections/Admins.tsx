@@ -79,7 +79,7 @@ export function Admins({ me }: { me: Admin }) {
 	return (
 		<>
 			<Notice id="adminNotice" notice={notice} reveal />
-			<div className="card" style={{ marginBottom: '14px' }}>
+			<div className="menu-inline-form">
 				<h4>افزودن ادمین جدید</h4>
 				<div className="row">
 					<div className="field">

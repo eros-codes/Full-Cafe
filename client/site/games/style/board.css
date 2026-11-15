@@ -408,3 +408,114 @@
 	font-weight: 800;
 	line-height: 1;
 }
+
+/* ─── چکرز ─── */
+
+.ck-count {
+	margin: -0.3rem 0 0;
+	text-align: center;
+	font-size: 0.8rem;
+	color: var(--tertiary-text-color);
+}
+
+/* the board is always left to right (the page is RTL), player 0 at the bottom */
+.ck-board {
+	width: min(100%, 28rem);
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: repeat(8, minmax(0, 1fr));
+	direction: ltr;
+	overflow: hidden;
+	border: 3px solid #fff;
+	border-radius: 0.7rem;
+	box-shadow: 0 10px 28px rgba(66, 46, 47, 0.2);
+}
+
+.ck-sq {
+	position: relative;
+	aspect-ratio: 1;
+	display: grid;
+	place-items: center;
+	padding: 0;
+}
+
+.ck-sq.light {
+	background: #e6ddd0;
+}
+
+.ck-sq.dark {
+	background: #8a786a;
+}
+
+.ck-sq.dark.last {
+	background: #9c8a6c;
+}
+
+.ck-sq.dark.selected {
+	background: #b79c62;
+}
+
+.ck-sq:disabled {
+	cursor: default;
+}
+
+/* where the picked piece can land */
+.ck-sq.target::after {
+	content: '';
+	width: 34%;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.75);
+	box-shadow: 0 0 0 3px rgba(66, 46, 47, 0.25);
+}
+
+.ck-piece {
+	width: 78%;
+	aspect-ratio: 1;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	box-shadow:
+		inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+		inset 0 0 0 3px rgba(255, 255, 255, 0.16),
+		0 2px 4px rgba(31, 21, 22, 0.35);
+}
+
+.ck-p0 {
+	background: #b8553f;
+	color: #fff3e6;
+}
+
+.ck-p1 {
+	background: #f3ece2;
+	color: #6d5f54;
+}
+
+.ck-piece svg {
+	width: 62%;
+	height: 62%;
+	fill: currentColor;
+}
+
+/* the pieces that can move this turn (only the capturing ones when a capture is compulsory) */
+.ck-sq.movable .ck-piece {
+	outline: 2px solid rgba(255, 255, 255, 0.85);
+	outline-offset: 1px;
+}
+
+.ck-sq.selected .ck-piece {
+	scale: 1.06;
+}
+
+.ck-sq:focus-visible {
+	outline: 3px solid var(--blue);
+	outline-offset: -3px;
+	z-index: 1;
+}
+
+.bd-piece .ck-piece {
+	width: 1.45rem;
+	height: 1.45rem;
+	box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+	border: 1px solid rgba(66, 46, 47, 0.25);
+}

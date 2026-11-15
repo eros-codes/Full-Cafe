@@ -103,6 +103,14 @@ export const GAME_ICONS = {
 			<circle cx="6" cy="16.3" r="1.7" />
 		</svg>
 	),
+	checkers: (
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+			<rect x="3" y="3" width="18" height="18" rx="2.4" />
+			<path d="M3 12h18M12 3v18" opacity=".45" />
+			<circle cx="7.5" cy="16.5" r="2.4" fill="currentColor" stroke="none" />
+			<circle cx="16.5" cy="7.5" r="2.4" />
+		</svg>
+	),
 } as const;
 
 export const UI_ICONS = {

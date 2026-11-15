@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorText } from '../../shared/api';
-import { toman } from '../../shared/format';
+import { faDigits, toman } from '../../shared/format';
 import { ICONS, type IconName } from '../../shared/icons';
 import { PAYMENT_STATUS_FA, faDateTime, statusFa } from '../../reserve/common/format';
 import type { Reservation } from '../../reserve/common/types';
@@ -183,14 +183,16 @@ export function Reservations({ isMain, reloadKey, onChanged }: Props) {
 										const actions = actionsFor(r);
 										return (
 											<tr key={r.id}>
-												<td>{r.trackingCode}</td>
+												<td>
+													<span className="res-code">{r.trackingCode}</span>
+												</td>
 												<td>
 													{r.customerName}
 													<br />
-													<small style={{ color: 'var(--deep-taupe)' }}>{r.customerPhone}</small>
+													<small dir="ltr">{r.customerPhone}</small>
 												</td>
-												<td>{faDateTime(r.startAt)}</td>
-												<td>{(r.tables || []).map((item) => item.table?.displayNumber).join(' و ')}</td>
+												<td className="menu-nowrap">{faDateTime(r.startAt)}</td>
+												<td>{faDigits((r.tables || []).map((item) => item.table?.displayNumber).join(' و '))}</td>
 												<td>
 													{`${toman(r.totalAmount)}${r.decorationAmount > 0 ? ' ' : ''}`}
 													{r.decorationAmount > 0 && <span className="chip">{`🎀 ${r.decorationNote || 'تزئین'}`}</span>}

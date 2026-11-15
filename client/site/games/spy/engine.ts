@@ -3,9 +3,11 @@ import { startClock, type Clock } from '../kit/clock.js';
 import { pickCards } from '../kit/deck.js';
 import { randomInt, shuffle, type Rng } from '../kit/random.js';
 
-// «جاسوس»: everyone sees the same place except the spy (or two spies), who sees nothing. They take turns
-// asking each other questions; the citizens try to find the spy, the spy tries to find out the place
-// without being found. Pure functions over plain data (the state is saved on the phone as it is).
+// «جاسوس»: everyone sees the same word (a place, an animal, a food…: the café's decks are topics) except the spy
+// (or two spies), who only sees the topic. They take turns asking each other questions; the citizens try to find
+// the spy, the spy tries to find out the word without being found. The list everyone may look at holds words of
+// the same topic only: with words of every topic mixed, the questions would show the spy the answer at once.
+// Pure functions over plain data (the state is saved on the phone as it is). «place» in the code = the word.
 //
 // How a round ends:
 //   - the group accuses a citizen        → the spies win
@@ -29,9 +31,17 @@ export interface SpySettings {
 	deckIds: number[];
 }
 
+/** A deck the word can come from: its name is the round's topic. */
+export interface SpyTopic {
+	name: string;
+	cards: readonly Card[];
+}
+
 export interface SpyRound {
 	place: string;
 	placeId: number;
+	/** The deck of the word («حیوانات»), shown to everyone; missing in rounds saved before topics. */
+	topic?: string;
 	/** The list everyone may look at, in alphabetical order. */
 	candidates: string[];
 	/** Indices of the spies in `settings.players`. */
@@ -92,12 +102,22 @@ export function initialSpyState(players: string[], deckIds: number[] = []): SpyS
 	};
 }
 
-/** A new place, new spies and a new first asker. `avoid` = places to keep away from (seen lately). */
-export function newRound(settings: SpySettings, pool: readonly Card[], avoid: ReadonlySet<number>, rng: Rng = Math.random): SpyRound {
+/**
+ * A new word, new spies and a new first asker. `avoid` = words to keep away from (seen lately). With `topics`
+ * (the chosen decks), the list comes from the word's own deck and the round knows its topic.
+ */
+export function newRound(
+	settings: SpySettings,
+	pool: readonly Card[],
+	avoid: ReadonlySet<number>,
+	rng: Rng = Math.random,
+	topics: readonly SpyTopic[] = [],
+): SpyRound {
 	if (pool.length < 2) throw new Error('not enough places');
 	const [place] = pickCards(pool, 1, avoid, rng);
+	const topic = topics.find((t) => t.cards.some((card) => card.id === place.id) && t.cards.length >= 2);
 	const others = shuffle(
-		pool.filter((card) => card.id !== place.id && card.text !== place.text),
+		(topic ? topic.cards : pool).filter((card) => card.id !== place.id && card.text !== place.text),
 		rng,
 	).slice(0, SPY_CANDIDATES - 1);
 	const candidates = [place, ...others].map((card) => card.text).sort((a, b) => a.localeCompare(b, 'fa'));
@@ -108,14 +128,27 @@ export function newRound(settings: SpySettings, pool: readonly Card[], avoid: Re
 	)
 		.slice(0, count)
 		.sort((a, b) => a - b);
-	return { place: place.text, placeId: place.id, candidates, spies, starter: randomInt(settings.players.length, rng) };
+	return {
+		place: place.text,
+		placeId: place.id,
+		...(topic ? { topic: topic.name } : {}),
+		candidates,
+		spies,
+		starter: randomInt(settings.players.length, rng),
+	};
 }
 
 /** Starts (or restarts) the game with these settings: scores from zero, first round dealt. */
-export function startSpyGame(settings: SpySettings, pool: readonly Card[], avoid: ReadonlySet<number>, rng: Rng = Math.random): SpyState {
+export function startSpyGame(
+	settings: SpySettings,
+	pool: readonly Card[],
+	avoid: ReadonlySet<number>,
+	rng: Rng = Math.random,
+	topics: readonly SpyTopic[] = [],
+): SpyState {
 	return {
 		settings: { ...settings, spies: Math.min(settings.spies, maxSpies(settings.players.length)) as 1 | 2 },
-		round: newRound(settings, pool, avoid, rng),
+		round: newRound(settings, pool, avoid, rng, topics),
 		roundNo: 1,
 		scores: settings.players.map(() => 0),
 		clock: null,
@@ -124,10 +157,16 @@ export function startSpyGame(settings: SpySettings, pool: readonly Card[], avoid
 }
 
 /** Same players and scores, the next round. */
-export function nextSpyRound(state: SpyState, pool: readonly Card[], avoid: ReadonlySet<number>, rng: Rng = Math.random): SpyState {
+export function nextSpyRound(
+	state: SpyState,
+	pool: readonly Card[],
+	avoid: ReadonlySet<number>,
+	rng: Rng = Math.random,
+	topics: readonly SpyTopic[] = [],
+): SpyState {
 	return {
 		...state,
-		round: newRound(state.settings, pool, avoid, rng),
+		round: newRound(state.settings, pool, avoid, rng, topics),
 		roundNo: state.roundNo + 1,
 		clock: null,
 		phase: { kind: 'deal', index: 0, showing: false },

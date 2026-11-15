@@ -3,8 +3,9 @@
 //
 //   seedGames  → only on a database without any deck (part of `npm run db:seed` / `prisma migrate reset`)
 //   mergeGames → `npm run db:merge-games`: adds the decks and cards of the file that the database does not
-//                have yet, matched by deck name and card text. Nothing is changed or removed, so a card the
-//                café deleted comes back if it is still in the file.
+//                have yet, matched by deck name and card text, and the games the file gives a deck that the
+//                database's deck does not serve yet (e.g. «حیوانات» now serves «جاسوس» too). Nothing is changed
+//                or removed otherwise, so a card the café deleted comes back if it is still in the file.
 import fs from 'node:fs';
 import path from 'node:path';
 import type { PrismaClient } from '@prisma/client';
@@ -68,11 +69,17 @@ export async function seedGames(prisma: PrismaClient): Promise<void> {
 	console.log(`بازی‌ها: ${data.decks.length} دسته‌کارت، ${cards} کارت.`);
 }
 
-export async function mergeGames(prisma: PrismaClient): Promise<{ decks: number; cards: number }> {
+/** The games of a deck after a merge: the database's, then those of the file it does not have yet. */
+export function mergedDeckGames(have: readonly string[], file: readonly string[]): string[] {
+	return [...have, ...file.filter((key) => isGameKey(key) && !have.includes(key))];
+}
+
+export async function mergeGames(prisma: PrismaClient): Promise<{ decks: number; cards: number; games: number }> {
 	const data = readGamesFile();
 	if (!data) throw new Error('prisma/seed-data/games.json پیدا نشد.');
 	let newDecks = 0;
 	let newCards = 0;
+	let newGames = 0;
 	const last = await prisma.gameDeck.aggregate({ _max: { sortOrder: true } });
 	let sortOrder = (last._max.sortOrder ?? -1) + 1;
 	for (const deck of data.decks) {
@@ -82,6 +89,11 @@ export async function mergeGames(prisma: PrismaClient): Promise<{ decks: number;
 			newDecks++;
 			continue;
 		}
+		const games = mergedDeckGames(existing.games, deck.games);
+		if (games.length > existing.games.length) {
+			await prisma.gameDeck.update({ where: { id: existing.id }, data: { games } });
+			newGames += games.length - existing.games.length;
+		}
 		const have = new Set(existing.cards.map((c) => c.text));
 		const missing = parseCardLines(deck.cards).cards.filter((card) => !have.has(card.text));
 		if (!missing.length) continue;
@@ -90,5 +102,5 @@ export async function mergeGames(prisma: PrismaClient): Promise<{ decks: number;
 		});
 		newCards += missing.length;
 	}
-	return { decks: newDecks, cards: newCards };
+	return { decks: newDecks, cards: newCards, games: newGames };
 }

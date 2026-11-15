@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fillBrandTokens } from './src/brand.js';
-import { PAGES } from './src/web/pages.js';
+import { NOT_FOUND_PAGE, PAGES } from './src/web/pages.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,7 +25,7 @@ export default defineConfig({
 		outDir: path.join(ROOT, 'dist', 'client'),
 		emptyOutDir: true,
 		rollupOptions: {
-			input: Object.fromEntries(PAGES.map((page) => [page.html.replace(/\/index\.html$/, '').replace(/\//g, '-'), path.join(CLIENT, page.html)])),
+			input: Object.fromEntries([...PAGES, NOT_FOUND_PAGE].map((page) => [page.html.replace(/\/index\.html$/, '').replace(/\//g, '-'), path.join(CLIENT, page.html)])),
 		},
 	},
 });

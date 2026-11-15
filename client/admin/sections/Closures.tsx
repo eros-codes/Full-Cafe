@@ -103,7 +103,7 @@ export function Closures({ tables }: { tables: MapTable[] }) {
 	return (
 		<>
 			<Notice id="closuresNotice" notice={notice} reveal />
-			<div className="form-grid" style={{ marginBottom: '20px' }}>
+			<div className="form-grid menu-inline-form">
 				<div className="row">
 					<div className="field">
 						<label htmlFor="cTitle">عنوان تعطیلی</label>
@@ -182,7 +182,7 @@ export function Closures({ tables }: { tables: MapTable[] }) {
 							})
 						) : (
 							<tr>
-								<td colSpan={5} style={{ textAlign: 'center', color: 'var(--deep-taupe)' }}>
+								<td colSpan={5} className="muted" style={{ textAlign: 'center' }}>
 									تعطیلی ثبت نشده
 								</td>
 							</tr>

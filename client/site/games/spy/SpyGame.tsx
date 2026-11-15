@@ -11,6 +11,7 @@ import { playSound, unlockAudio, vibrate } from '../kit/sound';
 import {
 	ClockFace,
 	DeckPicker,
+	deckLabel,
 	Field,
 	GameFrame,
 	Handoff,
@@ -49,17 +50,17 @@ const playerPlaceholder = (index: number) => `بازیکن ${fa(index + 1)}`;
 
 export const SPY_RULES = (
 	<>
-		<p>همه یه مکان مشترک می‌بینن، به‌جز جاسوس که نمی‌دونه کجایید.</p>
+		<p>همه یه کلمه‌ی مشترک می‌بینن (یه مکان، یه حیوون، یه غذا…)، به‌جز جاسوس که فقط موضوعش رو می‌دونه.</p>
 		<ul>
 			<li>گوشی دست‌به‌دست می‌چرخه و هر کی کارت خودش رو می‌بینه، طوری که بقیه نبینن.</li>
 			<li>
-				به نوبت از هم سؤال بپرسید؛ هر کی جواب داد، نفر بعدی رو انتخاب می‌کنه و ازش می‌پرسه. سؤال نه اون‌قدر واضح باشه که جاسوس بفهمه کجایید، نه
+				به نوبت از هم سؤال بپرسید؛ هر کی جواب داد، نفر بعدی رو انتخاب می‌کنه و ازش می‌پرسه. سؤال نه اون‌قدر واضح باشه که جاسوس بفهمه کلمه چیه، نه
 				اون‌قدر مبهم که خودتون مشکوک بشید.
 			</li>
 			<li>هر وقت به یه نفر شک کردید یا وقت تموم شد، رأی بدید جاسوس کیه.</li>
-			<li>اگه جاسوس رو بگیرید، یه شانس آخر داره: اگه مکان رو درست بگه، باز هم جاسوس‌ها می‌برن.</li>
+			<li>اگه جاسوس رو بگیرید، یه شانس آخر داره: اگه کلمه رو درست بگه، باز هم جاسوس‌ها می‌برن.</li>
 			<li>
-				جاسوس هر وقت بخواد می‌تونه بازی رو نگه داره و مکان رو حدس بزنه. درست بگه می‌بره، اشتباه بگه می‌بازه. گوشی اول کارتش رو بهش نشون می‌ده تا
+				جاسوس هر وقت بخواد می‌تونه بازی رو نگه داره و کلمه رو حدس بزنه. درست بگه می‌بره، اشتباه بگه می‌بازه. گوشی اول کارتش رو بهش نشون می‌ده تا
 				مطمئن بشه واقعاً جاسوسه.
 			</li>
 		</ul>
@@ -74,11 +75,11 @@ function outcomeText(outcome: SpyOutcome, round: SpyRound, players: readonly str
 		case 'wrong':
 			return { title: many ? 'جاسوس‌ها بردن!' : 'جاسوس برد!', line: `${players[outcome.accused]} جاسوس نبود! ${many ? 'جاسوس‌ها' : 'جاسوس'}: ${spies}` };
 		case 'escaped':
-			return { title: many ? 'جاسوس‌ها بردن!' : 'جاسوس برد!', line: `${players[outcome.accused]} گیر افتاد، ولی مکان رو درست گفت.` };
+			return { title: many ? 'جاسوس‌ها بردن!' : 'جاسوس برد!', line: `${players[outcome.accused]} گیر افتاد، ولی کلمه رو درست گفت.` };
 		case 'caught':
-			return { title: 'شهروندها بردن!', line: `${players[outcome.accused]} جاسوس بود و مکان رو اشتباه گفت («${outcome.guess}»).` };
+			return { title: 'شهروندها بردن!', line: `${players[outcome.accused]} جاسوس بود و کلمه رو اشتباه گفت («${outcome.guess}»).` };
 		case 'guessed':
-			return { title: many ? 'جاسوس‌ها بردن!' : 'جاسوس برد!', line: `${players[outcome.by]} مکان رو درست حدس زد.${many ? ` جاسوس‌ها: ${spies}` : ''}` };
+			return { title: many ? 'جاسوس‌ها بردن!' : 'جاسوس برد!', line: `${players[outcome.by]} کلمه رو درست حدس زد.${many ? ` جاسوس‌ها: ${spies}` : ''}` };
 		case 'missed':
 			return {
 				title: 'شهروندها بردن!',
@@ -101,6 +102,8 @@ export default function SpyGame({ decks, onExit }: { decks: Deck[]; onExit: () =
 		},
 	);
 	const pool = useMemo(() => cardPool(spyDecks, 'spy', state.settings.deckIds), [spyDecks, state.settings.deckIds]);
+	// the chosen decks: a round's list comes from its word's deck, and its name is the topic everyone sees
+	const topicsOf = (deckIds: readonly number[]) => spyDecks.filter((deck) => !deckIds.length || deckIds.includes(deck.id)).map((deck) => ({ name: deckLabel(deck.name), cards: deck.cards }));
 	const { phase, round, settings } = state;
 
 	const newRoundFrom = (next: (avoid: Set<number>) => SpyState) => {
@@ -124,7 +127,7 @@ export default function SpyGame({ decks, onExit }: { decks: Deck[]; onExit: () =
 						rememberNames('players', state.settings.players);
 						rememberDecks('spy', settings.deckIds);
 						const chosenPool = cardPool(spyDecks, 'spy', settings.deckIds);
-						const fresh = startSpyGame(settings, chosenPool, new Set(readSeen('spy')));
+						const fresh = startSpyGame(settings, chosenPool, new Set(readSeen('spy')), Math.random, topicsOf(settings.deckIds));
 						if (fresh.round) rememberSeen('spy', [fresh.round.placeId], chosenPool.length);
 						setState(fresh);
 					}}
@@ -177,7 +180,7 @@ export default function SpyGame({ decks, onExit }: { decks: Deck[]; onExit: () =
 					round={round}
 					outcome={phase.outcome}
 					canContinue={pool.length >= MIN_PLACES}
-					onNext={() => newRoundFrom((avoid) => nextSpyRound(state, pool, avoid))}
+					onNext={() => newRoundFrom((avoid) => nextSpyRound(state, pool, avoid, Math.random, topicsOf(settings.deckIds)))}
 					onSetup={() => setState({ ...initialSpyState(settings.players, settings.deckIds), settings: { ...settings } })}
 				/>
 			)}
@@ -211,7 +214,7 @@ function SpySetup({
 				<span className="gm-intro-icon" aria-hidden="true">
 					{GAME_ICONS.spy}
 				</span>
-				<p>همه یه مکان رو می‌دونن، جز جاسوس. با سؤال و جواب جاسوس رو پیدا کنید، قبل از اینکه بفهمه کجایید.</p>
+				<p>همه یه کلمه رو می‌دونن، جز جاسوس. با سؤال و جواب جاسوس رو پیدا کنید، قبل از اینکه بفهمه کلمه چیه.</p>
 			</div>
 			<Field label="بازیکن‌ها" hint={`${fa(SPY_PLAYERS.min)} تا ${fa(SPY_PLAYERS.max)} نفر`}>
 				<NamesEditor
@@ -246,11 +249,11 @@ function SpySetup({
 				<Stepper label="زمان سؤال‌ها" value={settings.minutes} min={SPY_MINUTES.min} max={SPY_MINUTES.max} unit="دقیقه" onChange={(minutes) => set({ minutes })} />
 			</Field>
 			{decks.length > 1 && (
-				<Field label="مکان‌ها از کجا بیاد؟">
+				<Field label="موضوع‌ها (یکی رو بزن تا فقط همون باشه)">
 					<DeckPicker decks={decks} value={settings.deckIds} onChange={(deckIds) => set({ deckIds })} countOf={(deck) => deck.cards.length} />
 				</Field>
 			)}
-			{!enough && <p className="gm-warn">برای این بازی حداقل {fa(MIN_PLACES)} مکان لازمه؛ دسته‌های بیشتری انتخاب کن.</p>}
+			{!enough && <p className="gm-warn">برای این بازی حداقل {fa(MIN_PLACES)} کلمه لازمه؛ دسته‌های بیشتری انتخاب کن.</p>}
 			<div className="gm-sticky">
 				<button
 					type="button"
@@ -280,7 +283,7 @@ function RoleCard({ round, player, spies }: { round: SpyRound; player: number; s
 				</span>
 				<p className="spy-card-big">تو جاسوسی!</p>
 				<p className="spy-card-note">
-					مکان رو نمی‌دونی. از سؤال‌ها بفهم کجایید و لو نرو.
+					{round.topic ? `کلمه رو نمی‌دونی؛ فقط می‌دونی موضوعش «${round.topic}»ه.` : 'کلمه رو نمی‌دونی.'} از سؤال‌ها بفهم چیه و لو نرو.
 					{spies > 1 && ' یه جاسوس دیگه هم هست، ولی نمی‌دونی کیه.'}
 				</p>
 			</div>
@@ -288,9 +291,9 @@ function RoleCard({ round, player, spies }: { round: SpyRound; player: number; s
 	}
 	return (
 		<div className="spy-card">
-			<p className="spy-card-label">مکان</p>
+			<p className="spy-card-label">{round.topic ? `کلمه · ${round.topic}` : 'کلمه'}</p>
 			<p className="spy-card-big">{round.place}</p>
-			<p className="spy-card-note">{spies > 1 ? 'دو جاسوس بین شماست.' : 'جاسوس بین شماست.'} طوری جواب بده که لو نره کجایید.</p>
+			<p className="spy-card-note">{spies > 1 ? 'دو جاسوس بین شماست.' : 'جاسوس بین شماست.'} طوری جواب بده که کلمه لو نره.</p>
 		</div>
 	);
 }
@@ -377,7 +380,7 @@ function Play({ state, round, onState }: { state: SpyState; round: SpyRound; onS
 		if (declare.index === null) {
 			return (
 				<div className="gm-center">
-					<p className="gm-title-light">کی می‌خواد مکان رو حدس بزنه؟</p>
+					<p className="gm-title-light">کی می‌خواد کلمه رو حدس بزنه؟</p>
 					<p className="gm-muted-light">گوشی اول کارتش رو بهش نشون می‌ده؛ فقط جاسوس می‌تونه حدس بزنه.</p>
 					<div className="gm-player-grid">
 						{state.settings.players.map((name, i) => (
@@ -407,7 +410,7 @@ function Play({ state, round, onState }: { state: SpyState; round: SpyRound; onS
 							</button>
 						) : (
 							<>
-								<p className="gm-muted-light">تو جاسوس نیستی؛ فقط جاسوس می‌تونه مکان رو حدس بزنه.</p>
+								<p className="gm-muted-light">تو جاسوس نیستی؛ فقط جاسوس می‌تونه کلمه رو حدس بزنه.</p>
 								<button type="button" className="gm-btn gm-btn-light gm-btn-big" onClick={back}>
 									برگرد به بازی
 								</button>
@@ -491,13 +494,13 @@ function Play({ state, round, onState }: { state: SpyState; round: SpyRound; onS
 					رأی‌گیری: جاسوس کیه؟
 				</button>
 				<button type="button" className="gm-btn gm-btn-outline-light" onClick={() => setSheet('declare')}>
-					جاسوس می‌خواد مکان رو حدس بزنه
+					جاسوس می‌خواد کلمه رو حدس بزنه
 				</button>
 			</div>
 			<div className="gm-tools">
 				<button type="button" className="gm-tool" onClick={() => setSheet('places')}>
 					{UI_ICONS.list}
-					<span>لیست مکان‌ها</span>
+					<span>لیست کلمه‌ها</span>
 				</button>
 				<button type="button" className="gm-tool" onClick={() => onState({ ...state, phase: { kind: 'peek', index: null, showing: false } })}>
 					{UI_ICONS.eye}
@@ -509,8 +512,8 @@ function Play({ state, round, onState }: { state: SpyState; round: SpyRound; onS
 				</button>
 			</div>
 			{sheet === 'places' && (
-				<Sheet title="مکان‌های این دست" onClose={() => setSheet(null)}>
-					<p className="gm-muted">مکان واقعی یکی از این‌هاست.</p>
+				<Sheet title={round.topic ? `کلمه‌های این دست · ${round.topic}` : 'کلمه‌های این دست'} onClose={() => setSheet(null)}>
+					<p className="gm-muted">کلمه‌ی واقعی یکی از این‌هاست.</p>
 					<ul className="spy-place-list">
 						{round.candidates.map((place) => (
 							<li key={place}>{place}</li>
@@ -540,7 +543,7 @@ function Play({ state, round, onState }: { state: SpyState; round: SpyRound; onS
 						</>
 					}
 				>
-					<p className="gm-muted">جاسوس هر وقت بخواد می‌تونه بازی رو نگه داره و مکان رو حدس بزنه. درست بگه جاسوس می‌بره، اشتباه بگه شهروندها.</p>
+					<p className="gm-muted">جاسوس هر وقت بخواد می‌تونه بازی رو نگه داره و کلمه رو حدس بزنه. درست بگه جاسوس می‌بره، اشتباه بگه شهروندها.</p>
 				</Sheet>
 			)}
 		</div>
@@ -586,7 +589,7 @@ function Guess({ round, accusedName, onGuess }: { round: SpyRound; accusedName: 
 			{accusedName ? (
 				<>
 					<h2 className="gm-title">{accusedName} جاسوس بود!</h2>
-					<p className="gm-muted">یه شانس آخر: اگه مکان رو درست بگی، جاسوس‌ها می‌برن.</p>
+					<p className="gm-muted">یه شانس آخر: اگه کلمه رو درست بگی، جاسوس‌ها می‌برن.</p>
 				</>
 			) : (
 				<>
@@ -603,7 +606,7 @@ function Guess({ round, accusedName, onGuess }: { round: SpyRound; accusedName: 
 			</div>
 			<div className="gm-sticky">
 				<button type="button" className="gm-btn gm-btn-primary gm-btn-big" disabled={!chosen} onClick={() => chosen && onGuess(chosen)}>
-					{chosen ? `جواب من: ${chosen}` : 'یه مکان انتخاب کن'}
+					{chosen ? `جواب من: ${chosen}` : 'یه کلمه انتخاب کن'}
 				</button>
 			</div>
 		</div>
@@ -636,11 +639,11 @@ function Result({
 				<p>{line}</p>
 			</div>
 			<p className="spy-reveal-place">
-				مکان: <strong>{round.place}</strong>
+				کلمه: <strong>{round.place}</strong>
 			</p>
 			<h3 className="gm-subtitle">امتیازها بعد از دست {fa(state.roundNo)}</h3>
 			<Scoreboard names={state.settings.players} scores={state.scores} />
-			{!canContinue && <p className="gm-warn">مکان‌های این دسته‌ها دیگه کافی نیست (احتمالاً کافه تغییرشون داده)؛ از «تنظیمات» دسته‌های دیگه‌ای انتخاب کن.</p>}
+			{!canContinue && <p className="gm-warn">کلمه‌های این دسته‌ها دیگه کافی نیست (احتمالاً کافه تغییرشون داده)؛ از «تنظیمات» دسته‌های دیگه‌ای انتخاب کن.</p>}
 			<div className="gm-sticky">
 				<button type="button" className="gm-btn gm-btn-primary gm-btn-big" disabled={!canContinue} onClick={onNext}>
 					دست بعد

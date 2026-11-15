@@ -27,16 +27,14 @@ export function LoginPage() {
 	};
 
 	return (
-		<main className="shell" style={{ display: 'flex', minHeight: '80vh', alignItems: 'center', justifyContent: 'center' }}>
-			<section className="card card-pad" style={{ maxWidth: '420px', width: '100%' }}>
-				<div style={{ textAlign: 'center', marginBottom: '20px' }}>
-					<span className="brand-mark" style={{ margin: '0 auto 14px' }}>
+		<main className="login-page">
+			<section className="login-card" aria-labelledby="loginTitle">
+				<div className="login-head">
+					<span className="login-mark">
 						<img src={BRAND.logo.light} alt="" />
 					</span>
-					<span className="brand-word" style={{ fontSize: '24px' }}>
-						{BRAND.nameEn}
-					</span>
-					<p style={{ color: 'var(--deep-taupe)', fontSize: '12.5px', marginTop: '4px', opacity: 0.8 }}>پنل مدیریت</p>
+					<h1 id="loginTitle">{`ورود به پنل ${BRAND.nameFa}`}</h1>
+					<p>{`مدیریت رزروها، منو و سایت ${BRAND.cafeFa}`}</p>
 				</div>
 				<form id="loginForm" className="form-grid" onSubmit={submit}>
 					<div className="field">
@@ -55,21 +53,19 @@ export function LoginPage() {
 					</div>
 					<div className="field">
 						<label htmlFor="password">رمز عبور</label>
-						<input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+						<input id="password" type="password" dir="ltr" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
 					</div>
-					<button id="login" type="submit" className="primary-btn" disabled={busy}>
-						ورود به پنل
-					</button>
 					{/* role="alert": a screen reader says the error (before, a wrong password was silent) */}
 					<div id="notice" role="alert" className={error ? 'notice danger' : undefined}>
 						{error}
 					</div>
+					<button id="login" type="submit" className="primary-btn" disabled={busy}>
+						{busy ? 'در حال ورود...' : 'ورود به پنل'}
+					</button>
 				</form>
-				<div style={{ textAlign: 'center', marginTop: '16px' }}>
-					<a href="/" className="login" style={{ color: 'var(--deep-taupe)', fontSize: '13px', opacity: 0.75 }}>
-						بازگشت به سایت
-					</a>
-				</div>
+				<a href="/" className="login-back">
+					بازگشت به سایت
+				</a>
 			</section>
 		</main>
 	);

@@ -1,7 +1,7 @@
 // The games of the games page (/games) and when one can be played. Pure: shared by the server, the seed
 // scripts and the tests. The games themselves are code on the site (client/site/games).
 
-export const GAME_KEYS = ['spy', 'heads_up', 'charades', 'taboo', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess', 'backgammon'] as const;
+export const GAME_KEYS = ['spy', 'heads_up', 'charades', 'taboo', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess', 'backgammon', 'checkers'] as const;
 export type GameKey = (typeof GAME_KEYS)[number];
 
 export interface GameDef {
@@ -30,6 +30,8 @@ export const GAMES: readonly GameDef[] = [
 	{ key: 'chess', name: 'شطرنج', cards: null, defaultActive: true },
 	// off until the café turns it on: some audiences (state TV among them) do not show نرد
 	{ key: 'backgammon', name: 'تخته نرد', cards: null, defaultActive: false },
+	// last: on a site whose order was already arranged in the panel, a new game joins at the end
+	{ key: 'checkers', name: 'چکرز', cards: null, defaultActive: true },
 ];
 
 /** The games that draw cards from decks (a deck can only be given to these). */

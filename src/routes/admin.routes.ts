@@ -93,12 +93,26 @@ adminRouter.use(adminTagsRouter);
 // بخش بازی‌ها: بازی‌های روشن و دسته‌کارت‌های بازی‌های کلمه‌ای
 adminRouter.use(adminGamesRouter);
 
+/** Days in the dashboard's charts: two weeks, so this week can be set against the one before. */
+const SERIES_DAYS = 14;
+/** Bookings that really happen (or happened): not holds that ran out, not cancelled ones. */
+const HELD_STATUSES: ReservationStatus[] = ['CONFIRMED', 'COMPLETED', 'NO_SHOW'];
+/** Revenue = every successful payment, minus cancelled bookings (the dashboard and the reports count it alike). */
+const PAID_REVENUE = { status: 'PAID', reservation: { status: { not: 'CANCELLED' } } } satisfies Prisma.PaymentWhereInput;
+/** The server's calendar day of a moment: 2026-11-14. */
+const localDayKey = (d: Date): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 adminRouter.get('/dashboard', requireRole(...ROLE_GROUPS.manager), async (_req, res, next) => {
 	try {
 		const now = new Date();
 		const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+		// the last 14 days (today included): the charts, and this week against the one before
+		const days = Array.from({ length: SERIES_DAYS }, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - (SERIES_DAYS - 1 - i)));
+		const seriesStart = days[0];
+		// a visit's day is Tehran's calendar day (site-visit.ts); noon of the café's day gives the same date
+		const visitKeys = days.map((d) => todayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12)));
 
-		const [actionNeeded, upcoming, revenue, visitorsToday, productsCount, categoriesCount, reviewsPending] = await Promise.all([
+		const [actionNeeded, upcoming, revenue, visitorsToday, productsCount, categoriesCount, reviewsPending, booked, payments, visits] = await Promise.all([
 			// از همون تعریف فیلتر استفاده می‌شه تا این دو عدد هیچ‌وقت با هم فرق نکنن
 			prisma.reservation.count({ where: reservationFilterWhere('action', now) }),
 			// رزروهای امروز که هنوز ساعتشون نرسیده
@@ -108,16 +122,43 @@ adminRouter.get('/dashboard', requireRole(...ROLE_GROUPS.manager), async (_req, 
 				take: 20,
 				include: { tables: { include: { table: true } } },
 			}),
-			prisma.payment.aggregate({
-				where: { status: 'PAID', reservation: { status: { not: 'CANCELLED' } } },
-				_sum: { amount: true },
-			}),
+			prisma.payment.aggregate({ where: PAID_REVENUE, _sum: { amount: true } }),
 			// آمار بخش منو (از داشبورد قالب کافه)
 			prisma.siteVisit.count({ where: { visitDate: todayKey(now) } }),
 			prisma.product.count(),
 			prisma.category.count(),
 			prisma.review.count({ where: { visible: false } }),
+			// bookings that are happening (or happened): not holds that ran out or cancelled ones (as in the reports)
+			prisma.reservation.findMany({
+				where: { status: { in: HELD_STATUSES }, startAt: { gte: seriesStart, lt: dayEnd } },
+				select: { startAt: true, guestCount: true },
+			}),
+			// revenue by the booking's day, counted like the reports (paid, booking not cancelled)
+			prisma.payment.findMany({
+				where: { ...PAID_REVENUE, reservation: { status: { not: 'CANCELLED' }, startAt: { gte: seriesStart, lt: dayEnd } } },
+				select: { amount: true, reservation: { select: { startAt: true } } },
+			}),
+			prisma.siteVisit.groupBy({ by: ['visitDate'], where: { visitDate: { in: visitKeys } }, _count: { _all: true } }),
 		]);
+
+		const index = new Map(days.map((d, i) => [localDayKey(d), i]));
+		const series = days.map((d, i) => ({ date: localDayKey(d), revenue: 0, reservations: 0, guests: 0, visitors: 0, visitKey: visitKeys[i] }));
+		for (const r of booked) {
+			const i = index.get(localDayKey(r.startAt));
+			if (i === undefined) continue;
+			series[i].reservations += 1;
+			series[i].guests += r.guestCount;
+		}
+		for (const p of payments) {
+			const i = index.get(localDayKey(p.reservation.startAt));
+			if (i !== undefined) series[i].revenue += p.amount;
+		}
+		const visitsByKey = new Map(visits.map((v) => [v.visitDate, v._count._all]));
+		for (const day of series) day.visitors = visitsByKey.get(day.visitKey) ?? 0;
+
+		const sum = (from: number, to: number, field: 'revenue' | 'reservations' | 'visitors') =>
+			series.slice(from, to).reduce((total, day) => total + day[field], 0);
+		const today = series[series.length - 1];
 
 		res.json({
 			actionNeeded,
@@ -127,6 +168,17 @@ adminRouter.get('/dashboard', requireRole(...ROLE_GROUPS.manager), async (_req, 
 			productsCount,
 			categoriesCount,
 			reviewsPending,
+			today: { reservations: today.reservations, guests: today.guests, revenue: today.revenue, visitors: visitorsToday },
+			// the last 7 days against the 7 before them
+			week: {
+				revenue: sum(7, 14, 'revenue'),
+				revenuePrev: sum(0, 7, 'revenue'),
+				reservations: sum(7, 14, 'reservations'),
+				reservationsPrev: sum(0, 7, 'reservations'),
+				visitors: sum(7, 14, 'visitors'),
+				visitorsPrev: sum(0, 7, 'visitors'),
+			},
+			series: series.map(({ date, revenue: amount, reservations, guests, visitors }) => ({ date, revenue: amount, reservations, guests, visitors })),
 		});
 	} catch (error) {
 		next(error);
@@ -831,12 +883,9 @@ adminRouter.get('/reports/revenue', requireRole(...ROLE_GROUPS.manager), async (
 		const now = new Date();
 		const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
 
-		// درآمد = هر پرداخت موفق، منهای رزروهای لغوشده
-		// باید دقیقاً با کوئری داشبورد یکی باشه، وگرنه ادمین دو عدد متفاوت می‌بینه
-		const paidWhere = { status: 'PAID', reservation: { status: { not: 'CANCELLED' } } } satisfies Prisma.PaymentWhereInput;
-
-		// bookings that really happened (or will): not holds that ran out or were cancelled
-		const heldStatuses: ReservationStatus[] = ['CONFIRMED', 'COMPLETED', 'NO_SHOW'];
+		// the same revenue and the same bookings as the dashboard, or the manager sees two different numbers
+		const paidWhere = PAID_REVENUE;
+		const heldStatuses = HELD_STATUSES;
 		const [paid, counts, guestAgg, recentPayments, topTables, upcoming] = await Promise.all([
 			prisma.payment.aggregate({ where: paidWhere, _sum: { amount: true }, _count: true }),
 			prisma.reservation.groupBy({ by: ['status'], _count: { _all: true } }),
@@ -865,7 +914,7 @@ adminRouter.get('/reports/revenue', requireRole(...ROLE_GROUPS.manager), async (
 		const byStatus = Object.fromEntries(counts.map((c) => [c.status, c._count._all]));
 
 		// درآمد هفت روز اخیر، گروه‌بندی بر اساس تاریخ محلی رزرو
-		const dayKey = (d: Date): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+		const dayKey = localDayKey;
 		const daily = new Map<string, number>();
 		for (let i = 6; i >= 0; i--) {
 			const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);

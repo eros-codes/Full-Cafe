@@ -7,6 +7,21 @@ export { ZONE_FA } from '../../shared/zones';
 export const SHAPE_FA: Record<string, string> = { ROUND: 'گرد', SQUARE: 'مربع', RECTANGLE: 'مستطیل' };
 export const fa = (n: unknown) => faNumber(Number(n || 0));
 
+/** An amount for a stat tile: «۱۸٫۸» میلیون تومان from a million up, otherwise the whole number in تومان. */
+export function compactToman(amount: number): { value: string; unit: string } {
+	const { unit, format } = tomanScale(amount);
+	return { value: format(amount), unit };
+}
+
+/** The unit of an amount and how to write any number in it (also the numbers on the way while it counts up). */
+export function tomanScale(amount: number): { unit: string; format: (n: number) => string } {
+	if (Math.abs(amount) >= 1_000_000) return { unit: 'میلیون تومان', format: (n) => faNumber(Math.round(n / 100_000) / 10) };
+	return { unit: 'تومان', format: (n) => faNumber(Math.round(n)) };
+}
+
+/** A count while it counts up: whole numbers only. */
+export const faCount = (n: number) => faNumber(Math.round(n));
+
 export function Kpi({ icon, label, value }: { icon: IconName; label: string; value: string }) {
 	return (
 		<div className="kpi">

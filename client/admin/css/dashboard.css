@@ -1,0 +1,612 @@
+/* dashboard.css — the dashboard and the reports: stat tiles, the card grid and the charts. */
+
+/* ─── stat tiles ──────────────────────────────────────────────────────────── */
+
+.stat-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+.stat {
+	position: relative;
+	display: grid;
+	align-content: start;
+	gap: 2px;
+	padding: 20px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-sm);
+	min-width: 0;
+}
+
+.stat-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.stat-icon {
+	display: grid;
+	place-items: center;
+	width: 42px;
+	height: 42px;
+	flex: none;
+	border-radius: 13px;
+	background: var(--surface-2);
+	color: var(--ink-2);
+}
+
+.stat-icon svg {
+	width: 20px;
+	height: 20px;
+}
+
+.stat-label {
+	color: var(--ink-2);
+	font-size: 13px;
+}
+
+.stat-value {
+	color: var(--ink);
+	font-size: 26px;
+	font-weight: 800;
+	line-height: 1.35;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.stat-value small {
+	margin-inline-start: 4px;
+	color: var(--ink-3);
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.stat-foot {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px 8px;
+	margin-top: 8px;
+	color: var(--ink-3);
+	font-size: 12px;
+}
+
+/* a change against the week before: the arrow and the sign say up or down, the colour only repeats it */
+.delta {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	padding: 1px 8px 1px 7px;
+	border-radius: 999px;
+	font-size: 11.5px;
+	font-weight: 700;
+}
+
+.delta svg {
+	width: 12px;
+	height: 12px;
+}
+
+.delta.up {
+	background: var(--ok-soft);
+	color: var(--ok);
+}
+
+.delta.down {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+.delta.flat {
+	background: var(--surface-3);
+	color: var(--ink-2);
+}
+
+/* the tile that asks for attention (bookings to check) */
+.stat.is-alert {
+	background: var(--brand);
+	border-color: var(--brand);
+	color: var(--on-brand);
+}
+
+.stat.is-alert .stat-label,
+.stat.is-alert .stat-foot {
+	color: color-mix(in srgb, var(--on-brand) 75%, transparent);
+}
+
+.stat.is-alert .stat-value {
+	color: var(--on-brand);
+}
+
+.stat.is-alert .stat-icon {
+	background: color-mix(in srgb, var(--on-brand) 14%, transparent);
+	color: var(--on-brand);
+}
+
+.stat-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 10px;
+	border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+	border-radius: 999px;
+	background: none;
+	color: inherit;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.18s var(--ease);
+}
+
+.stat-link:hover {
+	background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.stat-link svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* ─── the card grid ───────────────────────────────────────────────────────── */
+
+.dash-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.dash-grid > .span-2 {
+	grid-column: span 2;
+}
+
+.dash-grid > .span-3 {
+	grid-column: 1 / -1;
+}
+
+.dash-total {
+	text-align: end;
+	line-height: 1.4;
+}
+
+.dash-total strong {
+	display: block;
+	color: var(--ink);
+	font-size: 19px;
+	font-weight: 800;
+}
+
+.dash-total small {
+	color: var(--ink-3);
+	font-size: 12px;
+}
+
+/* today's bookings still to come */
+.agenda {
+	display: grid;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.agenda li {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--line);
+}
+
+.agenda li:last-child {
+	border-bottom: none;
+}
+
+.agenda-time {
+	min-width: 58px;
+	padding: 5px 0;
+	border-radius: 10px;
+	background: var(--accent-soft);
+	color: var(--accent-ink);
+	font-size: 13px;
+	font-weight: 800;
+	text-align: center;
+}
+
+.agenda-who {
+	min-width: 0;
+	line-height: 1.5;
+}
+
+.agenda-who strong {
+	display: block;
+	overflow: hidden;
+	color: var(--ink);
+	font-size: 13.5px;
+	font-weight: 700;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.agenda-who small {
+	color: var(--ink-3);
+	font-size: 12px;
+}
+
+.agenda-guests {
+	color: var(--ink-2);
+	font-size: 12.5px;
+	white-space: nowrap;
+}
+
+.agenda-empty {
+	display: grid;
+	place-items: center;
+	gap: 6px;
+	min-height: 180px;
+	color: var(--ink-3);
+	font-size: 13px;
+	text-align: center;
+}
+
+.agenda-empty svg {
+	width: 40px;
+	height: 40px;
+	padding: 9px;
+	border-radius: 12px;
+	background: var(--surface-2);
+}
+
+/* shortcuts: menu and reviews */
+.quick-list {
+	display: grid;
+	gap: 8px;
+}
+
+.quick-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 12px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-sm);
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+	transition:
+		background 0.18s var(--ease),
+		border-color 0.18s var(--ease);
+}
+
+.quick-item:hover {
+	background: var(--surface-2);
+	border-color: var(--line-2);
+}
+
+.quick-item .stat-icon {
+	width: 38px;
+	height: 38px;
+	border-radius: 11px;
+}
+
+.quick-item .stat-icon svg {
+	width: 18px;
+	height: 18px;
+}
+
+.quick-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	line-height: 1.45;
+}
+
+.quick-text span {
+	display: block;
+	color: var(--ink-2);
+	font-size: 12.5px;
+}
+
+.quick-text strong {
+	font-size: 16px;
+	font-weight: 800;
+}
+
+.quick-item > svg {
+	width: 16px;
+	height: 16px;
+	color: var(--ink-3);
+}
+
+.quick-item.is-alert .stat-icon {
+	background: var(--accent-soft);
+	color: var(--accent-ink);
+}
+
+/* ─── charts ──────────────────────────────────────────────────────────────── */
+
+.chart {
+	position: relative;
+	width: 100%;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.chart svg {
+	/* the axis numbers are placed from the right edge: left-to-right coordinates */
+	direction: ltr;
+	display: block;
+	overflow: visible;
+	touch-action: pan-y;
+	outline: none;
+}
+
+.chart svg:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 4px;
+	border-radius: 6px;
+}
+
+.chart-grid {
+	stroke: var(--chart-grid);
+	stroke-width: 1;
+	stroke-dasharray: 3 4;
+}
+
+.chart-base {
+	stroke: var(--line-2);
+	stroke-width: 1;
+}
+
+.chart-tick,
+.chart-xlabel {
+	fill: var(--ink-3);
+	font-family: var(--font-fa);
+	font-size: 11px;
+}
+
+.chart-xlabel.is-active {
+	fill: var(--ink);
+	font-weight: 700;
+}
+
+.chart-bar {
+	fill: var(--series);
+	transition: opacity 0.15s var(--ease);
+}
+
+.chart-bar.is-zero {
+	fill: var(--line-2);
+}
+
+/* the other bars step back while one is pointed at */
+.has-active .chart-bar:not(.is-active) {
+	opacity: 0.4;
+}
+
+.chart-line {
+	fill: none;
+	stroke: var(--series);
+	stroke-width: 2;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+
+.chart-cross {
+	stroke: var(--ink-3);
+	stroke-width: 1;
+	stroke-dasharray: 3 3;
+}
+
+.chart-dot {
+	fill: var(--series);
+	stroke: var(--surface);
+	stroke-width: 2.5;
+}
+
+.chart-tip {
+	position: absolute;
+	z-index: 5;
+	display: grid;
+	gap: 1px;
+	min-width: 110px;
+	padding: 7px 11px;
+	border-radius: 10px;
+	background: var(--ink);
+	color: var(--surface);
+	font-size: 11.5px;
+	line-height: 1.5;
+	text-align: center;
+	white-space: nowrap;
+	pointer-events: none;
+	transform: translate(-50%, -100%);
+	box-shadow: var(--shadow);
+}
+
+.chart-tip strong {
+	font-size: 13px;
+	font-weight: 800;
+}
+
+.chart-empty {
+	position: absolute;
+	inset: 0 46px 30px 0;
+	display: grid;
+	place-items: center;
+	color: var(--ink-3);
+	font-size: 12.5px;
+	pointer-events: none;
+}
+
+/* ranked horizontal bars */
+.rank-bars {
+	display: grid;
+	gap: 14px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.rank-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 6px;
+	font-size: 13px;
+}
+
+.rank-label {
+	color: var(--ink);
+	font-weight: 600;
+}
+
+.rank-label small {
+	margin-inline-start: 6px;
+	color: var(--ink-3);
+	font-size: 11.5px;
+	font-weight: 400;
+}
+
+.rank-head strong {
+	color: var(--ink);
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.rank-track {
+	height: 8px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: var(--surface-3);
+}
+
+.rank-track span {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--chart-1);
+}
+
+/* ─── smaller screens ─────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+	.dash-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.dash-grid > .span-2 {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 1100px) {
+	.stat-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 767px) {
+	.stat-grid {
+		gap: 10px;
+		margin-bottom: 10px;
+	}
+
+	.stat {
+		padding: 14px;
+	}
+
+	.stat-top {
+		margin-bottom: 8px;
+	}
+
+	.stat-icon {
+		width: 36px;
+		height: 36px;
+		border-radius: 11px;
+	}
+
+	.stat-value {
+		font-size: 19px;
+	}
+
+	.dash-grid {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 10px;
+	}
+
+	.dash-grid > .span-2,
+	.dash-grid > .span-3 {
+		grid-column: auto;
+	}
+}
+
+/* ─── first appearance (only while .is-entering: the first moments after the chart is drawn) ── */
+
+.chart.is-entering .chart-bar {
+	transform-box: fill-box;
+	transform-origin: 50% 100%;
+	animation: bar-grow 0.6s var(--ease-out) both;
+	animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+.chart.is-entering .chart-line {
+	stroke-dasharray: 1;
+	animation: line-draw 1s var(--ease-out) both;
+}
+
+.chart.is-entering .chart-area {
+	animation: fadeIn 0.6s var(--ease) 0.35s both;
+}
+
+.rank-bars.is-entering .rank-track span {
+	transform-origin: right center;
+	animation: rank-grow 0.7s var(--ease-out) both;
+	animation-delay: calc(var(--i, 0) * 60ms + 0.1s);
+}
+
+/* the tooltip fades in, then slides from day to day */
+.chart-tip {
+	animation: tip-in 0.14s var(--ease-out) both;
+	transition:
+		left 0.12s var(--ease-out),
+		top 0.12s var(--ease-out);
+}
+
+@keyframes bar-grow {
+	from {
+		transform: scaleY(0);
+	}
+}
+
+@keyframes line-draw {
+	from {
+		stroke-dashoffset: 1;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes rank-grow {
+	from {
+		transform: scaleX(0);
+	}
+}
+
+@keyframes tip-in {
+	from {
+		opacity: 0;
+		transform: translate(-50%, calc(-100% + 5px));
+	}
+}

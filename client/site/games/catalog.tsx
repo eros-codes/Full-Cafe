@@ -27,6 +27,7 @@ const MafiaGame = lazy(() => import('./mafia/MafiaGame'));
 const LudoGame = lazy(() => import('./ludo/LudoGame'));
 const ChessGame = lazy(() => import('./chess/ChessGame'));
 const BackgammonGame = lazy(() => import('./backgammon/BackgammonGame'));
+const Checkers = lazy(() => import('./board/Checkers'));
 
 export const CATALOG: Record<GameKey, GameInfo> = {
 	spy: {
@@ -106,6 +107,13 @@ export const CATALOG: Record<GameKey, GameInfo> = {
 		icon: GAME_ICONS.backgammon,
 		Component: ({ onExit }) => <BackgammonGame onExit={onExit} />,
 	},
+	checkers: {
+		title: 'چکرز',
+		blurb: 'مورب برو جلو، از روی مهره‌ی حریف بپر و بزنش؛ شاه که بشی عقب هم می‌ری. با دوستت یا با ربات.',
+		players: '۱ یا ۲ نفر',
+		icon: GAME_ICONS.checkers,
+		Component: ({ onExit }) => <Checkers onExit={onExit} />,
+	},
 };
 
 export const isKnownGame = (key: string): key is GameKey => Object.hasOwn(CATALOG, key);
@@ -123,6 +131,7 @@ const LOADERS: Record<GameKey, () => Promise<unknown>> = {
 	ludo: () => import('./ludo/LudoGame'),
 	chess: () => import('./chess/ChessGame'),
 	backgammon: () => import('./backgammon/BackgammonGame'),
+	checkers: () => import('./board/Checkers'),
 };
 
 export function preloadGame(key: GameKey): void {

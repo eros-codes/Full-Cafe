@@ -1,0 +1,118 @@
+/* login.css — the admin login page: one card in the middle, in the panel's colours and theme. */
+
+.login-page {
+	position: relative;
+	display: grid;
+	place-items: center;
+	min-height: 100dvh;
+	padding: 24px 16px;
+	overflow: hidden;
+}
+
+/* two soft warm lights behind the card */
+.login-page::before,
+.login-page::after {
+	content: '';
+	position: absolute;
+	z-index: 0;
+	width: 520px;
+	height: 520px;
+	border-radius: 50%;
+	filter: blur(80px);
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+.login-page::before {
+	top: -180px;
+	inset-inline-start: -140px;
+	background: var(--accent-soft);
+}
+
+.login-page::after {
+	bottom: -220px;
+	inset-inline-end: -160px;
+	background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+
+.login-card {
+	position: relative;
+	z-index: 1;
+	width: min(420px, 100%);
+	padding: 34px 30px 28px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 26px;
+	box-shadow: var(--shadow);
+	animation: rise 0.4s var(--ease-out) both;
+}
+
+.login-head {
+	display: grid;
+	justify-items: center;
+	gap: 4px;
+	margin-bottom: 26px;
+	text-align: center;
+}
+
+.login-mark {
+	display: grid;
+	place-items: center;
+	width: 64px;
+	height: 64px;
+	margin-bottom: 12px;
+	border-radius: 19px;
+	/* the logo's own colours in both themes */
+	background: #3a1f12;
+	box-shadow: 0 10px 26px rgba(58, 31, 18, 0.28);
+}
+
+.login-mark img {
+	width: 42px;
+	height: 32px;
+	object-fit: contain;
+}
+
+.login-head h1 {
+	color: var(--ink);
+	font-size: 20px;
+	font-weight: 800;
+}
+
+.login-head p {
+	color: var(--ink-3);
+	font-size: 13px;
+}
+
+.login-card .form-grid > .primary-btn {
+	justify-self: stretch;
+	min-height: 46px;
+	margin-top: 4px;
+	font-size: 14.5px;
+}
+
+.login-back {
+	display: block;
+	margin-top: 18px;
+	color: var(--ink-2);
+	font-size: 13px;
+	text-align: center;
+	text-decoration: none;
+}
+
+.login-back:hover {
+	color: var(--ink);
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+#notice:empty {
+	display: none;
+}
+
+@media (max-width: 480px) {
+	.login-card {
+		padding: 28px 20px 22px;
+		border-radius: 22px;
+	}
+}

@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ApiError, api, errorText } from '../../shared/api';
+import { BRAND } from '../../shared/brand';
 import { ICONS, type IconName } from '../../shared/icons';
-import { Topbar } from '../../shared/chrome/Topbar';
 import type { MapTable } from '../../reserve/map/types';
 import { LOGIN_URL, adminApi } from '../common/adminApi';
+import { ADMIN_ICONS } from '../common/icons';
 import { OwnPasswordDialog } from '../common/OwnPasswordDialog';
 import { ROLE_FA, can, type Admin } from '../common/roles';
-import { Notice, useFlash } from '../common/ui';
+import { useTheme } from '../common/theme';
+import { Notice, Skeleton, useFlash } from '../common/ui';
 import { AddOns } from '../sections/AddOns';
 import { Admins } from '../sections/Admins';
 import { Categories } from '../sections/Categories';
 import { Closures } from '../sections/Closures';
-import { Dashboard } from '../sections/Dashboard';
+import { Dashboard, type DashboardData } from '../sections/Dashboard';
 import { Games } from '../sections/Games';
 import { Hours } from '../sections/Hours';
 import { ManualBooking } from '../sections/ManualBooking';
@@ -43,24 +45,76 @@ type SectionKey =
 	| 'reports'
 	| 'admins';
 
-const SECTIONS: { key: SectionKey; label: string; icon: IconName }[] = [
-	{ key: 'dashboard', label: 'داشبورد امروز', icon: 'home' },
-	{ key: 'reservations', label: 'رزروها', icon: 'list' },
-	{ key: 'manual', label: 'رزرو دستی', icon: 'plus' },
-	{ key: 'tables', label: 'مدیریت میزها', icon: 'table' },
-	{ key: 'products', label: 'محصولات منو', icon: 'cup' },
-	{ key: 'addons', label: 'افزودنی‌ها', icon: 'addOn' },
-	{ key: 'categories', label: 'دسته‌بندی منو', icon: 'tag' },
-	{ key: 'menuTypes', label: 'دسته‌های اصلی منو', icon: 'layers' },
-	{ key: 'tags', label: 'انتخاب برای من', icon: 'spark' },
-	{ key: 'games', label: 'بازی‌ها', icon: 'dice' },
-	{ key: 'reviews', label: 'نظرات', icon: 'chat' },
-	{ key: 'hours', label: 'ساعت کاری', icon: 'clock' },
-	{ key: 'closures', label: 'تعطیلی‌ها', icon: 'ban' },
-	{ key: 'settings', label: 'قیمت و تنظیمات', icon: 'gear' },
-	{ key: 'reports', label: 'گزارش‌ها', icon: 'chart' },
-	{ key: 'admins', label: 'مدیریت ادمین‌ها', icon: 'shield' },
+interface SectionInfo {
+	key: SectionKey;
+	/** In the side menu. */
+	label: string;
+	/** The page title in the top bar. */
+	title: string;
+	icon: IconName;
+	/** A short explanation above the section. */
+	hint?: string;
+}
+
+const NAV: { group: string; sections: SectionInfo[] }[] = [
+	{
+		group: 'عملیات',
+		sections: [
+			{ key: 'dashboard', label: 'داشبورد', title: 'داشبورد امروز', icon: 'home' },
+			{ key: 'reservations', label: 'رزروها', title: 'رزروها', icon: 'list' },
+			{ key: 'manual', label: 'رزرو دستی', title: 'ثبت رزرو دستی', icon: 'plus', hint: 'این رزرو بلافاصله تایید‌شده و پرداخت‌شده ثبت می‌شود.' },
+			{ key: 'tables', label: 'میزها و نقشه', title: 'مدیریت میزها', icon: 'table' },
+		],
+	},
+	{
+		group: 'منو',
+		sections: [
+			{ key: 'products', label: 'محصولات', title: 'محصولات منو', icon: 'cup', hint: 'آیتم‌هایی که در صفحه‌ی منوی سایت نمایش داده می‌شوند.' },
+			{
+				key: 'addons',
+				label: 'افزودنی‌ها',
+				title: 'افزودنی‌ها',
+				icon: 'addOn',
+				hint: 'گزینه‌هایی مثل شات اضافه یا شیر گیاهی؛ یک بار بساز و از فرم هر محصول وصلش کن. افزودنی غیرفعال در منو دیده نمی‌شود.',
+			},
+			{ key: 'categories', label: 'دسته‌بندی‌ها', title: 'دسته‌بندی‌های منو', icon: 'tag', hint: 'هر دسته زیر یکی از دسته‌های اصلی منو (مثل کافه یا صبحانه) قرار می‌گیرد.' },
+			{
+				key: 'menuTypes',
+				label: 'دسته‌های اصلی',
+				title: 'دسته‌های اصلی منو',
+				icon: 'layers',
+				hint: 'تب‌های بالای صفحه‌ی منو (کافه، صبحانه، …). ترتیب این فهرست همان ترتیب تب‌هاست؛ دسته‌ی مخفی با همه‌ی محصولاتش در سایت دیده نمی‌شود.',
+			},
+			{
+				key: 'tags',
+				label: 'انتخاب برای من',
+				title: 'انتخاب برای من: سوال‌ها و برچسب‌ها',
+				icon: 'spark',
+				hint: 'سوال‌هایی که از مشتری پرسیده می‌شود و گزینه‌هایشان. هر محصول برچسب‌هایش را از دسته‌اش می‌گیرد و می‌تواند برچسب‌های خودش را هم داشته باشد.',
+			},
+		],
+	},
+	{
+		group: 'سایت',
+		sections: [
+			{ key: 'games', label: 'بازی‌ها', title: 'بازی‌ها', icon: 'dice', hint: 'صفحه‌ی بازی‌های دورهمی سایت (/games): بازی‌هایی که نمایش داده می‌شوند و کارت‌های بازی‌های کلمه‌ای.' },
+			{ key: 'reviews', label: 'نظرات', title: 'نظرات مشتریان', icon: 'chat', hint: 'نظرها بعد از تایید شما در صفحه‌ی «ثبت نظر» سایت نمایش داده می‌شوند.' },
+		],
+	},
+	{
+		group: 'کافه',
+		sections: [
+			{ key: 'hours', label: 'ساعت کاری', title: 'ساعت کاری', icon: 'clock', hint: 'برای بسته شدن در نیمه‌شب 24:00 بنویس؛ ساعت کاری بعد از نیمه‌شب پشتیبانی نمی‌شود.' },
+			{ key: 'closures', label: 'تعطیلی‌ها', title: 'تعطیلی‌ها و بلاک‌ها', icon: 'ban' },
+			{ key: 'settings', label: 'قیمت و تنظیمات', title: 'قیمت و تنظیمات', icon: 'gear' },
+			{ key: 'reports', label: 'گزارش‌ها', title: 'گزارش‌ها', icon: 'chart' },
+			{ key: 'admins', label: 'ادمین‌ها', title: 'مدیریت ادمین‌ها', icon: 'shield' },
+		],
+	},
 ];
+
+const ALL_SECTIONS = NAV.flatMap((g) => g.sections);
+const GROUP_OF = Object.fromEntries(NAV.flatMap((g) => g.sections.map((s) => [s.key, g.group]))) as Record<SectionKey, string>;
 
 /** What a secondary admin (staff) sees; the rest is for the café manager and the developer. */
 const STAFF_SECTIONS: SectionKey[] = ['reservations', 'manual', 'tables', 'products', 'addons', 'categories', 'reviews'];
@@ -68,14 +122,86 @@ const STAFF_SECTIONS: SectionKey[] = ['reservations', 'manual', 'tables', 'produ
 /** Sections that load on first open and stay as they are afterwards (the menu sections reload on every open). */
 const MOUNTED_FROM_START: SectionKey[] = ['dashboard', 'reservations', 'manual', 'tables'];
 
-function Section({ id, active, title, hint, children }: { id: SectionKey; active: boolean; title: string; hint?: string; children?: ReactNode }) {
+/** Sections that draw their own cards (dashboard, reports, the map); the others sit in one card. */
+const PLAIN: SectionKey[] = ['dashboard', 'reports'];
+
+function Section({ info, active, children }: { info: SectionInfo; active: boolean; children?: ReactNode }) {
 	return (
-		<div id={id} className={`admin-section${active ? ' active' : ''}`}>
-			<h3>
-				{title}
-				{hint && <span className="hint">{hint}</span>}
-			</h3>
-			{children}
+		<section id={info.key} className={`admin-section${active ? ' active' : ''}`} aria-label={info.title} hidden={!active}>
+			{info.hint && (
+				<p className="section-hint">
+					{ADMIN_ICONS.info}
+					<span>{info.hint}</span>
+				</p>
+			)}
+			{PLAIN.includes(info.key) ? children : <div className="card card-pad">{children}</div>}
+		</section>
+	);
+}
+
+const todayFa = () => new Date().toLocaleDateString('fa-IR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/** The account button in the top bar: who is logged in, «تغییر رمز» and «خروج». */
+function UserMenu({ admin, onPassword, onLogout }: { admin: Admin; onPassword: () => void; onLogout: () => void }) {
+	const [open, setOpen] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
+	const role = ROLE_FA[admin.role] || admin.role;
+
+	useEffect(() => {
+		if (!open) return;
+		const outside = (event: MouseEvent) => !ref.current?.contains(event.target as Node) && setOpen(false);
+		const escape = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
+		document.addEventListener('mousedown', outside);
+		document.addEventListener('keydown', escape);
+		return () => {
+			document.removeEventListener('mousedown', outside);
+			document.removeEventListener('keydown', escape);
+		};
+	}, [open]);
+
+	return (
+		<div className="adm-user" ref={ref}>
+			<button type="button" className="adm-user-btn" id="adminInfo" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} title={`${admin.name} · ${role}`}>
+				<span className="adm-avatar" aria-hidden="true">
+					{admin.name.trim().charAt(0) || '؟'}
+				</span>
+				<span className="adm-user-text">
+					<strong>{admin.name}</strong>
+					<small>{role}</small>
+				</span>
+				{ADMIN_ICONS.chevronDown}
+			</button>
+			{open && (
+				<div className="adm-menu" role="menu">
+					<div className="adm-menu-head">
+						<strong>{admin.name}</strong>
+						<small>
+							<bdi>{admin.username}</bdi>
+							{` · ${role}`}
+						</small>
+					</div>
+					<button
+						type="button"
+						role="menuitem"
+						id="adminPassword"
+						onClick={() => {
+							setOpen(false);
+							onPassword();
+						}}
+					>
+						{ADMIN_ICONS.key}
+						تغییر رمز من
+					</button>
+					<a role="menuitem" href="/" target="_blank" rel="noopener">
+						{ADMIN_ICONS.external}
+						مشاهده‌ی سایت
+					</a>
+					<button type="button" role="menuitem" id="adminLogout" className="is-danger" onClick={onLogout}>
+						{ADMIN_ICONS.logout}
+						خروج از پنل
+					</button>
+				</div>
+			)}
 		</div>
 	);
 }
@@ -90,9 +216,19 @@ export function AdminApp() {
 	const [dashboardKey, setDashboardKey] = useState(0);
 	const [reservationsKey, setReservationsKey] = useState(0);
 	const [dialog, setDialog] = useState<TableDialogTarget>(null);
-	// «تغییر رمز» in the header, for every role
+	// «تغییر رمز» in the account menu, for every role
 	const [passwordOpen, setPasswordOpen] = useState(false);
+	// the side menu as a drawer (tablets and phones)
+	const [drawer, setDrawer] = useState(false);
+	const [scrolled, setScrolled] = useState(false);
+	// the counts beside «رزروها» and «نظرات» (from the dashboard, for the manager)
+	const [counts, setCounts] = useState<{ action: number; reviews: number } | null>(null);
 	const banner = useFlash();
+	const { theme, toggle: toggleTheme } = useTheme();
+	const burgerRef = useRef<HTMLButtonElement>(null);
+	const navRef = useRef<HTMLElement>(null);
+	// the dark pill behind the open section in the side menu: it slides to the next one (placed without sliding the first time)
+	const [pill, setPill] = useState<{ top: number; height: number; slide: boolean } | null>(null);
 	// identifying the admin failed for another reason than the session (server or connection down)
 	const [meError, setMeError] = useState<string | null>(null);
 	const [meAttempt, setMeAttempt] = useState(0);
@@ -100,7 +236,7 @@ export function AdminApp() {
 	const isMain = can(admin, 'manager');
 	const canEditMap = can(admin, 'mapEditor');
 	const canToggleTables = can(admin, 'tableToggle');
-	const sections = admin ? (isMain ? SECTIONS : SECTIONS.filter((s) => STAFF_SECTIONS.includes(s.key))) : [];
+	const allowed = (key: SectionKey) => Boolean(admin && (isMain || STAFF_SECTIONS.includes(key)));
 
 	const loadTables = useCallback(async () => {
 		const { tables: list } = await adminApi<{ tables: MapTable[] }>('/api/admin/tables');
@@ -131,9 +267,46 @@ export function AdminApp() {
 		};
 	}, [loadTables, meAttempt]);
 
+	// the top bar gets its line once the page is scrolled
+	useEffect(() => {
+		const onScroll = () => setScrolled(window.scrollY > 4);
+		onScroll();
+		window.addEventListener('scroll', onScroll, { passive: true });
+		return () => window.removeEventListener('scroll', onScroll);
+	}, []);
+
+	// the drawer: Escape closes it, the page behind does not scroll, the focus moves in and back
+	useEffect(() => {
+		if (!drawer) return;
+		const escape = (event: KeyboardEvent) => event.key === 'Escape' && setDrawer(false);
+		document.addEventListener('keydown', escape);
+		document.body.style.overflow = 'hidden';
+		navRef.current?.querySelector<HTMLButtonElement>('button.active, button')?.focus();
+		const burger = burgerRef.current;
+		return () => {
+			document.removeEventListener('keydown', escape);
+			document.body.style.overflow = '';
+			burger?.focus();
+		};
+	}, [drawer]);
+
+	useLayoutEffect(() => {
+		const place = () => {
+			const button = navRef.current?.querySelector<HTMLElement>('button.active');
+			setPill((before) => (button ? { top: button.offsetTop, height: button.offsetHeight, slide: before !== null } : null));
+		};
+		place();
+		// the menu's font arriving can move the items a little
+		document.fonts?.ready.then(place).catch(() => {});
+		window.addEventListener('resize', place);
+		return () => window.removeEventListener('resize', place);
+	}, [active, admin]);
+
 	const open = (key: SectionKey) => {
 		setActive(key);
 		setVisits((v) => ({ ...v, [key]: (v[key] ?? 0) + 1 }));
+		setDrawer(false);
+		window.scrollTo({ top: 0 });
 	};
 
 	const reloadTables = useCallback(async () => {
@@ -146,6 +319,7 @@ export function AdminApp() {
 	}, [loadTables]);
 
 	const closeDialog = useCallback(() => setDialog(null), []);
+	const onDashboard = useCallback((d: DashboardData) => setCounts({ action: d.actionNeeded, reviews: d.reviewsPending }), []);
 
 	const logout = async () => {
 		try {
@@ -156,55 +330,131 @@ export function AdminApp() {
 		window.location.href = LOGIN_URL;
 	};
 
-	const shown = (key: SectionKey) => Boolean(admin && sections.some((s) => s.key === key) && (MOUNTED_FROM_START.includes(key) || visits[key]));
+	const shown = (key: SectionKey) => allowed(key) && Boolean(MOUNTED_FROM_START.includes(key) || visits[key]);
 	const visit = (key: SectionKey) => visits[key] ?? 0;
+	const info = (key: SectionKey) => ALL_SECTIONS.find((s) => s.key === key)!;
+	const badge = (key: SectionKey) => (key === 'reservations' ? counts?.action : key === 'reviews' ? counts?.reviews : 0) || 0;
 
-	const tablesHint = canEditMap
-		? 'رو میز کلیک کن برای ویرایش/حذف؛ برای جابه‌جایی بگیر و بکش.'
-		: canToggleTables
-			? 'نقشه فقط با حساب توسعه‌دهنده تغییر می‌کند؛ از فهرست پایین می‌توانی میزها را فعال یا غیرفعال کنی.'
-			: 'نقشه و فهرست میزها فقط برای مشاهده است.';
+	const tablesInfo: SectionInfo = {
+		...info('tables'),
+		hint: canEditMap
+			? 'رو میز کلیک کن برای ویرایش/حذف؛ برای جابه‌جایی بگیر و بکش.'
+			: canToggleTables
+				? 'نقشه فقط با حساب توسعه‌دهنده تغییر می‌کند؛ از فهرست پایین می‌توانی میزها را فعال یا غیرفعال کنی.'
+				: 'نقشه و فهرست میزها فقط برای مشاهده است.',
+	};
+
+	const current = info(active);
+	const greeting = active === 'dashboard' && admin;
 
 	return (
 		<>
-			<main className="shell">
-				<Topbar
-					href="/"
-					sub={admin ? `${admin.name} · ${ROLE_FA[admin.role] || admin.role}` : meError ? 'پنل مدیریت' : 'در حال بارگذاری...'}
-					subId="adminInfo"
-					drawerLinks={['about', 'menu', 'feedback', 'games', 'reserve']}
-				>
-					{/* who is logged in: several admins with different roles share one panel */}
-					{admin && (
-						<span className="admin-who" title={`${admin.name} · ${ROLE_FA[admin.role] || admin.role}`}>
-							<span className="admin-who-name">{admin.name}</span>
-							<span className="admin-who-role">{ROLE_FA[admin.role] || admin.role}</span>
+			<div className={`adm${drawer ? ' drawer-open' : ''}`}>
+				<aside className="adm-side" id="adminSidebar" aria-label="منوی پنل مدیریت">
+					<div className="adm-brand">
+						<span className="adm-brand-mark">
+							<img src={BRAND.logo.light} alt="" />
 						</span>
-					)}
-					{admin && (
-						<button type="button" id="adminPassword" title="تغییر رمز من" onClick={() => setPasswordOpen(true)}>
-							تغییر رمز
+						<span className="adm-brand-text">
+							<strong>{BRAND.nameFa}</strong>
+							<small>پنل مدیریت</small>
+						</span>
+						<button type="button" className="icon-btn adm-side-close" aria-label="بستن منو" onClick={() => setDrawer(false)}>
+							{ADMIN_ICONS.close}
 						</button>
-					)}
-					{/* on a phone the logo and the drawer lead to the site, and the room goes to the admin's name */}
-					<a href="/" className="admin-site-link">
-						سایت
-					</a>
-					<button id="adminLogout" onClick={logout}>
-						خروج
-					</button>
-				</Topbar>
-
-				<section className="admin-layout" style={{ marginTop: '22px' }}>
-					<nav className="admin-menu" id="adminMenu" aria-label="بخش‌های پنل مدیریت">
-						{sections.map((section) => (
-							<button key={section.key} data-section={section.key} className={section.key === active ? 'active' : ''} onClick={() => open(section.key)}>
-								{ICONS[section.icon]}
-								<span>{section.label}</span>
-							</button>
-						))}
+					</div>
+					<nav className={`adm-nav${pill ? ' has-pill' : ''}`} id="adminMenu" aria-label="بخش‌های پنل مدیریت" ref={navRef}>
+						{pill && (
+							<span
+								className={`adm-nav-pill${pill.slide ? '' : ' no-slide'}`}
+								style={{ transform: `translateY(${pill.top}px)`, height: `${pill.height}px` }}
+								aria-hidden="true"
+							></span>
+						)}
+						{admin &&
+							NAV.map((group) => {
+								const items = group.sections.filter((s) => allowed(s.key));
+								if (!items.length) return null;
+								return (
+									<div className="adm-nav-group" key={group.group}>
+										<p className="adm-nav-label">{group.group}</p>
+										{items.map((section) => {
+											const count = badge(section.key);
+											return (
+												<button
+													type="button"
+													key={section.key}
+													data-section={section.key}
+													className={section.key === active ? 'active' : ''}
+													aria-current={section.key === active ? 'page' : undefined}
+													onClick={() => open(section.key)}
+												>
+													{ICONS[section.icon]}
+													<span>{section.label}</span>
+													{count > 0 && (
+														<span className="adm-nav-count" aria-label={`${count.toLocaleString('fa-IR')} مورد`}>
+															{count.toLocaleString('fa-IR')}
+														</span>
+													)}
+												</button>
+											);
+										})}
+									</div>
+								);
+							})}
+						{!admin && !meError && (
+							<div style={{ display: 'grid', gap: '10px', padding: '8px 12px' }}>
+								{Array.from({ length: 7 }, (_, i) => (
+									<Skeleton key={i} height={30} />
+								))}
+							</div>
+						)}
 					</nav>
-					<section className="card card-pad admin-content">
+				</aside>
+				<div className="adm-scrim" onClick={() => setDrawer(false)} aria-hidden="true"></div>
+
+				<div className="adm-main">
+					<header className={`adm-top${scrolled ? ' is-scrolled' : ''}`}>
+						<button
+							type="button"
+							className="icon-btn adm-burger"
+							ref={burgerRef}
+							aria-label="منوی بخش‌ها"
+							aria-controls="adminSidebar"
+							aria-expanded={drawer}
+							onClick={() => setDrawer(true)}
+						>
+							{ADMIN_ICONS.menu}
+						</button>
+						<div className="adm-title">
+							<h1>{greeting ? `سلام، ${admin.name}` : admin ? current.title : 'پنل مدیریت'}</h1>
+							<p>{greeting ? `${todayFa()} · خلاصه‌ی امروز کافه` : admin ? `${GROUP_OF[active]} · ${BRAND.cafeFa}` : meError ? BRAND.cafeFa : 'در حال بارگذاری...'}</p>
+						</div>
+						<div className="adm-top-actions">
+							<button
+								type="button"
+								className="icon-btn"
+								id="themeToggle"
+								onClick={(event) => {
+									// the new theme spreads from the button's middle
+									const box = event.currentTarget.getBoundingClientRect();
+									toggleTheme({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
+								}}
+								aria-label={theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
+								title={theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
+							>
+								<span className="theme-icon" key={theme}>
+									{theme === 'dark' ? ADMIN_ICONS.sun : ADMIN_ICONS.moon}
+								</span>
+							</button>
+							<a className="icon-btn adm-site-link" href="/" target="_blank" rel="noopener" aria-label="مشاهده‌ی سایت" title="مشاهده‌ی سایت">
+								{ADMIN_ICONS.eye}
+							</a>
+							{admin && <UserMenu admin={admin} onPassword={() => setPasswordOpen(true)} onLogout={logout} />}
+						</div>
+					</header>
+
+					<main className="adm-content" id="adminContent">
 						{meError && !admin && (
 							<div className="notice danger" role="alert">
 								{`پنل باز نشد: ${meError} `}
@@ -222,16 +472,25 @@ export function AdminApp() {
 						)}
 						{fatal && <div className="notice danger">{fatal}</div>}
 						<Notice notice={banner.flash} reveal />
-						<Section id="dashboard" active={active === 'dashboard'} title="داشبورد امروز">
-							{shown('dashboard') ? (
-								<Dashboard reloadKey={dashboardKey} visit={visit('dashboard')} />
-							) : (
-								<div id="dashboardBox" className="kpi-grid"></div>
-							)}
-						</Section>
+						{!admin && !meError && (
+							<div className="stat-grid">
+								{Array.from({ length: 4 }, (_, i) => (
+									<div className="stat" key={i}>
+										<Skeleton height={70} />
+									</div>
+								))}
+							</div>
+						)}
 						{admin && (
 							<>
-								<Section id="reservations" active={active === 'reservations'} title="رزروها">
+								{allowed('dashboard') && (
+									<Section info={info('dashboard')} active={active === 'dashboard'}>
+										{shown('dashboard') && (
+											<Dashboard reloadKey={dashboardKey} visit={visit('dashboard')} onData={onDashboard} onOpen={(key) => open(key)} />
+										)}
+									</Section>
+								)}
+								<Section info={info('reservations')} active={active === 'reservations'}>
 									{shown('reservations') && (
 										<Reservations
 											isMain={isMain}
@@ -242,7 +501,7 @@ export function AdminApp() {
 										/>
 									)}
 								</Section>
-								<Section id="manual" active={active === 'manual'} title="ثبت رزرو دستی" hint="این رزرو بلافاصله تایید‌شده و پرداخت‌شده ثبت می‌شود.">
+								<Section info={info('manual')} active={active === 'manual'}>
 									{shown('manual') && (
 										<ManualBooking
 											tables={tables}
@@ -253,84 +512,60 @@ export function AdminApp() {
 										/>
 									)}
 								</Section>
-								<Section id="tables" active={active === 'tables'} title="مدیریت میزها" hint={tablesHint}>
+								<Section info={tablesInfo} active={active === 'tables'}>
 									{shown('tables') && (
 										<Tables tables={tables} canEditMap={canEditMap} canToggleTables={canToggleTables} reload={reloadTables} openDialog={setDialog} />
 									)}
 								</Section>
-								<Section id="products" active={active === 'products'} title="محصولات منو" hint="آیتم‌هایی که در صفحه‌ی منوی سایت نمایش داده می‌شوند.">
+								<Section info={info('products')} active={active === 'products'}>
 									{shown('products') && <Products visit={visit('products')} />}
 								</Section>
-								<Section
-									id="addons"
-									active={active === 'addons'}
-									title="افزودنی‌ها"
-									hint="گزینه‌هایی مثل شات اضافه یا شیر گیاهی؛ یک بار بساز و از فرم هر محصول وصلش کن. افزودنی غیرفعال در منو دیده نمی‌شود."
-								>
+								<Section info={info('addons')} active={active === 'addons'}>
 									{shown('addons') && <AddOns visit={visit('addons')} />}
 								</Section>
-								<Section id="categories" active={active === 'categories'} title="دسته‌بندی‌های منو" hint="هر دسته زیر یکی از دسته‌های اصلی منو (مثل کافه یا صبحانه) قرار می‌گیرد.">
+								<Section info={info('categories')} active={active === 'categories'}>
 									{shown('categories') && <Categories visit={visit('categories')} />}
 								</Section>
 								{isMain && (
-									<Section
-										id="menuTypes"
-										active={active === 'menuTypes'}
-										title="دسته‌های اصلی منو"
-										hint="تب‌های بالای صفحه‌ی منو (کافه، صبحانه، …). ترتیب این فهرست همان ترتیب تب‌هاست؛ دسته‌ی مخفی با همه‌ی محصولاتش در سایت دیده نمی‌شود."
-									>
-										{shown('menuTypes') && <MenuTypes visit={visit('menuTypes')} />}
-									</Section>
+									<>
+										<Section info={info('menuTypes')} active={active === 'menuTypes'}>
+											{shown('menuTypes') && <MenuTypes visit={visit('menuTypes')} />}
+										</Section>
+										<Section info={info('tags')} active={active === 'tags'}>
+											{shown('tags') && <Tags visit={visit('tags')} />}
+										</Section>
+										<Section info={info('games')} active={active === 'games'}>
+											{shown('games') && <Games visit={visit('games')} />}
+										</Section>
+									</>
 								)}
-								{isMain && (
-									<Section
-										id="tags"
-										active={active === 'tags'}
-										title="انتخاب برای من: سوال‌ها و برچسب‌ها"
-										hint="سوال‌هایی که از مشتری پرسیده می‌شود و گزینه‌هایشان. هر محصول برچسب‌هایش را از دسته‌اش می‌گیرد و می‌تواند برچسب‌های خودش را هم داشته باشد."
-									>
-										{shown('tags') && <Tags visit={visit('tags')} />}
-									</Section>
-								)}
-								{isMain && (
-									<Section
-										id="games"
-										active={active === 'games'}
-										title="بازی‌ها"
-										hint="صفحه‌ی بازی‌های دورهمی سایت (/games): بازی‌هایی که نمایش داده می‌شوند و کارت‌های بازی‌های کلمه‌ای."
-									>
-										{shown('games') && <Games visit={visit('games')} />}
-									</Section>
-								)}
-								<Section id="reviews" active={active === 'reviews'} title="نظرات مشتریان" hint="نظرها بعد از تایید شما در صفحه‌ی «ثبت نظر» سایت نمایش داده می‌شوند.">
+								<Section info={info('reviews')} active={active === 'reviews'}>
 									{shown('reviews') && <Reviews visit={visit('reviews')} />}
 								</Section>
 								{isMain && (
 									<>
-										<Section id="hours" active={active === 'hours'} title="ساعت کاری" hint="برای بسته شدن در نیمه‌شب 24:00 بنویس؛ ساعت کاری بعد از نیمه‌شب پشتیبانی نمی‌شود.">
+										<Section info={info('hours')} active={active === 'hours'}>
 											<div id="hoursBox">{shown('hours') && <Hours />}</div>
 										</Section>
-										<Section id="closures" active={active === 'closures'} title="تعطیلی‌ها و بلاک‌ها">
+										<Section info={info('closures')} active={active === 'closures'}>
 											<div id="closuresBox">{shown('closures') && <Closures tables={tables} />}</div>
 										</Section>
-										<Section id="settings" active={active === 'settings'} title="قیمت و تنظیمات">
+										<Section info={info('settings')} active={active === 'settings'}>
 											<div id="settingsBox">{shown('settings') && <Settings />}</div>
 										</Section>
-										<Section id="reports" active={active === 'reports'} title="گزارش‌ها">
-											<div id="reportsBox" className="kpi-grid">
-												{shown('reports') && <Reports visit={visit('reports')} />}
-											</div>
+										<Section info={info('reports')} active={active === 'reports'}>
+											<div id="reportsBox">{shown('reports') && <Reports visit={visit('reports')} />}</div>
 										</Section>
-										<Section id="admins" active={active === 'admins'} title="مدیریت ادمین‌ها">
+										<Section info={info('admins')} active={active === 'admins'}>
 											{shown('admins') && <Admins me={admin} />}
 										</Section>
 									</>
 								)}
 							</>
 						)}
-					</section>
-				</section>
-			</main>
+					</main>
+				</div>
+			</div>
 			{admin && passwordOpen && (
 				<OwnPasswordDialog
 					me={admin}
@@ -339,13 +574,7 @@ export function AdminApp() {
 				/>
 			)}
 			{canEditMap && (
-				<TableEditorDialog
-					target={dialog}
-					allTables={tables}
-					onClose={closeDialog}
-					onSaved={reloadTables}
-					onDeleted={reloadTables}
-				/>
+				<TableEditorDialog target={dialog} allTables={tables} onClose={closeDialog} onSaved={reloadTables} onDeleted={reloadTables} />
 			)}
 		</>
 	);

@@ -228,6 +228,22 @@ describe('«جاسوس»', () => {
 		assert.equal(defaultMinutes(12), 8);
 	});
 
+	test('with topics, the list holds words of the word’s own topic only, and the round knows the topic', () => {
+		const animals = Array.from({ length: 30 }, (_, i) => ({ id: 1000 + i, text: `حیوان ${i}` }));
+		const topics = [
+			{ name: 'مکان‌ها', cards: PLACES },
+			{ name: 'حیوانات', cards: animals },
+		];
+		for (let seed = 1; seed <= 20; seed++) {
+			const round = newRound(settings, [...PLACES, ...animals], new Set(), seeded(seed), topics);
+			const topic = topics.find((t) => t.cards.some((c) => c.text === round.place))!;
+			assert.equal(round.topic, topic.name);
+			for (const word of round.candidates) assert.ok(topic.cards.some((c) => c.text === word), `${word} is not in «${topic.name}»`);
+		}
+		// without topics (a saved game from before): the whole pool, no topic
+		assert.equal(newRound(settings, PLACES, new Set(), seeded(2)).topic, undefined);
+	});
+
 	test('a place seen lately is avoided while others are left', () => {
 		const avoid = new Set(PLACES.slice(1).map((c) => c.id));
 		assert.equal(newRound(settings, PLACES, avoid, seeded(5)).place, PLACES[0].text);

@@ -486,6 +486,11 @@
 	background: rgba(255, 255, 255, 0.18);
 }
 
+/* «همه» is on: every topic is in the game, a tap on one keeps only that one */
+.gm-deck.in-all {
+	border-color: rgba(66, 46, 47, 0.32);
+}
+
 /* ─── pass the phone, cards ─── */
 
 .gm-center {

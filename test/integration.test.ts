@@ -234,8 +234,48 @@ describe('Roof API (integration)', { skip }, () => {
 				assert.equal(res.headers.get('location'), to, from);
 				assert.equal((await c.get(to)).status, 200, `${to} is a real page, not another redirect`);
 			}
-			// an unknown page goes home instead of showing a blank 404
-			assert.equal((await c.get('/no-such-page')).headers.get('location'), '/');
+			// an unknown page: the 404 page with status 404 (before: a quiet redirect home, a «soft 404» for search engines)
+			const missing = await c.get('/no-such-page');
+			assert.equal(missing.status, 404);
+			assert.match(missing.text, /noindex/);
+			assert.match(missing.text, /صفحه پیدا نشد/);
+		});
+
+		test('search engines and phones: robots.txt, sitemap, manifest, icons and the tags in each page', async () => {
+			const c = client();
+			const robots = await c.get('/robots.txt');
+			assert.equal(robots.status, 200);
+			assert.match(robots.text, /Disallow: \/admin/);
+			assert.match(robots.text, /Disallow: \/api\//);
+			assert.match(robots.text, /Sitemap: http.+\/sitemap\.xml/);
+
+			const sitemap = await c.get('/sitemap.xml');
+			assert.equal(sitemap.status, 200);
+			assert.match(sitemap.headers.get('content-type') ?? '', /xml/);
+			for (const page of ['/menu', '/feedback', '/reserve']) assert.match(sitemap.text, new RegExp(`<loc>[^<]+${page}</loc>`), page);
+			for (const page of ['/admin', '/reserve/payment', '/reserve/profile']) assert.doesNotMatch(sitemap.text, new RegExp(`${page}</loc>`), page);
+
+			const manifest = await c.get('/site.webmanifest');
+			assert.equal(manifest.status, 200);
+			assert.equal(manifest.json.dir, 'rtl');
+			assert.ok(manifest.json.icons.length >= 2);
+			for (const icon of ['/icons/icon-192.png', '/icons/icon-512.png', '/apple-touch-icon.png', '/favicon.ico', '/og-image.png']) {
+				const res = await fetch(`${base}${icon}`);
+				assert.equal(res.status, 200, icon);
+				assert.equal(res.headers.get('content-type'), 'image/png', icon);
+				const bytes = new Uint8Array(await res.arrayBuffer());
+				assert.deepEqual([...bytes.slice(1, 4)], [0x50, 0x4e, 0x47], `${icon} is a PNG`);
+			}
+
+			const home = await c.get('/');
+			assert.match(home.text, /<link rel="canonical" href="http[^"]+\/"/);
+			assert.match(home.text, /property="og:image"/);
+			assert.match(home.text, /"@type":"CafeOrCoffeeShop"/);
+			assert.match(home.text, /"openingHoursSpecification"/);
+			assert.equal((home.text.match(/<meta name="description"/g) ?? []).length, 1, 'one description');
+			const payment = await c.get('/reserve/payment');
+			assert.match(payment.text, /<meta name="robots" content="noindex, follow"/);
+			assert.doesNotMatch(payment.text, /rel="canonical"/);
 		});
 
 		test('the About page reads the working hours of the panel; the games page counts as a visit', async () => {
@@ -1006,6 +1046,7 @@ describe('Roof API (integration)', { skip }, () => {
 					['ludo', true, true],
 					['chess', true, true],
 					['backgammon', false, false],
+					['checkers', true, true],
 				],
 				'every game but تخته نرد on by default; the word games need cards, the board games none',
 			);
@@ -1035,7 +1076,7 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.equal((await main.patch('/api/admin/settings', { gamesEnabled: true })).status, 200);
 			const data = (await client().get('/api/games')).json;
 			assert.equal(data.enabled, true);
-			assert.deepEqual(data.games, ['spy', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess']);
+			assert.deepEqual(data.games, ['spy', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess', 'checkers']);
 			assert.equal(data.decks.length, 1);
 			assert.equal(data.decks[0].cards.length, 12);
 			assert.equal(data.decks[0].cards[0].forbidden, undefined, 'no empty forbidden lists on the wire');
@@ -1062,7 +1103,7 @@ describe('Roof API (integration)', { skip }, () => {
 			const text = (await main.get(`/api/admin/game-decks/${deckId}`)).json.cards;
 			assert.equal(text.split('\n')[0], 'کلمه 0: الف، ج', 'the editor gets the same line format back');
 			const data = (await client().get('/api/games')).json;
-			assert.deepEqual(data.games, ['spy', 'taboo', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess']);
+			assert.deepEqual(data.games, ['spy', 'taboo', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess', 'checkers']);
 			assert.deepEqual(data.decks.find((d: any) => d.name === 'ممنوعه').games, ['taboo'], 'only the games the site shows');
 		});
 
@@ -1071,11 +1112,11 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.equal((await main.patch('/api/admin/games/spy', { isActive: 'no' })).status, 400);
 			const off = await main.patch('/api/admin/games/spy', { isActive: false });
 			assert.equal(off.status, 200);
-			assert.deepEqual((await client().get('/api/games')).json.games, ['taboo', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess']);
+			assert.deepEqual((await client().get('/api/games')).json.games, ['taboo', 'tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess', 'checkers']);
 			await main.patch('/api/admin/games/spy', { isActive: true });
-			for (const key of ['tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess']) await main.patch(`/api/admin/games/${key}`, { isActive: false });
+			for (const key of ['tic_tac_toe', 'connect_four', 'dots', 'mafia', 'ludo', 'chess', 'checkers']) await main.patch(`/api/admin/games/${key}`, { isActive: false });
 			assert.equal((await main.put('/api/admin/games/order', { keys: ['spy', 'taboo'] })).status, 400, 'every game, once');
-			const order = ['taboo', 'charades', 'heads_up', 'spy', 'backgammon', 'chess', 'ludo', 'mafia', 'dots', 'connect_four', 'tic_tac_toe'];
+			const order = ['taboo', 'charades', 'heads_up', 'spy', 'checkers', 'backgammon', 'chess', 'ludo', 'mafia', 'dots', 'connect_four', 'tic_tac_toe'];
 			const ordered = await main.put('/api/admin/games/order', { keys: order });
 			assert.equal(ordered.status, 200);
 			assert.deepEqual(
@@ -1730,6 +1771,18 @@ describe('Roof API (integration)', { skip }, () => {
 				assert.equal(typeof res.json[key], 'number', key);
 			}
 			assert.ok(res.json.actionNeeded >= 1, 'the pending refund needs attention');
+			// the redesigned dashboard: today, this week against the last, and two weeks of charts
+			for (const key of ['reservations', 'guests', 'revenue', 'visitors']) assert.equal(typeof res.json.today[key], 'number', `today.${key}`);
+			for (const key of ['revenue', 'revenuePrev', 'reservations', 'reservationsPrev', 'visitors', 'visitorsPrev']) {
+				assert.equal(typeof res.json.week[key], 'number', `week.${key}`);
+			}
+			assert.equal(res.json.series.length, 14);
+			assert.match(res.json.series[13].date, /^\d{4}-\d{2}-\d{2}$/);
+			assert.equal(res.json.today.visitors, res.json.visitorsToday);
+			const sum = (from: number, to: number, key: string) =>
+				res.json.series.slice(from, to).reduce((total: number, day: Record<string, number>) => total + day[key], 0);
+			assert.equal(res.json.week.revenue, sum(7, 14, 'revenue'), 'the week is the last seven days of the series');
+			assert.equal(res.json.week.reservationsPrev, sum(0, 7, 'reservations'));
 		});
 	});
 
@@ -1898,7 +1951,7 @@ describe('Roof API (integration)', { skip }, () => {
 		test('pages and SMS carry the name of src/brand.ts; the old name is gone', async () => {
 			const about = await client().get('/');
 			assert.equal(about.status, 200);
-			assert.ok(about.text.includes(`<title>درباره ما | ${BRAND.nameFa}</title>`), about.text.slice(0, 400));
+			assert.ok(about.text.includes(`<title>${BRAND.cafeFa} | منو، ساعت کاری و رزرو میز</title>`), about.text.slice(0, 400));
 			assert.doesNotMatch(about.text, /%BRAND_|روف|Roof/);
 			assert.ok(about.text.includes(`href="${BRAND.logo.mark}"`), 'tab icon');
 			assert.ok((await client().get('/admin/login')).text.includes(`ورود ادمین · ${BRAND.nameEn}`));

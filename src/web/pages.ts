@@ -26,6 +26,9 @@ export const PAGES: readonly PageEntry[] = [
 	{ path: '/admin/login', html: 'admin/login/index.html' },
 ];
 
+/** The page for an address that is not a page (served with status 404; not in PAGES: it has no URL of its own). */
+export const NOT_FOUND_PAGE: PageEntry = { path: '/404', html: 'site/not-found/index.html' };
+
 /**
  * Addresses used before phase 2 (bookmarks, links in old SMS messages) → their new clean URL.
  * The query string is kept, so /reserve/payment.html?id=… still lands on the right reservation.

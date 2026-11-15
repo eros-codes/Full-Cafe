@@ -1,0 +1,88 @@
+/* The 404 page: one centred card, in the site's colours (shared/styles/tokens.css). */
+@import '../../shared/styles/fonts.css';
+@import '../../shared/styles/tokens.css';
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	min-height: 100dvh;
+	display: grid;
+	place-items: center;
+	padding: 24px 16px;
+	background: var(--chapel-white);
+	color: var(--burnt-oak);
+	font-family: 'Baloo Bhaijaan 2', Tahoma, sans-serif;
+	direction: rtl;
+}
+
+.nf {
+	width: min(440px, 100%);
+	text-align: center;
+}
+
+.nf-mark {
+	display: inline-grid;
+	place-items: center;
+	width: 72px;
+	height: 72px;
+	margin-bottom: 18px;
+	border-radius: 22px;
+	background: #3a1f12;
+	box-shadow: 0 12px 30px rgba(58, 31, 18, 0.25);
+}
+
+.nf-mark img {
+	width: 48px;
+	height: 36px;
+}
+
+.nf-code {
+	margin: 0;
+	color: var(--antique-veil);
+	font-size: 76px;
+	font-weight: 800;
+	line-height: 1;
+}
+
+.nf h1 {
+	margin: 10px 0 8px;
+	color: var(--rich-sabel);
+	font-size: 24px;
+}
+
+.nf-text {
+	margin: 0 0 24px;
+	color: var(--deep-taupe);
+	font-size: 15px;
+	line-height: 1.9;
+}
+
+.nf-links {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+}
+
+.nf-links a {
+	padding: 10px 20px;
+	border: 1px solid rgba(66, 46, 47, 0.2);
+	border-radius: 999px;
+	color: var(--rich-sabel);
+	font-weight: 700;
+	text-decoration: none;
+	transition: background-color 0.2s ease;
+}
+
+.nf-links a:hover {
+	background: rgba(66, 46, 47, 0.06);
+}
+
+.nf-links a.nf-primary {
+	border-color: var(--rich-sabel);
+	background: var(--rich-sabel);
+	color: var(--chapel-white);
+}

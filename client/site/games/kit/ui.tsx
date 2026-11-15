@@ -259,6 +259,14 @@ export function NamesEditor({
 }
 
 /** The decks a game can draw from; at least one stays chosen. `value` empty = all of them. */
+/** A deck's name as players see it: «کلمات ممنوعه: حیوانات» → «حیوانات» (the prefix only sorts the decks in the panel). */
+export const deckLabel = (name: string): string => name.split(/[:：]\s*/).pop()?.trim() || name;
+
+/**
+ * The topics (decks) a word game draws from. All are on at first; with all on, a tap keeps only that topic
+ * (with twenty topics, turning nineteen off one by one was the only way to play one); then taps add or remove
+ * topics, and «همه» turns them all on again.
+ */
 export function DeckPicker({
 	decks,
 	value,
@@ -275,16 +283,27 @@ export function DeckPicker({
 	const all = chosen.length === 0 || chosen.length === decks.length;
 	const isOn = (id: number) => all || chosen.includes(id);
 	const toggle = (id: number) => {
-		const current = all ? decks.map((deck) => deck.id) : chosen;
-		const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
-		if (!next.length) return;
-		onChange(next.length === decks.length ? [] : next);
+		if (all) return onChange(decks.length > 1 ? [id] : []);
+		const next = chosen.includes(id) ? chosen.filter((x) => x !== id) : [...chosen, id];
+		// the last topic turned off: back to all of them
+		onChange(!next.length || next.length === decks.length ? [] : next);
 	};
+	const total = decks.reduce((sum, deck) => sum + countOf(deck), 0);
 	return (
 		<div className="gm-decks">
+			<button type="button" aria-pressed={all} className={`gm-chip gm-deck gm-deck-all${all ? ' on' : ''}`} onClick={() => onChange([])}>
+				<span>همه</span>
+				<small>{fa(total)}</small>
+			</button>
 			{decks.map((deck) => (
-				<button key={deck.id} type="button" aria-pressed={isOn(deck.id)} className={`gm-chip gm-deck${isOn(deck.id) ? ' on' : ''}`} onClick={() => toggle(deck.id)}>
-					<span>{deck.name}</span>
+				<button
+					key={deck.id}
+					type="button"
+					aria-pressed={!all && isOn(deck.id)}
+					className={`gm-chip gm-deck${!all && isOn(deck.id) ? ' on' : ''}${all ? ' in-all' : ''}`}
+					onClick={() => toggle(deck.id)}
+				>
+					<span>{deckLabel(deck.name)}</span>
 					<small>{fa(countOf(deck))}</small>
 				</button>
 			))}

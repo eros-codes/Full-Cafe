@@ -103,7 +103,7 @@ The rules live in one place on the server: `src/lib/roles.ts`. The admin UI mirr
 `client/admin/common/roles.ts` only to hide buttons; the server always checks. At least one active developer account
 always remains.
 
-**Passwords.** Every admin, staff included, changes their own password with «تغییر رمز» in the panel header; it asks
+**Passwords.** Every admin, staff included, changes their own password with «تغییر رمز من» in the account menu (top of the panel); it asks
 for the current password (`POST /api/admin/me/password`, ten wrong tries per account per 15 minutes). The admin list
 resets *someone else's* password (a forgotten one) and refuses your own. Either way the account's other open
 sessions end at once; the one that made the change stays signed in. The login limit counts wrong attempts only (eight
@@ -195,7 +195,7 @@ button, ends it: nothing of it is kept. Only a game interrupted by closing the b
 
 | Game | Players | How it works on one phone |
 | --- | --- | --- |
-| «جاسوس» | 3–12 | The phone goes round; everyone sees the place except the spy (two spies from 6 players). A timer, the list of possible places, «کارتم یادم رفت», a vote, and the caught spy's last guess. A spy may stop the game to name the place, after the phone has privately checked their card (a citizen knows the place). Points per round. |
+| «جاسوس» | 3–12 | The phone goes round; everyone sees the word except the spy, who only sees its topic (two spies from 6 players). The topics are the decks (places, animals, food, countries, …: 22 of them); the list of possible words comes from the word's own topic. A timer, «کارتم یادم رفت», a vote, and the caught spy's last guess. A spy may stop the game to name the word, after the phone has privately checked their card (a citizen knows the word). Points per round. |
 | «گوشی رو پیشونی» | 2–12 | The player holds the phone on the forehead; tilting it down = guessed, up = pass. Without a motion sensor (or permission), the friends tap the two buttons instead. |
 | «پانتومیم» | 2–4 teams | The actor sees the word and acts it out; «گفتن» / «رد». Either as many words as fit in the time, or one word per turn. |
 | «کلمات ممنوعه» | 2–4 teams | The describer sees the word and its forbidden words; an opponent watches and taps «خطا» (−1). |
@@ -206,6 +206,7 @@ button, ends it: nothing of it is kept. Only a game interrupted by closing the b
 | «منچ» | 2–4 | Ludo on the classic cross board; any player but the first can be the bot. Three house rules can be switched off. |
 | «شطرنج» | 1–2 | Chess with every rule, two players (the board fixed, or turned to whoever is to move) or against the bot with white, black or each colour in turn. Undo, resign, agreed draw. |
 | «تخته نرد» | 1–2 | Backgammon the Iranian way: no doubling cube, a «مارس» is worth 2 points, a match to 1, 3, 5 or 7. Two players or against the bot. **Off by default** (see below). |
+| «چکرز» | 1–2 | English draughts on 8×8: compulsory captures, chains of captures tapped square by square, kings, a draw after 40 quiet moves each. Two players or against the bot (two levels). |
 
 After every turn of the word games the cards are listed and a wrong tap can be fixed before the points are added.
 
@@ -249,17 +250,24 @@ any tap brings the sound back after a reload, a call or the lock screen.
 
 **Admin («بازی‌ها», manager only):** the switch for the whole page (off by default; when off, the page and every link to
 it disappear), each game on/off and the order of the list, and the **decks**. A deck is a list of cards, one per line,
-and can serve several games (places for «جاسوس», words for «گوشی رو پیشونی» and «پانتومیم»). For «کلمات ممنوعه» a line
+and can serve several games (topics for «جاسوس», words for «گوشی رو پیشونی» and «پانتومیم»). A deck is a topic: the players pick
+the topics before a game (all of them at first; a tap on one keeps only that one), and the part of a deck's name before
+«:» («کلمات ممنوعه: حیوانات») is not shown on the site. For «کلمات ممنوعه» a line
 is `کلمه: ممنوع، ممنوع، …` (up to 8 forbidden words); a card without them is not used in that game. A word game only
-appears on the site when its active decks hold enough cards (`GAMES` in `src/services/game-catalog.ts`: 10 places, 30
+appears on the site when its active decks hold enough cards (`GAMES` in `src/services/game-catalog.ts`: 10 spy words, 30
 words, 20 words, 20 cards). The «بازی‌ها» link in the site's drawer and footer only shows while the page is on.
 
-**Seed cards:** `prisma/seed-data/games.json` (13 decks, about 830 cards: places, Iranian landmarks, animals, food, jobs,
-objects, sports, everyday actions, TV series and cartoons, Iranian cities, proverbs, and two «کلمات ممنوعه» decks). Same
-line format as the editor and as `npm run db:export-games`. `npm run db:seed` creates them only when there is no deck
-yet; `npm run db:merge-games` adds the decks and cards of the file a running café does not have (matched by deck name
-and card text; nothing is changed or removed, so a card the café deleted comes back if it is still in the file).
-Review the words before showing the page to an audience.
+**Seed cards:** `prisma/seed-data/games.json`: 42 decks, about 3,600 cards. «جاسوس» has 22 topics (places, Iranian
+landmarks, cities, countries, animals, food, fruit and vegetables, jobs, objects, vehicles, clothes, instruments, the
+café, nature and weather, famous Iranians, story and cartoon characters, science and technology, celebrations, hobbies,
+sports); «کلمات ممنوعه» has 19 topics of cards with five forbidden words each (general, the café, food, animals, jobs,
+sport, home, the city, Iranian culture, science, art and cinema, literature and history, geography, school, health,
+travel, feelings, stories, proverbs). Topics that suit several games serve them all (the animals deck also feeds
+«گوشی رو پیشونی» and «پانتومیم»). Same line format as the editor and as `npm run db:export-games`. `npm run db:seed`
+creates them only when there is no deck yet; `npm run db:merge-games` adds the decks and cards of the file a running
+café does not have, and the games the file gives a deck it already has (matched by deck name and card text; nothing is
+changed or removed otherwise, so a card the café deleted comes back if it is still in the file). The words were chosen
+for a family audience (no alcohol, no living public figures or political names). Review the words before showing the page to an audience.
 
 **The forehead tilt** (`client/site/games/words/tilt.ts`): the phone's orientation (beta, gamma) gives how much the
 screen faces up, `cos(beta)·cos(gamma)`: 0 when the phone stands upright (portrait or landscape, either way round), so
@@ -274,7 +282,7 @@ saw lately, saved state, sounds, wake lock), `spy/` and `words/` (each with a pu
 `test/games-engine.test.ts`), `board/` (the board games: `tictactoe-rules.ts`, `connect4.ts`, `dots-rules.ts` are the pure rules
 and bots, unit-tested in `test/board-games.test.ts`; `kit.tsx` is their shared setup, players' bar and result), `mafia/`
 and `ludo/` (each a pure `engine.ts`, unit-tested in `test/mafia-ludo.test.ts`, and its screen), `chess/` and
-`backgammon/` (the same; tested in `test/chess-backgammon.test.ts`, chess with the standard perft counts). Adding
+`backgammon/` (the same; tested in `test/chess-backgammon.test.ts`, chess with the standard perft counts). «چکرز» lives with the other board games (`board/checkers-rules.ts` + `board/Checkers.tsx`, tested in `test/checkers.test.ts`). Adding
 a game: a key in `GAMES` (`src/services/game-catalog.ts`), its entry in `catalog.tsx`, its folder; no migration needed.
 
 ## Seed menu
@@ -377,7 +385,7 @@ client/                    the React pages (each page is its own small app with 
   shared/                  API helper, number formatting, icons, mount, storage
   site/                    about, menu (+ menu/recommender: engine, dialog, button), feedback, games (+ common header/drawer/footer)
   reserve/                 booking, payment, invoice, profile, track (+ common parts, floor map, CSS)
-  admin/                   login, panel (one component per section in sections/), CSS
+  admin/                   login, panel (one component per section in sections/), CSS (css/theme.css: colours, light + dark)
   public/                  fonts (self-hosted), images (+ images/brand: the logos), floor-map files — served at the site root
 scripts/                   simulate-recommender.ts, convert-images.ts (images:webp), apply-floor-map.ts (map:apply)
 test/                      node:test integration suite + recommender, games, board games, mafia/ludo and chess/backgammon unit tests
@@ -386,6 +394,34 @@ uploads/products/          product images uploaded from the admin panel (not in 
 
 Each page has a `page.css` that imports its stylesheets in cascade order, so a production build keeps exactly the
 order used in development, and the stylesheets of the café site, the reservation pages and the admin panel never mix.
+
+**The admin panel's look.** A side menu (sections grouped: operations, menu, site, café; a drawer on tablets and
+phones), a top bar with the page title, a light / dark switch and the account menu, and white cards. Colours, type and
+radii are variables in `client/admin/css/theme.css`, once for the light theme and once for the dark one; the panel
+follows the device until the switch is used, and the choice is kept in the browser (`client/public/admin-theme.js` sets
+it before the page draws). The floor map stays light in both themes, like a paper plan. The dashboard and reports draw
+their charts in SVG (`client/admin/common/charts.tsx`, no chart library); `GET /api/admin/dashboard` returns today's
+numbers, the last 7 days against the 7 before them, and a 14-day series.
+
+## Search engines, link previews, «add to home screen»
+
+All made from `src/brand.ts`, `APP_URL` and the panel's data (`src/web/seo.ts`), so a café built from the template gets
+its own without editing anything:
+
+| Address | What it is |
+|---|---|
+| `/robots.txt` | the public pages may be indexed; `/admin`, `/api/` and a guest's own pages (payment, invoice, profile, track) may not |
+| `/sitemap.xml` | the public pages: home, menu, reviews, booking, and the games page while it is switched on |
+| `/site.webmanifest` | name, colours and icons for «add to home screen» (right-to-left, Persian) |
+| `/icons/icon-192.png`, `/icons/icon-512.png`, `/icons/icon-maskable-512.png`, `/apple-touch-icon.png`, `/favicon.ico` | drawn from the logo files when first asked for |
+| `/og-image.png` | the picture of a shared link (Telegram, WhatsApp): the logo on the café's brown, 1200×630 |
+
+Every page's `<head>` also gets, when it is served: its own description, the canonical address, the link-preview tags
+(Open Graph), «noindex» on a guest's own pages, and on the home page the café as schema.org data (`CafeOrCoffeeShop`:
+address, phone, map pin, the panel's opening hours, menu and booking page). An address that is not a page shows the
+404 page (`client/site/not-found`) with status 404; before, it quietly went to the home page, which search engines
+count as a broken page. Set `APP_URL` to the real address (`https://…`) in production: the sitemap and the canonical
+links use it.
 
 ## Images
 

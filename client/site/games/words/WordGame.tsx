@@ -276,7 +276,7 @@ function WordSetup({
 				<Stepper label="تعداد دور" value={settings.rounds} min={limits.rounds.min} max={limits.rounds.max} onChange={(rounds) => set({ rounds })} />
 			</Field>
 			{decks.length > 1 && (
-				<Field label="کلمه‌ها از کدوم دسته‌ها؟">
+				<Field label="موضوع‌ها (یکی رو بزن تا فقط همون باشه)">
 					<DeckPicker decks={decks} value={settings.deckIds} onChange={(deckIds) => set({ deckIds })} countOf={countOf} />
 				</Field>
 			)}
