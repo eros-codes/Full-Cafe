@@ -10,6 +10,7 @@ import { RecommenderBoundary, RecommenderLauncher, RecommenderLoadingShell, prel
 import { addItem, clearOrder, decreaseItem, loadOrder, productQuantity, removeItem, totalQuantity, type OrderItem } from './order';
 import { useBump } from './useBump';
 import { BRAND } from '../../shared/brand';
+import { TableCall } from '../../shared/chrome/TableCall';
 
 // «انتخاب برای من»: its dialog (and the engine) load only when the feature is on, a few seconds after the page
 const RecommenderDialog = lazy(() => preloadDialog().then((module) => ({ default: module.RecommenderDialog })));
@@ -318,6 +319,8 @@ export function MenuPage() {
 					</Suspense>
 				</RecommenderBoundary>
 			)}
+			{/* «صدا کردن گارسون»: only after a table's QR code was scanned */}
+			<TableCall />
 		</>
 	);
 }

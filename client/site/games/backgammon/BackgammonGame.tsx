@@ -50,8 +50,12 @@ interface BgMatch {
 	start: BgBoard;
 	roll: [number, number] | null;
 	made: BgMove[];
-	/** The opening throw, shown until the starter has played it. */
+	/** The opening throw (one die each: index = player), shown until the starter throws their own dice. */
 	opening: [number, number] | null;
+	/** How many opening throws were equal and thrown again (said in the status line). */
+	openingTies?: number;
+	/** A later game of the match: its first throw belongs to the winner of the game before (said in the status line). */
+	winnerStarts?: boolean;
 	result: { winner: Player; points: number; matchOver: boolean } | null;
 }
 
@@ -59,7 +63,8 @@ const RULES = (
 	<>
 		<p>هر کی زودتر هر ۱۵ مهره‌اش رو دور بزنه و از خونه‌ی خودش بیرون ببره، برنده‌ست.</p>
 		<ul>
-			<li>شروع: هر کدوم یه تاس می‌ندازید؛ عدد بزرگ‌تر شروع می‌کنه و با همون دو عدد بازی می‌کنه.</li>
+			<li>شروع: هر کدوم یه تاس می‌ندازید (مساوی اومد، دوباره)؛ عدد بزرگ‌تر شروع می‌کنه و خودش دوباره دو تاس می‌ندازه.</li>
+			<li>اگه بازی چند دسته، از دست دوم به بعد برنده‌ی دست قبل اول تاس می‌ندازه.</li>
 			<li>هر عدد تاس یه حرکته؛ جفت یعنی چهار حرکت. تا جایی که می‌شه باید هر دو عدد بازی بشه؛ اگه فقط یکی جا بشه، عدد بزرگ‌تر.</li>
 			<li>روی خونه‌ای که حریف دو مهره یا بیشتر داره نمی‌شه نشست. مهره‌ی تکِ حریف رو بزنی، می‌ره روی بار و باید اول از خونه‌ی تو وارد بشه.</li>
 			<li>وقتی همه‌ی مهره‌ها توی خونه‌ی خودت باشن، می‌تونی بیرون ببری. عدد بزرگ‌تر فقط وقتی از دورترین مهره بیرون می‌بره که پشتش مهره‌ای نباشه.</li>
@@ -108,9 +113,26 @@ function isBgMatch(value: unknown): boolean {
 	return true;
 }
 
-function newGame(match: BgMatch, round: number): BgMatch {
+/**
+ * A new game of the match. The first game opens with one die each (the higher starts); every game after it is
+ * started by the winner of the game before (`starter`), who throws first, as it is played in Iran.
+ */
+function newGame(match: BgMatch, round: number, starter: Player | null = null): BgMatch {
 	const board = newBgBoard();
-	return { ...match, round, phase: 'play', stage: 'opening', turn: 0, board, start: board, roll: null, made: [], opening: null, result: null };
+	return {
+		...match,
+		round,
+		phase: 'play',
+		stage: starter === null ? 'opening' : 'turn',
+		turn: starter ?? 0,
+		board,
+		start: board,
+		roll: null,
+		made: [],
+		opening: null,
+		winnerStarts: starter !== null,
+		result: null,
+	};
 }
 
 export default function BackgammonGame({ onExit }: { onExit: () => void }) {
@@ -187,7 +209,7 @@ function BgPlay({ match, setMatch }: { match: BgMatch; setMatch: (m: BgMatch) =>
 	// a checker on the bar is the only one that can move: picked by itself
 	const source: Spot | null = board.bar[turn] > 0 && allowed.some((m) => m.from === 'bar') ? 'bar' : selected;
 
-	const pass = (m: BgMatch) => setMatch({ ...m, turn: m.turn === 0 ? 1 : 0, roll: null, made: [], start: m.board, opening: null });
+	const pass = (m: BgMatch) => setMatch({ ...m, turn: m.turn === 0 ? 1 : 0, roll: null, made: [], start: m.board, opening: null, openingTies: 0 });
 
 	const move = (m: BgMove) => {
 		const nextBoard = applyBgMove(board, turn, m);
@@ -211,9 +233,10 @@ function BgPlay({ match, setMatch }: { match: BgMatch; setMatch: (m: BgMatch) =>
 		playSound('tap');
 		setSelected(null);
 		if (stage === 'opening') {
+			// one die each decides who starts; the starter then throws their own two dice (before: they played these)
 			const first = openingRoll();
-			setMatch({ ...match, stage: 'turn', turn: first.starter, roll: first.dice, opening: first.dice, made: [], start: board });
-		} else setMatch({ ...match, roll: [rollDie(), rollDie()], made: [], start: board });
+			setMatch({ ...match, stage: 'turn', turn: first.starter, roll: null, opening: first.dice, openingTies: first.rolls.length - 1, made: [], start: board });
+		} else setMatch({ ...match, roll: [rollDie(), rollDie()], opening: null, openingTies: 0, winnerStarts: false, made: [], start: board });
 	};
 
 	// what happens by itself: the bot's turn, and a turn with no possible move
@@ -222,7 +245,8 @@ function BgPlay({ match, setMatch }: { match: BgMatch; setMatch: (m: BgMatch) =>
 		let timer: number | undefined;
 		if (blocked) timer = window.setTimeout(() => pass(match), 1500);
 		else if (botTurn) {
-			if (roll === null) timer = window.setTimeout(throwDice, 700);
+			// after the opening, a moment to see who won it before the bot throws
+			if (roll === null) timer = window.setTimeout(throwDice, match.opening ? 1800 : 700);
 			else if (complete) timer = window.setTimeout(() => pass(match), 700);
 			else {
 				const key = `${match.round}|${boardKey(match.start)}|${roll.join()}`;
@@ -259,7 +283,10 @@ function BgPlay({ match, setMatch }: { match: BgMatch; setMatch: (m: BgMatch) =>
 	let status: string;
 	if (phase === 'over') status = `دست ${fa(match.round)} · ${fa(match.wins[0])} – ${fa(match.wins[1])}`;
 	else if (stage === 'opening') status = 'تاس اول: هر کی عدد بزرگ‌تر بیاره شروع می‌کنه';
-	else if (match.opening && !made.length) status = `${names[turn]} شروع می‌کنه (${fa(match.opening[turn])} در برابر ${fa(match.opening[turn === 0 ? 1 : 0])})`;
+	else if (match.opening && roll === null)
+		status = `${match.openingTies ? 'مساوی اومد و دوباره انداختید؛ ' : ''}${names[turn]} شروع می‌کنه (${fa(match.opening[turn])} در برابر ${fa(match.opening[turn === 0 ? 1 : 0])})${botTurn ? '' : '؛ تاس بنداز'}`;
+	else if (match.winnerStarts && roll === null)
+		status = botTurn ? 'ربات دست قبل رو برد و اول تاس می‌ندازه…' : `${names[turn]} دست قبل رو برد و اول تاس می‌ندازه`;
 	else if (roll === null) status = botTurn ? 'ربات داره تاس می‌ندازه…' : `نوبت ${names[turn]}: تاس بنداز`;
 	else if (blocked) status = `${fa(roll[0])} و ${fa(roll[1])} اومد؛ حرکتی نداری`;
 	else if (complete) status = botTurn ? 'ربات بازی کرد' : 'تموم شد؟ «تموم» رو بزن، یا برگردون';
@@ -336,8 +363,18 @@ function BgPlay({ match, setMatch }: { match: BgMatch; setMatch: (m: BgMatch) =>
 			</button>
 		) : roll === null ? (
 			<button type="button" className="bg-roll" onClick={throwDice} disabled={botTurn || phase !== 'play'}>
-				<Die value={6} player={turn} />
-				<Die value={3} player={turn} />
+				{match.opening ? (
+					// the opening dice, each in its player's colour, until the starter throws
+					<>
+						<Die value={match.opening[0]} player={0} />
+						<Die value={match.opening[1]} player={1} />
+					</>
+				) : (
+					<>
+						<Die value={6} player={turn} />
+						<Die value={3} player={turn} />
+					</>
+				)}
 				<span>تاس بنداز</span>
 			</button>
 		) : (
@@ -402,7 +439,14 @@ function BgPlay({ match, setMatch }: { match: BgMatch; setMatch: (m: BgMatch) =>
 							? `${match.result.points === 2 ? 'مارس! ' : ''}بازی تموم شد: ${fa(match.wins[match.result.winner])} به ${fa(match.wins[match.result.winner === 0 ? 1 : 0])}`
 							: `${match.result.points === 2 ? 'مارس! ۲ امتیاز' : '۱ امتیاز'} · ${fa(match.wins[0])} – ${fa(match.wins[1])} (تا ${fa(settings.target)})`
 					}
-					onNext={() => setMatch(newGame(match.result?.matchOver ? { ...match, wins: [0, 0] } : match, match.round + 1))}
+					// a new match opens with one die each; the next game of the same match: the winner throws first
+					onNext={() =>
+						setMatch(
+							match.result?.matchOver
+								? newGame({ ...match, wins: [0, 0] }, match.round + 1)
+								: newGame(match, match.round + 1, match.result ? match.result.winner : null),
+						)
+					}
 					onSetup={() => setMatch({ ...match, phase: 'setup' })}
 				/>
 			)}

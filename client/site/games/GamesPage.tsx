@@ -7,6 +7,7 @@ import { clearSave, hasLiveSave } from './kit/persist';
 import { exitFullscreen } from './kit/screen';
 import { installAudioUnlock } from './kit/sound';
 import { BRAND } from '../../shared/brand';
+import { TableCall } from '../../shared/chrome/TableCall';
 
 // /games: the list of games, and the game being played. A game opens in place (its address gets #spy,
 // #heads_up, …), so the phone's back button returns to the list and a reload stays in the game.
@@ -229,6 +230,8 @@ export function GamesPage() {
 			</div>
 			<SiteFooter links={['about', 'menu', 'reserve', 'feedback']} />
 			<MobileDrawer drawer={drawer} links={['menu', 'about', 'contact', 'feedback', 'reserve']} />
+			{/* «صدا کردن گارسون» in the list of games (not over a game being played) */}
+			<TableCall />
 		</>
 	);
 }

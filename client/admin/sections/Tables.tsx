@@ -22,6 +22,18 @@ export function Tables({ tables, canEditMap, canToggleTables, reload, openDialog
 	const mapRef = useRef<FloorMapHandle>(null);
 	const [mapNotice, setMapNotice] = useState<{ type: string; text: string } | null>(null);
 	const [listError, setListError] = useState<string | null>(null);
+	const [codesNotice, setCodesNotice] = useState<{ type: string; text: string } | null>(null);
+
+	// new QR codes for every table: the printed ones (and any photo of them) stop working
+	const replaceCodes = async () => {
+		if (!window.confirm('کد QR همه‌ی میزها عوض شود؟ برگه‌های چاپ‌شده‌ی فعلی دیگر کار نمی‌کنند و باید دوباره چاپ شوند.')) return;
+		try {
+			const { message } = await adminApi<{ message: string }>('/api/admin/table-codes/replace', { method: 'POST', body: {} });
+			setCodesNotice({ type: 'ok', text: message });
+		} catch (error) {
+			setCodesNotice({ type: 'danger', text: errorText(error) });
+		}
+	};
 
 	useEffect(() => {
 		if (!mapNotice || mapNotice.type === 'danger') return;
@@ -75,12 +87,26 @@ export function Tables({ tables, canEditMap, canToggleTables, reload, openDialog
 				</section>
 			</div>
 			<div className="admin-table-list-head">
-				<h4>فهرست میزها</h4>
-				<span id="tableCount">{`${fa(tables.length)} میز`}</span>
-				<button type="button" id="addTableBtn" className="primary-btn" hidden={!canEditMap} onClick={() => canEditMap && openDialog({ mode: 'create', zone: 'WINDOW' })}>
-					+ افزودن میز
-				</button>
+				<div>
+					<h4>فهرست میزها</h4>
+					<span id="tableCount">{`${fa(tables.length)} میز`}</span>
+				</div>
+				<div className="btn-row">
+					{/* «صدا کردن گارسون»: the QR code of every table, ready to print */}
+					<a className="secondary-btn" href="/admin/table-qr" target="_blank" rel="noopener">
+						چاپ QR میزها
+					</a>
+					{canToggleTables && (
+						<button type="button" className="ghost-btn" onClick={replaceCodes} title="اگر کدی از کافه بیرون رفته (عکس برگه)، همه را عوض کن و دوباره چاپ کن">
+							عوض کردن کدها
+						</button>
+					)}
+					<button type="button" id="addTableBtn" className="primary-btn" hidden={!canEditMap} onClick={() => canEditMap && openDialog({ mode: 'create', zone: 'WINDOW' })}>
+						+ افزودن میز
+					</button>
+				</div>
 			</div>
+			{codesNotice && <div className={`notice ${codesNotice.type}`} style={{ marginBottom: '12px' }}>{codesNotice.text}</div>}
 			<div id="tableBox">
 				<div id="tableListNotice" className={listError ? 'notice danger' : undefined}>
 					{listError}

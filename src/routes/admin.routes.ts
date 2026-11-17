@@ -21,6 +21,7 @@ import { findConflictingReservations } from '../services/availability.service.js
 import { reservationsInClosure, reservationsOutsideHours } from '../services/schedule-impact.service.js';
 import { ON_PLAN, removeFromPlan, upcomingBookingsOn } from '../services/floor-plan.service.js';
 import { createHttpError, prismaCode } from '../lib/http-error.js';
+import { adminCalls, handleCall, onCallsChanged, replaceAllCodes } from '../services/waiter-call.service.js';
 import { currentAdmin } from '../lib/request.js';
 import { config } from '../config.js';
 
@@ -92,6 +93,58 @@ adminRouter.use(adminMenuRouter);
 adminRouter.use(adminTagsRouter);
 // بخش بازی‌ها: بازی‌های روشن و دسته‌کارت‌های بازی‌های کلمه‌ای
 adminRouter.use(adminGamesRouter);
+
+// ─── «صدا کردن گارسون» (every role: whoever is on the floor answers) ─────────
+
+adminRouter.get('/waiter-calls', async (_req, res, next) => {
+	try {
+		res.json(await adminCalls());
+	} catch (error) {
+		next(error);
+	}
+});
+
+adminRouter.patch('/waiter-calls/:id', async (req, res, next) => {
+	try {
+		const done = await handleCall(req.params.id, currentAdmin(req).id);
+		if (!done) return res.status(404).json({ message: 'این درخواست قبلاً رسیدگی شده یا لغو شده.' });
+		res.json(await adminCalls());
+	} catch (error) {
+		next(error);
+	}
+});
+
+/**
+ * The panel's live line (server-sent events): «changed» whenever a call comes, is answered or cancelled, and a
+ * comment every 25 s so proxies keep the connection open. The panel then reads /waiter-calls again.
+ */
+adminRouter.get('/waiter-calls/stream', (req, res) => {
+	res.writeHead(200, {
+		'Content-Type': 'text/event-stream; charset=utf-8',
+		// no-transform: the compression layer leaves the stream alone (it would hold the events back)
+		'Cache-Control': 'no-cache, no-transform',
+		Connection: 'keep-alive',
+		// nginx: pass every event at once
+		'X-Accel-Buffering': 'no',
+	});
+	res.write('retry: 5000\n\n');
+	const stop = onCallsChanged(() => res.write('event: changed\ndata: {}\n\n'));
+	const beat = setInterval(() => res.write(': keep-alive\n\n'), 25_000);
+	req.on('close', () => {
+		stop();
+		clearInterval(beat);
+	});
+});
+
+/** New QR codes for every table (the manager): the printed ones stop working. */
+adminRouter.post('/table-codes/replace', requireRole(...ROLE_GROUPS.tableToggle), async (_req, res, next) => {
+	try {
+		const count = await replaceAllCodes();
+		res.json({ message: `کد QR ${count.toLocaleString('fa-IR')} میز عوض شد؛ برگه‌ی تازه را چاپ کنید.` });
+	} catch (error) {
+		next(error);
+	}
+});
 
 /** Days in the dashboard's charts: two weeks, so this week can be set against the one before. */
 const SERIES_DAYS = 14;

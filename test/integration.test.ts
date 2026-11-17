@@ -2029,4 +2029,108 @@ describe('Roof API (integration)', { skip }, () => {
 			assert.match(refused.json.message, /RSV-900000204/);
 		});
 	});
+
+	describe('«صدا کردن گارسون» (QR code on the table)', () => {
+		const svc = () => import('../src/services/waiter-call.service.js');
+		let token = '';
+		let hours: { dayOfWeek: number; opensAt: string; closesAt: string; isClosed: boolean }[] = [];
+
+		before(async () => {
+			const { tablesWithCodes } = await svc();
+			const list = await tablesWithCodes();
+			token = list.find((t) => t.id === tables.a.id)!.callCode!.token;
+			// calls are only taken while the café is open: open all day for these tests, the real hours back after
+			hours = await prisma.workingHour.findMany();
+			await prisma.workingHour.updateMany({ data: { opensAt: '00:00', closesAt: '24:00', isClosed: false } });
+		});
+
+		after(async () => {
+			for (const h of hours) await prisma.workingHour.update({ where: { dayOfWeek: h.dayOfWeek }, data: h });
+		});
+
+		test('the code is a random token, never in the table rows the site or a reservation shows', async () => {
+			assert.match(token, /^[\w-]{12}$/);
+			const publicTables = await client().get('/api/tables');
+			assert.ok(!publicTables.text.includes(token), 'not on the booking map');
+			assert.ok(!(await dev.get('/api/admin/tables')).text.includes(token), 'not in the admin table list either');
+			assert.equal((await client().get('/api/table-call/not-a-real-token')).status, 404);
+			const view = await client().get(`/api/table-call/${token}`);
+			assert.equal(view.status, 200);
+			assert.equal(view.json.table.displayNumber, tables.a.displayNumber);
+			assert.equal(view.json.table.id, undefined, 'the guest gets the number, not the table id');
+		});
+
+		test('a guest calls; the same call twice is one call; a new one waits for the cooldown; the panel answers', async () => {
+			const guest = client();
+			assert.equal((await guest.post(`/api/table-call/${token}`, { kind: 'COFFEE' })).status, 400);
+			const first = await guest.post(`/api/table-call/${token}`, { kind: 'WAITER' });
+			assert.equal(first.status, 201, first.text);
+			const again = await guest.post(`/api/table-call/${token}`, { kind: 'WAITER' });
+			assert.equal(again.json.call.id, first.json.call.id, 'pressed twice: still one call');
+			const bill = await guest.post(`/api/table-call/${token}`, { kind: 'BILL' });
+			assert.equal(bill.status, 429, 'another kind right after: wait a little');
+			assert.match(bill.json.message, /صبر/);
+
+			const list = await dev.get('/api/admin/waiter-calls');
+			assert.equal(list.status, 200);
+			const mine = list.json.open.find((c: { id: string }) => c.id === first.json.call.id);
+			assert.equal(mine.table.displayNumber, tables.a.displayNumber);
+			assert.equal(mine.kind, 'WAITER');
+
+			const handled = await dev.patch(`/api/admin/waiter-calls/${mine.id}`, {});
+			assert.equal(handled.status, 200);
+			assert.ok(handled.json.done.some((c: { id: string; handledBy: { name: string } }) => c.id === mine.id && c.handledBy));
+			assert.equal((await dev.patch(`/api/admin/waiter-calls/${mine.id}`, {})).status, 404, 'answered once');
+			const seen = await guest.get(`/api/table-call/${token}`);
+			assert.equal(seen.json.calls[0].status, 'DONE', 'the guest sees it was answered');
+		});
+
+		test('a guest may take a call back; outside the working hours nothing is sent', async () => {
+			const { createCall, cancelCall } = await svc();
+			await prisma.waiterCall.deleteMany({ where: { tableId: tables.b.id } });
+			const made = await createCall(tables.b.id, 'BILL');
+			assert.ok(made.ok);
+			assert.ok(await cancelCall(tables.b.id, made.ok ? made.call.id : ''));
+			assert.equal((await prisma.waiterCall.findFirst({ where: { tableId: tables.b.id } }))?.status, 'CANCELLED');
+			await prisma.workingHour.updateMany({ data: { isClosed: true } });
+			const closed = await createCall(tables.c.id, 'WAITER');
+			assert.equal(closed.ok, false);
+			assert.equal(closed.ok ? 0 : closed.status, 409);
+			await prisma.workingHour.updateMany({ data: { isClosed: false } });
+		});
+
+		test('the panel hears a call at once (live line), and the QR sheet is for admins only', async () => {
+			const controller = new AbortController();
+			const cookie = [...dev.jar].map(([k, v]) => `${k}=${v}`).join('; ');
+			const stream = await fetch(`${base}/api/admin/waiter-calls/stream`, { headers: { cookie }, signal: controller.signal });
+			assert.equal(stream.status, 200);
+			assert.match(stream.headers.get('content-type') ?? '', /event-stream/);
+			const reader = stream.body!.getReader();
+			const { notifyCallsChanged } = await svc();
+			let text = '';
+			const readUntil = async () => {
+				while (!text.includes('event: changed')) {
+					const { value, done } = await reader.read();
+					if (done) break;
+					text += new TextDecoder().decode(value);
+				}
+			};
+			setTimeout(() => notifyCallsChanged(), 50);
+			await readUntil();
+			assert.match(text, /event: changed/);
+			controller.abort();
+
+			const anonymous = await client().get('/admin/table-qr');
+			assert.equal(anonymous.status, 302);
+			assert.equal(anonymous.headers.get('location'), '/admin/login');
+			const sheet = await dev.get('/admin/table-qr');
+			assert.equal(sheet.status, 200);
+			assert.match(sheet.text, /<svg/);
+			assert.ok(sheet.text.includes(`میز`));
+
+			const replaced = await dev.post('/api/admin/table-codes/replace', {});
+			assert.equal(replaced.status, 200);
+			assert.equal((await client().get(`/api/table-call/${token}`)).status, 404, 'the old sticker stops working');
+		});
+	});
 });

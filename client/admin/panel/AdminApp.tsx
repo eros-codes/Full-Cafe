@@ -8,6 +8,7 @@ import { ADMIN_ICONS } from '../common/icons';
 import { OwnPasswordDialog } from '../common/OwnPasswordDialog';
 import { ROLE_FA, can, type Admin } from '../common/roles';
 import { useTheme } from '../common/theme';
+import { WaiterCallBell, WaiterCallToasts, useWaiterCalls } from '../common/WaiterCalls';
 import { Notice, Skeleton, useFlash } from '../common/ui';
 import { AddOns } from '../sections/AddOns';
 import { Admins } from '../sections/Admins';
@@ -225,6 +226,8 @@ export function AdminApp() {
 	const [counts, setCounts] = useState<{ action: number; reviews: number } | null>(null);
 	const banner = useFlash();
 	const { theme, toggle: toggleTheme } = useTheme();
+	// «صدا کردن گارسون»: the guests' calls, live (every role)
+	const waiterCalls = useWaiterCalls(Boolean(admin));
 	const burgerRef = useRef<HTMLButtonElement>(null);
 	const navRef = useRef<HTMLElement>(null);
 	// the dark pill behind the open section in the side menu: it slides to the next one (placed without sliding the first time)
@@ -431,6 +434,7 @@ export function AdminApp() {
 							<p>{greeting ? `${todayFa()} · خلاصه‌ی امروز کافه` : admin ? `${GROUP_OF[active]} · ${BRAND.cafeFa}` : meError ? BRAND.cafeFa : 'در حال بارگذاری...'}</p>
 						</div>
 						<div className="adm-top-actions">
+							{admin && <WaiterCallBell calls={waiterCalls} />}
 							<button
 								type="button"
 								className="icon-btn"
@@ -566,6 +570,7 @@ export function AdminApp() {
 					</main>
 				</div>
 			</div>
+			{admin && <WaiterCallToasts calls={waiterCalls} />}
 			{admin && passwordOpen && (
 				<OwnPasswordDialog
 					me={admin}

@@ -1,12 +1,15 @@
 import { Component, useEffect, useState, type ReactNode, type RefObject } from 'react';
+import { safeStorage } from '../../../shared/storage';
 import { useLatest } from '../../../shared/useLatest';
 import { fetchRecommenderStatus } from './data';
 import { SPARK_ICON } from './icons';
 
-// The way into «انتخاب برای من»: a round button at the bottom right of the menu. It arrives a few seconds after
-// the page (not at once), opens into the sentence «نمی‌دونی چی انتخاب کنی؟» for about two seconds, and goes back
-// to a circle; hovering or focusing it opens the sentence again. Only shown when the café switched the
-// feature on and there is something to suggest.
+// The way into «انتخاب برای من»: a round button at the bottom right of the menu. It arrives three seconds after
+// the page (just as «صدا کردن گارسون» on the left closes back into its circle, for a guest who scanned a table's
+// QR code), opens into the sentence «نمی‌دونی چی انتخاب کنی؟» for about two seconds and goes back to a circle.
+// The sentence only the first time: on the next pages and visits within 12 hours the circle comes alone.
+// Hovering or focusing it opens the sentence again. Only shown when the café switched the feature on and there is
+// something to suggest.
 
 const BUBBLE = 'نمی‌دونی چی انتخاب کنی؟';
 /** After the page loads, when the circle arrives. */
@@ -14,7 +17,18 @@ const ARRIVE_MS = 3000;
 /** Then, when it opens into the sentence… */
 const OPEN_MS = ARRIVE_MS + 600;
 /** …and for how long the whole sentence stays (the opening animation takes about half a second of it). */
-const SENTENCE_MS = 2500;
+const SENTENCE_MS = 2000;
+
+/** The sentence is shown once; after this many hours (another visit) once again. */
+const SENTENCE_AGAIN_HOURS = 12;
+const SENTENCE_KEY = 'recommender-sentence-seen';
+
+function sentenceSeen(): boolean {
+	const at = Number(safeStorage.get(SENTENCE_KEY));
+	return Number.isFinite(at) && at > 0 && Date.now() - at < SENTENCE_AGAIN_HOURS * 3600_000;
+}
+
+const markSentenceSeen = () => safeStorage.set(SENTENCE_KEY, String(Date.now()));
 
 /** Warms the dialog's code while the customer is still looking at the menu. */
 export const preloadDialog = () => import('./RecommenderDialog');
@@ -46,9 +60,14 @@ export function RecommenderLauncher({ hidden, onOpen, buttonRef }: Props) {
 
 	useEffect(() => {
 		if (!enabled) return;
-		const arrive = window.setTimeout(() => setArrived(true), ARRIVE_MS);
-		const show = window.setTimeout(() => setExpanded(true), OPEN_MS);
-		const hide = window.setTimeout(() => setExpanded(false), OPEN_MS + SENTENCE_MS);
+		// the sentence only the first time (for SENTENCE_AGAIN_HOURS): afterwards the circle comes without it
+		const withSentence = !sentenceSeen();
+		if (withSentence) markSentenceSeen();
+		// counted from the page's load (not from this answer), so it lands exactly as «صدا کردن گارسون» closes
+		const since = Math.max(0, ARRIVE_MS - performance.now());
+		const arrive = window.setTimeout(() => setArrived(true), since);
+		const show = withSentence ? window.setTimeout(() => setExpanded(true), since + OPEN_MS - ARRIVE_MS) : undefined;
+		const hide = withSentence ? window.setTimeout(() => setExpanded(false), since + OPEN_MS - ARRIVE_MS + SENTENCE_MS) : undefined;
 		const preload = window.setTimeout(() => void preloadDialog().catch(() => undefined), 2500);
 		return () => {
 			window.clearTimeout(arrive);

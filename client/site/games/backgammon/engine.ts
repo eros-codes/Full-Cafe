@@ -169,7 +169,11 @@ export const gamePoints = (board: BgBoard, winner: Player) => (board.off[opponen
 
 export const rollDie = (rng: Rng = Math.random) => 1 + Math.floor(rng() * 6);
 
-/** The opening: each player throws one die until they differ; the higher starts and plays both numbers. */
+/**
+ * The opening: each player throws one die until they differ; the higher starts, and then throws their own two
+ * dice (the Iranian way; `dice` is only the opening pair, shown to the players). Later games of a match are
+ * started by the previous game's winner, without an opening.
+ */
 export function openingRoll(rng: Rng = Math.random): { rolls: [number, number][]; starter: Player; dice: [number, number] } {
 	const rolls: [number, number][] = [];
 	for (;;) {

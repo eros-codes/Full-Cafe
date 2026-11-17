@@ -18,6 +18,7 @@ import { trackSiteVisit } from './middleware/site-visit.js';
 import { PRODUCTS_DIR, PRODUCTS_URL } from './lib/uploads.js';
 import { clientFiles, legacyRedirects, serveNotFound, servePage } from './web/frontend.js';
 import { seoRouter } from './web/seo.js';
+import { tableCallRouter } from './routes/table-call.routes.js';
 
 // Pages (React, see client/ and src/web/pages.ts):
 //   /, /menu, /feedback, /games             → café site
@@ -89,6 +90,8 @@ app.get('/health', (_req, res) => res.json({ ok: true, service: 'roof' }));
 app.use(legacyRedirects);
 // robots.txt, sitemap.xml, the web manifest, the icons and the link-preview picture (src/web/seo.ts)
 app.use(seoRouter);
+// «صدا کردن گارسون»: the guest's API (/api/table-call/…) and the QR sheet (/admin/table-qr)
+app.use(tableCallRouter);
 app.use(trackSiteVisit);
 // Every product photo gets a new, unique file name (a changed photo is a new file), so a name's content never changes:
 // browsers may keep it for a year without asking again.

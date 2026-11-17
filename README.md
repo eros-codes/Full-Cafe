@@ -403,6 +403,30 @@ it before the page draws). The floor map stays light in both themes, like a pape
 their charts in SVG (`client/admin/common/charts.tsx`, no chart library); `GET /api/admin/dashboard` returns today's
 numbers, the last 7 days against the 7 before them, and a 14-day series.
 
+## «صدا کردن گارسون» (QR code on each table)
+
+Every table has a QR code (`/menu?table=<token>`). A guest who scans it sees a button at the bottom left of the café's
+pages (menu, About, reviews, the list of games; not over a game being played): «میز ۱۲ · صدا کردن گارسون». It asks for
+the waiter or the bill, and then shows the call's state («گارسون داره میاد» once someone answered it). Without a scan
+there is no button. The scan is remembered for 4 hours and taken out of the address bar.
+
+In the panel (every role) a bell in the top bar counts the open calls and lists them with «رسیدگی شد»; a new call
+rings (two soft notes, after the first click in the panel: browsers only play sound after that), shows a card at the
+top of the screen and puts the count in the tab's title. The panel hears calls at once over a live line
+(`GET /api/admin/waiter-calls/stream`, server-sent events; behind nginx it needs no buffering, which the response
+asks for with `X-Accel-Buffering: no`). Keep the panel open on a phone or tablet at the counter.
+
+**Printing the codes:** «مدیریت میزها» → «چاپ QR میزها» (`/admin/table-qr`): one card per table (logo, number, hall),
+three to an A4 page. The codes point at `APP_URL`, so print them once it is the real address.
+
+**Against pranks:** the token is random and kept in its own table (`TableCallCode`), never sent with the table rows the
+site shows; «عوض کردن کدها» (manager) replaces every code, and the old stickers stop working. One open call of each
+kind per table, 30 seconds between a table's calls, 20 per address per 10 minutes, and only during the working hours
+(with half an hour's margin). A call nobody answered for 20 minutes no longer blocks the table.
+
+Code: `src/services/waiter-call.service.ts`, `src/routes/table-call.routes.ts`, `client/shared/chrome/TableCall.tsx`,
+`client/admin/common/WaiterCalls.tsx`.
+
 ## Search engines, link previews, «add to home screen»
 
 All made from `src/brand.ts`, `APP_URL` and the panel's data (`src/web/seo.ts`), so a café built from the template gets

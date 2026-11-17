@@ -100,11 +100,12 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  createdCategories Category[] @relation("categoriesCreated")
-  updatedCategories Category[] @relation("categoriesUpdated")
-  createdProducts   Product[]  @relation("productsCreated")
-  updatedProducts   Product[]  @relation("productsUpdated")
-  updatedReviews    Review[]   @relation("reviewsUpdated")
+  createdCategories Category[]   @relation("categoriesCreated")
+  updatedCategories Category[]   @relation("categoriesUpdated")
+  createdProducts   Product[]    @relation("productsCreated")
+  updatedProducts   Product[]    @relation("productsUpdated")
+  updatedReviews    Review[]     @relation("reviewsUpdated")
+  handledCalls      WaiterCall[]
 }
 
 model OtpCode {
@@ -146,6 +147,46 @@ model CafeTable {
   blockedClosures Closure[]
   connectionsA    TableConnection[]  @relation("ConnectionA")
   connectionsB    TableConnection[]  @relation("ConnectionB")
+  callCode        TableCallCode?
+  waiterCalls     WaiterCall[]
+}
+
+// ─── «صدا کردن گارسون»: the QR code on each table ────────────────────────────
+
+/// The secret in a table's QR code (/menu?table=…). A table of its own, so the token is never sent along with the
+/// table rows the site shows (booking map, a guest's reservations): only the QR sheet in the panel reads it.
+model TableCallCode {
+  tableId   String    @id
+  table     CafeTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  createdAt DateTime  @default(now())
+}
+
+enum WaiterCallKind {
+  WAITER
+  BILL
+}
+
+enum WaiterCallStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
+/// A guest at a table asking for the waiter or the bill (src/services/waiter-call.service.ts).
+model WaiterCall {
+  id          String           @id @default(cuid())
+  tableId     String
+  table       CafeTable        @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  kind        WaiterCallKind
+  status      WaiterCallStatus @default(OPEN)
+  createdAt   DateTime         @default(now())
+  handledAt   DateTime?
+  handledById String?
+  handledBy   AdminUser?       @relation(fields: [handledById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([tableId, createdAt])
 }
 
 model TableConnection {
